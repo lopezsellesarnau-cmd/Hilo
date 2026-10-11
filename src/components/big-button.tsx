@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { PressScale } from '@/components/press-scale';
 
 import { colors, fontSize, fontWeight, size } from '@/theme';
 
@@ -18,12 +20,12 @@ type Props = {
 export function BigButton({ label, onPress, variant = 'fill', detail, icon, accessibilityHint }: Props) {
   const outline = variant === 'outline';
   return (
-    <Pressable
+    <PressScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={detail ? `${label}, ${detail}` : label}
       accessibilityHint={accessibilityHint}
-      style={({ pressed }) => [styles.base, outline ? styles.outline : styles.fill, pressed && styles.pressed]}>
+      style={[styles.base, outline ? styles.outline : styles.fill]}>
       {outline ? (
         <View style={styles.rowSpread}>
           <Text style={styles.label} numberOfLines={2}>
@@ -42,7 +44,7 @@ export function BigButton({ label, onPress, variant = 'fill', detail, icon, acce
           </Text>
         </View>
       )}
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -64,9 +66,6 @@ const styles = StyleSheet.create({
     borderColor: colors.sage,
     paddingLeft: 24,
     paddingRight: 20,
-  },
-  pressed: {
-    opacity: 0.75,
   },
   rowCenter: {
     flexDirection: 'row',

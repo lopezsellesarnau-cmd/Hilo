@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot, type BotMood } from '@/components/bot';
+import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { sampleTalk } from '@/data/sample';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
@@ -75,7 +77,8 @@ export default function TalkScreen() {
 
         <View style={styles.controls}>
           {current.input === 'hold' && yourTurn ? (
-            <Pressable
+            <PressScale
+              animateColor
               onPressIn={() => mood === 'idle' && setMood('listening')}
               onPressOut={() => {
                 if (mood !== 'listening') return;
@@ -86,10 +89,10 @@ export default function TalkScreen() {
               accessibilityLabel="Mantén pulsado para hablar"
               accessibilityHint="Mantén el botón pulsado mientras hablas y suéltalo al terminar"
               style={[styles.hold, mood === 'listening' && styles.holdOn]}>
-              <Text style={[styles.holdText, mood === 'listening' && styles.holdTextOn]}>
+              <Animated.Text style={[styles.holdText, mood === 'listening' && styles.holdTextOn, styles.smoothText]}>
                 {mood === 'listening' ? 'Suelta cuando acabes' : 'Mantén pulsado para hablar'}
-              </Text>
-            </Pressable>
+              </Animated.Text>
+            </PressScale>
           ) : null}
 
           {current.input === 'yesno' && mood === 'idle' ? (
@@ -182,6 +185,11 @@ const styles = StyleSheet.create({
   },
   holdTextOn: {
     color: colors.background,
+  },
+  smoothText: {
+    transitionProperty: 'color',
+    transitionDuration: '300ms',
+    transitionTimingFunction: 'ease-out',
   },
   yesno: {
     flexDirection: 'row',

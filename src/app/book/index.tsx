@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/book-cover';
+import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { sampleBook, sampleChapters } from '@/data/sample';
@@ -24,18 +25,18 @@ export default function BookScreen() {
         <View style={styles.list}>
           {sampleChapters.map((chapter) =>
             chapter.status === 'approved' ? (
-              <Pressable
+              <PressScale
                 key={chapter.number}
                 onPress={() => router.push({ pathname: '/book/[chapter]', params: { chapter: String(chapter.number) } })}
                 accessibilityRole="button"
                 accessibilityLabel={`Capítulo ${chapter.number}, ${chapter.title}`}
-                style={({ pressed }) => [styles.chapter, pressed && styles.pressed]}>
+                style={styles.chapter}>
                 <View style={styles.chapterText}>
                   <Text style={styles.kicker}>CAPÍTULO {chapter.number}</Text>
                   <Text style={styles.chapterTitle}>{chapter.title}</Text>
                 </View>
                 <Text style={styles.chevron}>›</Text>
-              </Pressable>
+              </PressScale>
             ) : (
               <View key={chapter.number} style={styles.soon}>
                 <Text style={styles.soonTitle}>{chapter.title}</Text>
@@ -81,9 +82,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 12,
     backgroundColor: colors.background,
-  },
-  pressed: {
-    opacity: 0.75,
   },
   chapterText: {
     flexShrink: 1,
