@@ -33,8 +33,7 @@ export default function WelcomeScreen() {
         </View>
 
         <Animated.View entering={FadeInDown.duration(500).delay(400)} style={styles.buttons}>
-          {/* TODO next commit: family onboarding (email + code) */}
-          <BigButton scale="family" label="Soy familiar" onPress={() => router.push('/home')} />
+          <BigButton scale="family" label="Soy familiar" onPress={() => router.push('/onboarding/email')} />
           {/* TODO later: pairing with the family's code; for now it opens the senior home */}
           <BigButton scale="family" variant="outline" label="Tengo un código" onPress={() => router.push('/home')} />
           <Text style={styles.note}>«Tengo un código» es para el móvil de tu madre, padre o abuelo.</Text>
