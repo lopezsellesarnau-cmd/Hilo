@@ -1,60 +1,45 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
-import { Bot } from '@/components/bot';
-import { colors, fontSize, fontWeight, lineHeight, size, spacing } from '@/theme';
+import { colors, family, fontWeight, spacing } from '@/theme';
 
-const pill = require('../../assets/icons/pill-small.svg');
-const book = require('../../assets/icons/book.svg');
+const logo = require('../../assets/icons/logo.svg');
 
-/** When the app opens: greeting, bot and buttons appear one after another, gently.
- * Skipped automatically when "Reduce Motion" is on. */
-const enter = (order: number) => FadeInDown.duration(500).delay(order === 0 ? 0 : 250 + order * 90);
-
-export default function HomeScreen() {
-  const { width, height } = useWindowDimensions();
-  // Never a fixed 265: on short screens a fixed bot overlaps the greeting (prototype bug)
-  const botSize = Math.min(size.bot, width * 0.7, height * 0.28);
+/**
+ * First screen when nobody is signed in.
+ * "Soy familiar" starts the family onboarding; "Tengo un código" is for the senior's phone.
+ */
+export default function WelcomeScreen() {
+  const { width } = useWindowDimensions();
+  const logoSize = Math.min(170, width * 0.42);
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.screen} bounces={false}>
-        <Animated.View entering={enter(0)} accessibilityRole="header" style={styles.header}>
-          <Text style={styles.title}>¡Hola, Carmen!</Text>
-          <Text style={styles.subtitle}>¿Cómo estás?</Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeIn.duration(700).delay(150)} style={styles.stage}>
-          <Bot size={botSize} mood="idle" />
-        </Animated.View>
-
-        <View style={styles.buttons}>
-          <Animated.View entering={enter(1)}>
-            <BigButton label="Hablar" accessibilityHint="Empieza la charla de hoy" onPress={() => router.push('/talk')} />
+      <View style={styles.screen}>
+        <View style={styles.center}>
+          <Animated.View entering={FadeIn.duration(700)}>
+            <Image source={logo} style={{ width: logoSize, height: logoSize }} contentFit="contain" accessibilityIgnoresInvertColors />
           </Animated.View>
-          <Animated.View entering={enter(2)}>
-            <BigButton
-              variant="outline"
-              label="Mis pastillas"
-              detail="0 de 3"
-              onPress={() => router.push('/pills')}
-              icon={<Image source={pill} style={styles.icon} contentFit="contain" />}
-            />
-          </Animated.View>
-          <Animated.View entering={enter(3)}>
-            <BigButton
-              variant="outline"
-              label="Mi libro"
-              onPress={() => router.push('/book')}
-              icon={<Image source={book} style={styles.bookIcon} contentFit="contain" />}
-            />
-          </Animated.View>
+          <Animated.Text entering={FadeInDown.duration(500).delay(150)} style={styles.name} accessibilityRole="header">
+            Hilo
+          </Animated.Text>
+          <Animated.Text entering={FadeInDown.duration(500).delay(250)} style={styles.tagline}>
+            Una charla al día para quien más quieres.
+          </Animated.Text>
         </View>
-      </ScrollView>
+
+        <Animated.View entering={FadeInDown.duration(500).delay(400)} style={styles.buttons}>
+          {/* TODO next commit: family onboarding (email + code) */}
+          <BigButton scale="family" label="Soy familiar" onPress={() => router.push('/home')} />
+          {/* TODO later: pairing with the family's code; for now it opens the senior home */}
+          <BigButton scale="family" variant="outline" label="Tengo un código" onPress={() => router.push('/home')} />
+          <Text style={styles.note}>«Tengo un código» es para el móvil de tu madre, padre o abuelo.</Text>
+        </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }
@@ -65,43 +50,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   screen: {
-    flexGrow: 1,
+    flex: 1,
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: spacing.screenBottom,
   },
-  header: {
+  center: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.semibold,
+  name: {
+    fontSize: 48,
+    fontWeight: '700',
     color: colors.ink,
-    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 6,
   },
-  subtitle: {
-    fontSize: fontSize.subtitle,
-    lineHeight: lineHeight.subtitle,
+  tagline: {
+    fontSize: family.fontSize.subtitle,
+    lineHeight: 26,
     fontWeight: fontWeight.semibold,
     color: colors.muted,
     textAlign: 'center',
-  },
-  stage: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
+    maxWidth: 320,
   },
   buttons: {
-    gap: spacing.buttonGap,
+    gap: 12,
   },
-  icon: {
-    width: size.pillIconSmall,
-    height: size.pillIconSmall,
-  },
-  bookIcon: {
-    // Figma book is 230 × 282; keep its proportion at button size
-    width: 26,
-    height: 32,
+  note: {
+    fontSize: family.fontSize.note,
+    lineHeight: 21,
+    color: colors.muted,
+    textAlign: 'center',
   },
 });

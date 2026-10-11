@@ -9,9 +9,9 @@ import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { samplePills, type Pill } from '@/data/sample';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
-const pillLarge = require('../../assets/icons/pill-large.svg');
-const takenIcon = require('../../assets/icons/taken.svg');
-const missedIcon = require('../../assets/icons/missed.svg');
+const pillLarge = require('../../../assets/icons/pill-large.svg');
+const takenIcon = require('../../../assets/icons/taken.svg');
+const missedIcon = require('../../../assets/icons/missed.svg');
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const nowHHmm = () => {

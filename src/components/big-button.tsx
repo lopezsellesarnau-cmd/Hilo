@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { PressScale } from '@/components/press-scale';
 
-import { colors, fontSize, fontWeight, size } from '@/theme';
+import { colors, family, fontSize, fontWeight, size } from '@/theme';
 
 type Props = {
   label: string;
@@ -15,20 +15,25 @@ type Props = {
   /** Icon on the left (fill) or on the right (outline), as in the Figma */
   icon?: ReactNode;
   accessibilityHint?: string;
+  /** "senior": large (Figma senior screens). "family": smaller, for the family side. */
+  scale?: 'senior' | 'family';
 };
 
-export function BigButton({ label, onPress, variant = 'fill', detail, icon, accessibilityHint }: Props) {
+export function BigButton({ label, onPress, variant = 'fill', detail, icon, accessibilityHint, scale = 'senior' }: Props) {
   const outline = variant === 'outline';
+  const compact = scale === 'family';
+  // An outline button with nothing on the right centres its label, like a fill button
+  const spread = outline && (detail || icon);
   return (
     <PressScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={detail ? `${label}, ${detail}` : label}
       accessibilityHint={accessibilityHint}
-      style={[styles.base, outline ? styles.outline : styles.fill]}>
-      {outline ? (
+      style={[styles.base, outline ? styles.outline : styles.fill, compact && styles.familyBase, compact && outline && styles.familyOutline]}>
+      {spread ? (
         <View style={styles.rowSpread}>
-          <Text style={styles.label} numberOfLines={2}>
+          <Text style={[styles.label, compact && styles.familyLabel]} numberOfLines={2}>
             {label}
           </Text>
           <View style={styles.right}>
@@ -39,7 +44,7 @@ export function BigButton({ label, onPress, variant = 'fill', detail, icon, acce
       ) : (
         <View style={styles.rowCenter}>
           {icon}
-          <Text style={styles.label} numberOfLines={2}>
+          <Text style={[styles.label, compact && styles.familyLabel]} numberOfLines={2}>
             {label}
           </Text>
         </View>
@@ -66,6 +71,16 @@ const styles = StyleSheet.create({
     borderColor: colors.sage,
     paddingLeft: 24,
     paddingRight: 20,
+  },
+  familyBase: {
+    minHeight: family.size.buttonHeight,
+    borderRadius: family.size.buttonRadius,
+  },
+  familyOutline: {
+    borderWidth: family.size.buttonBorder,
+  },
+  familyLabel: {
+    fontSize: family.fontSize.button,
   },
   rowCenter: {
     flexDirection: 'row',

@@ -56,3 +56,23 @@ export const spacing = {
   screenBottom: 32,
   buttonGap: 16,
 } as const;
+
+/**
+ * Family side (sons and daughters, 45 to 60): same look, smaller sizes.
+ * Taken from the approved family HTML prototype.
+ */
+export const family = {
+  fontSize: {
+    title: 34,
+    subtitle: 19,
+    question: 30,
+    button: 22,
+    body: 18,
+    note: 15,
+  },
+  size: {
+    buttonHeight: 60,
+    buttonRadius: 30,
+    buttonBorder: 4,
+  },
+} as const;
