@@ -3,9 +3,9 @@ import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { Bot } from '@/components/bot';
 import { colors, fontSize, fontWeight, lineHeight, size, spacing } from '@/theme';
 
-const bot = require('../../assets/icons/bot.svg');
 const pill = require('../../assets/icons/pill-small.svg');
 const book = require('../../assets/icons/book.svg');
 
@@ -23,12 +23,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.stage}>
-          <Image
-            source={bot}
-            style={{ width: botSize, height: botSize }}
-            contentFit="contain"
-            accessibilityLabel="Tu asistente"
-          />
+          <Bot size={botSize} mood="idle" />
         </View>
 
         <View style={styles.buttons}>
