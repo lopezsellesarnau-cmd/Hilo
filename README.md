@@ -2,7 +2,7 @@
 
 Hilo is an app for older people who live alone. Every day it asks them how they are, reminds them about their pills and asks them one question about their life. Over time, their answers become a book of their life for the family.
 
-> Status: in development. The UX/UI v1 is designed. This repo is the first build.
+> Status: in development. The senior screens are built with sample data, the database is set up and family login works. See [Progress](#progress).
 
 ## Why I'm building it
 
@@ -43,18 +43,54 @@ She is not the only one. In Europe there are millions of people over 65 living a
 - On-device speech recognition, ElevenLabs for the voice, an LLM through the server for the conversation
 - API keys live only on the server, never in the app
 
+## Progress
+
+**Done**
+- Senior app (sample data): Home with the animated bot, the daily Talk (scripted), Pills with confirm and undo, My book with an editorial chapter page
+- Design tokens from the Figma, app icon, splash, press and page animations, scroll fade
+- Welcome screen and family login with a 6-digit email code (Supabase Auth)
+- Database: families, people, consents, medications and dose records, all with Row Level Security
+
+**Next**
+- Family onboarding: your name, who Hilo is for, chat time, pills, pairing the senior's phone with a QR code
+- The senior's own consent on their phone, then the family tabs (Today, Book, Settings)
+- Real voice: on-device speech recognition and ElevenLabs, through Supabase Edge Functions
+- iPad layouts
+
+## Project structure
+
+```
+src/
+  app/                 screens (Expo Router)
+    index.tsx          welcome
+    onboarding/        family onboarding
+    (senior)/          senior app: home, talk, pills, book
+  components/          shared UI (BigButton, Bot, ScrollFade…)
+  lib/supabase.ts      Supabase client
+  theme.ts             design tokens from the Figma
+  data/sample.ts       sample data until everything reads from Supabase
+assets/icons/          SVGs exported from the Figma
+supabase/migrations/   database schema, versioned in git
+```
+
 ## Run it locally
 
 ```bash
 npm install
-npx expo start
+cp .env.example .env   # add your Supabase URL and anon key
+npx expo start --ios
 ```
 
-Native features need a development build:
+Everything so far runs in Expo Go. Real speech recognition will need a development build (`npx expo run:ios`).
+
+**Database:** migrations live in `supabase/migrations/`. To apply them to your project:
 
 ```bash
-npx expo run:ios
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
 ```
+
+For the email code to arrive, the Magic Link email template in Supabase must include `{{ .Token }}`.
 
 ## Languages
 
