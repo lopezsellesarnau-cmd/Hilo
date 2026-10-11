@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/book-cover';
@@ -10,6 +10,7 @@ import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
 export default function BookScreen() {
   const fade = useScrollFade();
+  const { width } = useWindowDimensions();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -17,7 +18,7 @@ export default function BookScreen() {
         <ScreenHeader backLabel="Inicio" title="Mi libro" subtitle={`${sampleBook.storyCount} historias guardadas`} />
 
         <View style={styles.cover}>
-          <BookCover width={150} title={sampleBook.title} caption={sampleBook.place} />
+          <BookCover width={Math.min(220, width * 0.55)} title={sampleBook.title} caption={sampleBook.place} />
         </View>
 
         <View style={styles.list}>
@@ -61,11 +62,10 @@ const styles = StyleSheet.create({
   },
   cover: {
     alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: 36,
   },
   list: {
-    marginTop: 24,
+    marginTop: 48,
     gap: spacing.buttonGap,
   },
   chapter: {

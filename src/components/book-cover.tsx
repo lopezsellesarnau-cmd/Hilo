@@ -28,7 +28,7 @@ export function BookCover({ width, title, caption }: Props) {
           borderBottomLeftRadius: FIGMA.left * k,
           borderTopRightRadius: FIGMA.right * k,
           borderBottomRightRadius: FIGMA.right * k,
-          paddingLeft: FIGMA.spine * k + 12,
+          paddingLeft: FIGMA.spine * k + 14,
         },
       ]}>
       <View
@@ -38,7 +38,7 @@ export function BookCover({ width, title, caption }: Props) {
         ]}
       />
       {title ? <Text style={[styles.title, { fontSize: Math.round(22 * k * 1.5) }]}>{title}</Text> : null}
-      {caption ? <Text style={styles.caption}>{caption}</Text> : null}
+      {caption ? <Text style={[styles.caption, { fontSize: Math.round(13 * k * 1.5) }]}>{caption}</Text> : null}
     </View>
   );
 }
@@ -62,12 +62,12 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: '700',
     color: colors.ink,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   caption: {
     fontSize: 13,
     fontWeight: fontWeight.semibold,
     color: colors.ink,
-    textAlign: 'center',
+    textAlign: 'left',
   },
 });

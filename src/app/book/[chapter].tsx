@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
@@ -67,23 +68,29 @@ export default function ChapterScreen() {
         <Pressable
           onPress={toggle}
           accessibilityRole="button"
-          accessibilityLabel={playing ? 'Parar' : 'Escuchar mi historia'}
-          style={({ pressed }) => [styles.listen, playing && styles.listenOn, pressed && styles.pressed]}>
-          <Text style={[styles.listenIcon, playing && styles.listenTextOn]}>{playing ? '❚❚' : '▶'}</Text>
-          <Text style={[styles.listenText, playing && styles.listenTextOn]} numberOfLines={1}>
-            {playing ? 'Escuchando · Parar' : 'Escuchar mi historia'}
-          </Text>
+          accessibilityLabel={playing ? 'Parar' : 'Escuchar mi historia'}>
+          {({ pressed }) => (
+            <Animated.View style={[styles.listen, playing && styles.listenOn, pressed && styles.listenPressed, styles.smooth]}>
+              <Animated.Text style={[styles.listenIcon, playing && styles.listenTextOn, styles.smoothText]}>
+                {playing ? '❚❚' : '▶'}
+              </Animated.Text>
+              <Animated.Text style={[styles.listenText, playing && styles.listenTextOn, styles.smoothText]} numberOfLines={1}>
+                {playing ? 'Escuchando · Parar' : 'Escuchar mi historia'}
+              </Animated.Text>
+            </Animated.View>
+          )}
         </Pressable>
         <View style={styles.progress}>
           <View style={[styles.progressFill, { width: `${(elapsed / LISTEN_SECONDS) * 100}%` }]} />
         </View>
 
         {first ? (
-          <Text style={styles.paragraph}>
-            {/* Raised initial: React Native can't wrap text around a dropped letter */}
+          // Hanging initial: React Native can't wrap text around a dropped letter,
+          // so the large letter sits on the left and the paragraph runs beside it
+          <View style={styles.firstRow} accessible accessibilityLabel={first}>
             <Text style={styles.initial}>{first.charAt(0)}</Text>
-            {first.slice(1)}
-          </Text>
+            <Text style={[styles.paragraph, styles.firstText]}>{first.slice(1)}</Text>
+          </View>
         ) : null}
         {rest.map((p, i) => (
           <View key={i}>
@@ -180,8 +187,19 @@ const styles = StyleSheet.create({
   listenOn: {
     backgroundColor: colors.ink,
   },
-  pressed: {
-    opacity: 0.75,
+  listenPressed: {
+    transform: [{ scale: 0.97 }],
+  },
+  // Smooth colour and size change between "Escuchar" and "Escuchando"
+  smooth: {
+    transitionProperty: ['backgroundColor', 'transform'],
+    transitionDuration: '300ms',
+    transitionTimingFunction: 'ease-in-out',
+  },
+  smoothText: {
+    transitionProperty: 'color',
+    transitionDuration: '300ms',
+    transitionTimingFunction: 'ease-in-out',
   },
   listenIcon: {
     fontSize: 22,
@@ -214,10 +232,22 @@ const styles = StyleSheet.create({
     color: colors.ink,
     marginTop: 22,
   },
+  firstRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 22,
+  },
   initial: {
-    fontSize: 64,
+    fontSize: 78,
+    lineHeight: 82,
     fontWeight: '700',
     color: colors.sage,
+    marginTop: -2,
+  },
+  firstText: {
+    flex: 1,
+    marginTop: 0,
   },
   quote: {
     marginTop: 38,
