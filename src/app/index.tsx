@@ -28,7 +28,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.buttons}>
-          <BigButton label="Hablar" accessibilityHint="Empieza la charla de hoy" />
+          <BigButton label="Hablar" accessibilityHint="Empieza la charla de hoy" onPress={() => router.push('/talk')} />
           <BigButton
             variant="outline"
             label="Mis pastillas"

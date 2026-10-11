@@ -58,3 +58,23 @@ export const sampleChapters: Chapter[] = [
   },
   { number: 3, title: 'Cuando conocí a Paco', status: 'writing', paragraphs: [] },
 ];
+
+export type TalkStep = {
+  say: string;
+  /** What the senior does after the bot speaks */
+  input: 'hold' | 'yesno' | 'end';
+  /** Scripted answer shown after releasing the button (until real speech recognition) */
+  reply?: string;
+};
+
+/** Scripted daily session, same as the approved HTML prototype */
+export const sampleTalk: TalkStep[] = [
+  { say: 'Buenos días, Carmen. ¿Qué tal has dormido hoy?', input: 'hold', reply: 'Bien, aunque me he despertado pronto.' },
+  { say: 'Me alegro. ¿Te has tomado la pastilla de la tensión?', input: 'yesno' },
+  {
+    say: 'Hoy quiero que me cuentes algo: ¿cómo era tu primer trabajo?',
+    input: 'hold',
+    reply: 'Entré en una fábrica de tejidos con quince años…',
+  },
+  { say: 'Qué bonito, Carmen. He guardado tu historia en tu libro. Mañana seguimos. ¡Hasta mañana!', input: 'end' },
+];
