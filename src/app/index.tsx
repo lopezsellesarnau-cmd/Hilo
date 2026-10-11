@@ -39,6 +39,7 @@ export default function HomeScreen() {
           <BigButton
             variant="outline"
             label="Mi libro"
+            onPress={() => router.push('/book')}
             icon={<Image source={book} style={styles.bookIcon} contentFit="contain" />}
           />
         </View>
