@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -32,6 +33,7 @@ export default function HomeScreen() {
             variant="outline"
             label="Mis pastillas"
             detail="0 de 3"
+            onPress={() => router.push('/pills')}
             icon={<Image source={pill} style={styles.icon} contentFit="contain" />}
           />
           <BigButton
