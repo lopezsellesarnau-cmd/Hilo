@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { ScreenHeader } from '@/components/screen-header';
+import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { samplePills, type Pill } from '@/data/sample';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
@@ -26,6 +27,7 @@ function todayLabel() {
 
 export default function PillsScreen() {
   const [pills, setPills] = useState<Pill[]>(samplePills);
+  const fade = useScrollFade();
   const now = nowHHmm();
   const taken = pills.filter((p) => p.takenAt).length;
 
@@ -33,8 +35,8 @@ export default function PillsScreen() {
     setPills((list) => list.map((p) => (p.id === id ? { ...p, takenAt: nowHHmm() } : p)));
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.screen}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
         <ScreenHeader backLabel="Inicio" title="Mis pastillas" subtitle={todayLabel()} />
 
         <Image source={pillLarge} style={styles.pillIcon} contentFit="contain" />
@@ -84,6 +86,7 @@ export default function PillsScreen() {
           })}
         </View>
       </ScrollView>
+      <ScrollFade visible={fade.visible} />
     </SafeAreaView>
   );
 }
