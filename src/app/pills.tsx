@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BigButton } from '@/components/big-button';
+import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { samplePills, type Pill } from '@/data/sample';
@@ -31,8 +31,30 @@ export default function PillsScreen() {
   const now = nowHHmm();
   const taken = pills.filter((p) => p.takenAt).length;
 
-  const markTaken = (id: string) =>
-    setPills((list) => list.map((p) => (p.id === id ? { ...p, takenAt: nowHHmm() } : p)));
+  // After marking, "Deshacer" stays for 5 seconds in case of a wrong tap
+  const [undoId, setUndoId] = useState<string | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
+
+  const setTaken = (id: string, takenAt: string | null) =>
+    setPills((list) => list.map((p) => (p.id === id ? { ...p, takenAt } : p)));
+
+  const markTaken = (id: string) => {
+    setTaken(id, nowHHmm());
+    setUndoId(id);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndoId(null), 5000);
+  };
+
+  const undo = (id: string) => {
+    setTaken(id, null);
+    setUndoId(null);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -62,19 +84,35 @@ export default function PillsScreen() {
                 </View>
 
                 {pill.takenAt ? (
-                  <View style={styles.status}>
-                    <Text style={styles.statusText}>Tomada a las {pill.takenAt}</Text>
-                    <Image source={takenIcon} style={styles.statusIcon} accessibilityLabel="Tomada" />
-                  </View>
+                  <>
+                    <View style={styles.status}>
+                      <Text style={styles.statusText}>Tomada a las {pill.takenAt}</Text>
+                      <Image source={takenIcon} style={styles.statusIcon} accessibilityLabel="Tomada" />
+                    </View>
+                    {undoId === pill.id ? (
+                      <Pressable
+                        onPress={() => undo(pill.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Deshacer, no la he tomado"
+                        hitSlop={12}
+                        style={styles.undo}>
+                        <Text style={styles.undoText}>Deshacer</Text>
+                      </Pressable>
+                    ) : null}
+                  </>
                 ) : due ? (
                   <>
                     <View style={styles.status}>
                       <Text style={styles.statusText}>No se ha tomado</Text>
                       <Image source={missedIcon} style={styles.statusIcon} accessibilityLabel="No tomada" />
                     </View>
-                    <View style={styles.takeButton}>
-                      <BigButton variant="outline" label="Ya me la he tomado" onPress={() => markTaken(pill.id)} />
-                    </View>
+                    <PressScale
+                      onPress={() => markTaken(pill.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ya me he tomado ${pill.name}`}
+                      style={styles.chip}>
+                      <Text style={styles.chipText}>✓ Ya la he tomado</Text>
+                    </PressScale>
                   </>
                 ) : (
                   <View style={styles.status}>
@@ -172,8 +210,34 @@ const styles = StyleSheet.create({
     width: size.statusIcon,
     height: size.statusIcon,
   },
-  takeButton: {
-    marginTop: 6,
+  // Compact chip: clearly a button, but not a full-width bar (min 48pt touch target)
+  chip: {
+    alignSelf: 'flex-start',
+    minHeight: 48,
+    justifyContent: 'center',
+    marginTop: 10,
     marginLeft: indent,
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: colors.sage,
+    backgroundColor: colors.background,
+  },
+  chipText: {
+    fontSize: fontSize.status,
+    fontWeight: fontWeight.semibold,
+    color: colors.ink,
+  },
+  undo: {
+    alignSelf: 'flex-start',
+    marginLeft: indent,
+    marginTop: 4,
+    paddingVertical: 6,
+  },
+  undoText: {
+    fontSize: fontSize.label,
+    fontWeight: fontWeight.semibold,
+    color: colors.muted,
+    textDecorationLine: 'underline',
   },
 });
