@@ -23,8 +23,9 @@ async function pair(code: string) {
     const { error } = await supabase.auth.signInAnonymously();
     if (error) throw new Error('offline');
   }
-  const { error } = await supabase.rpc('claim_pairing_code', { pairing_code: code });
+  const { data, error } = await supabase.rpc('claim_pairing_code', { pairing_code: code });
   if (error) throw new Error(error.message.includes('Already paired') ? 'paired' : 'code');
+  return data as string;
 }
 
 const MESSAGES: Record<string, string> = {
@@ -42,16 +43,16 @@ export default function PairCodeScreen() {
     if (checking) return;
     setChecking(true);
     setError(null);
+    let personId: string;
     try {
-      await pair(value);
+      personId = await pair(value);
     } catch (e) {
       setChecking(false);
       setError(MESSAGES[(e as Error).message] ?? MESSAGES.offline);
       return;
     }
     setChecking(false);
-    // TODO next: consent screen
-    router.replace('/home');
+    router.replace({ pathname: '/consent', params: { personId } });
   };
 
   return (
