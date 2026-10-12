@@ -88,6 +88,7 @@ export default function PillsStep() {
   return (
     <OnboardingStep
       step={5}
+      mood={saving ? 'thinking' : 'idle'}
       question={`¿Qué pastillas toma ${seniorName || 'cada día'}?`}
       hint="Hilo se lo recordará a su hora y te avisará si se le olvida."
       footer={

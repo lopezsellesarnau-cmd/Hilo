@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextField } from '@/components/text-field';
 import { supabase } from '@/lib/supabase';
@@ -59,6 +60,9 @@ export default function PairCodeScreen() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+          <View style={styles.bot}>
+            <Bot size={110} mood={checking ? 'thinking' : 'idle'} />
+          </View>
           <ScreenHeader title="Escribe el código" subtitle="Te lo da tu familia. Son 6 números." backLabel="Atrás" />
 
           <View style={styles.body}>
@@ -105,6 +109,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: spacing.screenBottom,
+  },
+  bot: {
+    flexShrink: 0,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   body: {
     marginTop: 28,

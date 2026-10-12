@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { supabase } from '@/lib/supabase';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
@@ -53,6 +54,9 @@ export default function ConsentScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.screen}>
           <View style={styles.center}>
+            <View style={styles.doneBot}>
+              <Bot size={200} mood="speaking" />
+            </View>
             <Text style={styles.doneTitle} accessibilityRole="header">
               ¡Todo listo!
             </Text>
@@ -67,6 +71,9 @@ export default function ConsentScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.screen}>
+        <View style={styles.bot}>
+          <Bot size={96} mood={saving ? 'thinking' : 'idle'} />
+        </View>
         <ScreenHeader title="Antes de empezar" subtitle="Esto es lo que hace Hilo con lo que le cuentas." />
 
         <View style={styles.points}>
@@ -102,6 +109,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: spacing.screenBottom,
+  },
+  bot: {
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  doneBot: {
+    flexShrink: 0,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   points: {
     marginTop: 24,

@@ -47,6 +47,7 @@ export default function EmailStep() {
   return (
     <OnboardingStep
       step={1}
+      mood={sending ? 'thinking' : 'idle'}
       question="¿Cuál es tu email?"
       hint="Te enviamos un código de 6 cifras. Sin contraseñas."
       footer={

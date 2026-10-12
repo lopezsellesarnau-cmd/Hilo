@@ -48,6 +48,7 @@ export default function CodeStep() {
   return (
     <OnboardingStep
       step={1}
+      mood={checking ? 'thinking' : 'idle'}
       question="Escribe el código"
       hint={
         <>

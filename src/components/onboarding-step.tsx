@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Bot, type BotMood } from '@/components/bot';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
 const TOTAL_STEPS = 6;
@@ -15,10 +16,12 @@ type Props = {
   children?: ReactNode;
   /** Buttons pinned to the bottom (above the keyboard) */
   footer?: ReactNode;
+  /** The bot above the question: 'thinking' while something is saving */
+  mood?: BotMood;
 };
 
 /** One question per screen, as in the family prototype. */
-export function OnboardingStep({ step, question, hint, children, footer }: Props) {
+export function OnboardingStep({ step, question, hint, children, footer, mood = 'idle' }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -36,6 +39,10 @@ export function OnboardingStep({ step, question, hint, children, footer }: Props
             {Array.from({ length: TOTAL_STEPS }, (_, i) => (
               <View key={i} style={[styles.dot, i + 1 === step && styles.dotOn]} />
             ))}
+          </View>
+
+          <View style={styles.bot} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Bot size={72} mood={mood} />
           </View>
 
           <Text style={styles.question} accessibilityRole="header">
@@ -91,6 +98,11 @@ const styles = StyleSheet.create({
   dotOn: {
     width: 22,
     backgroundColor: colors.sage,
+  },
+  bot: {
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
   },
   question: {
     fontSize: family.fontSize.question,

@@ -56,6 +56,7 @@ export default function TalkStep() {
   return (
     <OnboardingStep
       step={4}
+      mood={saving ? 'thinking' : 'idle'}
       question={`¿A qué hora charla ${seniorName || 'con Hilo'}?`}
       hint="Cada día a esa hora, Hilo le avisará para charlar un rato."
       footer={<BigButton scale="family" label={saving ? 'Guardando…' : 'Continuar'} onPress={saving ? undefined : next} />}>

@@ -100,6 +100,7 @@ export default function SeniorStep() {
   return (
     <OnboardingStep
       step={3}
+      mood={saving ? 'thinking' : 'idle'}
       question="¿Para quién es Hilo?"
       hint="Escribe su nombre como lo decís en casa. Hilo le hablará así cada día."
       footer={<BigButton scale="family" label={saving ? 'Guardando…' : 'Continuar'} onPress={ready ? next : undefined} />}>

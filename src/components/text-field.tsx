@@ -46,6 +46,9 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 22,
     fontWeight: '500',
+    // Always set: with view recycling, iOS keeps the code field's spacing on the next input
+    letterSpacing: 0,
+    textAlign: 'left',
     color: colors.ink,
     paddingVertical: 16,
     paddingHorizontal: 18,

@@ -1,13 +1,11 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { Bot } from '@/components/bot';
 import { colors, family, fontWeight, spacing } from '@/theme';
-
-const logo = require('../../assets/icons/logo.svg');
 
 /**
  * First screen when nobody is signed in.
@@ -22,7 +20,7 @@ export default function WelcomeScreen() {
       <View style={styles.screen}>
         <View style={styles.center}>
           <Animated.View entering={FadeIn.duration(700)}>
-            <Image source={logo} style={{ width: logoSize, height: logoSize }} contentFit="contain" accessibilityIgnoresInvertColors />
+            <Bot size={logoSize} look="left" />
           </Animated.View>
           <Animated.Text entering={FadeInDown.duration(500).delay(150)} style={styles.name} accessibilityRole="header">
             Hilo
