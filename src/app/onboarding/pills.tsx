@@ -26,7 +26,12 @@ type Medication = { id: string; name: string; times: string[] };
 const showTime = (t: string) => t.slice(0, 5).replace(/^0/, '');
 
 export default function PillsStep() {
-  const { seniorId = '', seniorName = '' } = useLocalSearchParams<{ seniorId: string; seniorName: string }>();
+  const { seniorId = '', seniorName = '', from = '' } = useLocalSearchParams<{
+    seniorId: string;
+    seniorName: string;
+    /** 'today' when opened from Hoy: go back there instead of on to pairing */
+    from?: string;
+  }>();
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [pills, setPills] = useState<Medication[]>([]);
   const [name, setName] = useState('');
@@ -82,6 +87,7 @@ export default function PillsStep() {
   };
 
   const next = () => {
+    if (from === 'today') return router.back();
     router.push({ pathname: '/onboarding/pair', params: { seniorId, seniorName } });
   };
 

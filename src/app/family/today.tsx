@@ -5,17 +5,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { TodayPills } from '@/components/today-pills';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
-type Senior = { id: string; display_name: string; talk_time: string | null; user_id: string | null };
+type Senior = { id: string; display_name: string; talk_time: string | null; user_id: string | null; timezone: string };
 
 /** '10:00:00' → '10:00' */
 const showTime = (t: string) => t.slice(0, 5).replace(/^0/, '');
 
 /**
  * Hoy: how the senior's day is going.
- * For now the basics (talk time, phone connected); pills and stories come next.
+ * Talk time, phone connected and today's pills; stories come next.
  */
 export default function TodayScreen() {
   const [senior, setSenior] = useState<Senior | null>(null);
@@ -26,7 +27,7 @@ export default function TodayScreen() {
     useCallback(() => {
       supabase
         .from('people')
-        .select('id, display_name, talk_time, user_id')
+        .select('id, display_name, talk_time, user_id, timezone')
         .eq('role', 'senior')
         .limit(1)
         .maybeSingle()
@@ -83,6 +84,8 @@ export default function TodayScreen() {
                 <BigButton scale="family" label="Conectar su móvil" onPress={pair} />
               </View>
             )}
+
+            <TodayPills seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
           </>
         ) : null}
       </ScrollView>
