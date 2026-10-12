@@ -5,6 +5,7 @@ import { StyleSheet, Text } from 'react-native';
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
+import { TERMS_VERSION } from '@/lib/legal';
 import { supabase } from '@/lib/supabase';
 import { family } from '@/theme';
 
@@ -35,6 +36,19 @@ async function saveFamily(memberName: string, seniorName: string) {
     });
     if (error) throw error;
     familyId = data as string;
+
+    // The terms were accepted on the email step; keep a record of it
+    const { data: member, error: memberError } = await supabase
+      .from('people')
+      .select('id')
+      .eq('family_id', familyId)
+      .eq('user_id', user.id)
+      .single();
+    if (memberError) throw memberError;
+    const { error: termsError } = await supabase
+      .from('consents')
+      .insert({ family_id: familyId, person_id: member.id, kind: 'terms', version: TERMS_VERSION });
+    if (termsError) throw termsError;
   }
 
   const { data: senior, error: seniorError } = await supabase

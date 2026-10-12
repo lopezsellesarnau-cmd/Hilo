@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
+import { AgreeBox } from '@/components/agree-box';
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
@@ -14,8 +15,13 @@ export default function EmailStep() {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
 
   const send = async () => {
+    if (!agreed) {
+      setError('Para seguir, marca que aceptas los Términos.');
+      return;
+    }
     if (!looksLikeEmail(email)) {
       setError('Revisa el email: parece que falta algo.');
       return;
@@ -62,6 +68,13 @@ export default function EmailStep() {
         returnKeyType="send"
         onSubmitEditing={send}
         autoFocus
+      />
+      <AgreeBox
+        checked={agreed}
+        onChange={(v) => {
+          setAgreed(v);
+          setError(null);
+        }}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </OnboardingStep>
