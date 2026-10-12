@@ -17,14 +17,22 @@ export default function CodeStep() {
   const verify = async (token: string) => {
     setChecking(true);
     setMessage(null);
-    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
-    setChecking(false);
-    if (error) {
+    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    if (error || !data.user) {
+      setChecking(false);
       setMessage({ text: 'Ese código no es correcto o ha caducado. Revísalo o pide otro.', error: true });
       return;
     }
-    // TODO next step: continue to "¿Cómo te llamas?"
-    router.replace('/home');
+    // Someone who already set up a family just signs back in
+    const { data: me } = await supabase
+      .from('people')
+      .select('id')
+      .eq('user_id', data.user.id)
+      .eq('role', 'member')
+      .limit(1)
+      .maybeSingle();
+    setChecking(false);
+    router.replace(me ? '/home' : '/onboarding/name');
   };
 
   const resend = async () => {
