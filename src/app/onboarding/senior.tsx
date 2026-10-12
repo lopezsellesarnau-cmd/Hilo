@@ -46,10 +46,18 @@ async function saveFamily(memberName: string, seniorName: string) {
     .maybeSingle();
   if (seniorError) throw seniorError;
 
-  const { error } = senior
-    ? await supabase.from('people').update({ display_name: seniorName }).eq('id', senior.id)
-    : await supabase.from('people').insert({ family_id: familyId, role: 'senior', display_name: seniorName });
+  if (senior) {
+    const { error } = await supabase.from('people').update({ display_name: seniorName }).eq('id', senior.id);
+    if (error) throw error;
+    return senior.id as string;
+  }
+  const { data: added, error } = await supabase
+    .from('people')
+    .insert({ family_id: familyId, role: 'senior', display_name: seniorName })
+    .select('id')
+    .single();
   if (error) throw error;
+  return added.id as string;
 }
 
 export default function SeniorStep() {
@@ -63,16 +71,16 @@ export default function SeniorStep() {
     if (!ready) return;
     setSaving(true);
     setError(null);
+    let seniorId: string;
     try {
-      await saveFamily(memberName, name.trim());
+      seniorId = await saveFamily(memberName, name.trim());
     } catch {
       setSaving(false);
       setError('No hemos podido guardarlo. Comprueba tu conexión y vuelve a probar.');
       return;
     }
     setSaving(false);
-    // TODO next step: hora de la charla + idioma
-    router.replace('/home');
+    router.push({ pathname: '/onboarding/talk', params: { seniorId, seniorName: name.trim() } });
   };
 
   return (
