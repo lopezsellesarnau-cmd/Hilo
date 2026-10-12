@@ -26,14 +26,19 @@ export function OnboardingStep({ step, question, hint, children, footer, mood = 
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Atrás"
-            hitSlop={12}
-            style={styles.back}>
-            <Text style={styles.backText}>‹ Atrás</Text>
-          </Pressable>
+          {/* Hidden when the user resumed here after signing in: there is nothing behind */}
+          {router.canGoBack() ? (
+            <Pressable
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Atrás"
+              hitSlop={12}
+              style={styles.back}>
+              <Text style={styles.backText}>‹ Atrás</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.backSpace} />
+          )}
 
           <View style={styles.dots} accessible accessibilityLabel={`Paso ${step} de ${TOTAL_STEPS}`}>
             {Array.from({ length: TOTAL_STEPS }, (_, i) => (
@@ -77,6 +82,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginTop: -8,
     marginBottom: 10,
+  },
+  backSpace: {
+    height: 37,
   },
   backText: {
     fontSize: family.fontSize.body,

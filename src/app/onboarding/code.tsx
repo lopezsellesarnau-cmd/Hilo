@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
+import { nextFamilyRoute } from '@/lib/onboarding';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
 
@@ -23,16 +24,12 @@ export default function CodeStep() {
       setMessage({ text: 'Ese código no es correcto o ha caducado. Revísalo o pide otro.', error: true });
       return;
     }
-    // Someone who already set up a family just signs back in
-    const { data: me } = await supabase
-      .from('people')
-      .select('id')
-      .eq('user_id', data.user.id)
-      .eq('role', 'member')
-      .limit(1)
-      .maybeSingle();
+    // Someone coming back continues where they left off
+    const next = await nextFamilyRoute(data.user.id);
     setChecking(false);
-    router.replace(me ? '/home' : '/onboarding/name');
+    // Nothing to go back to: Welcome and the email step are done
+    router.dismissAll();
+    router.replace(next);
   };
 
   const resend = async () => {
