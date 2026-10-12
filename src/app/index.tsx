@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { startRoute } from '@/lib/onboarding';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
 /**
@@ -14,6 +16,18 @@ import { colors, family, fontWeight, spacing } from '@/theme';
 export default function WelcomeScreen() {
   const { width } = useWindowDimensions();
   const logoSize = Math.min(170, width * 0.42);
+  // Signed in already? Go straight to the right place instead of showing Welcome
+  const [checking, setChecking] = useState(true);
+  useEffect(() => {
+    startRoute()
+      .then((route) => {
+        if (route) router.replace(route);
+        else setChecking(false);
+      })
+      .catch(() => setChecking(false));
+  }, []);
+
+  if (checking) return <View style={styles.safe} />;
 
   return (
     <SafeAreaView style={styles.safe}>

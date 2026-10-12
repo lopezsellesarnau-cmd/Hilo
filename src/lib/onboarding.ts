@@ -28,6 +28,29 @@ export async function nextFamilyRoute(userId: string): Promise<Href> {
     return { pathname: '/onboarding/talk', params: { seniorId: senior.id, seniorName: senior.display_name } };
   }
 
-  // TODO: family tabs (Hoy / Libro / Ajustes). Until then, Ajustes.
-  return '/settings';
+  return '/family/today';
+}
+
+/**
+ * Where the app should open, from the saved session:
+ * nobody → Welcome, the senior's phone → their home (or consent first), family → nextFamilyRoute().
+ */
+export async function startRoute(): Promise<Href | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) return null;
+
+  if (session.user.is_anonymous) {
+    const { data: me } = await supabase.from('people').select('id').eq('user_id', session.user.id).maybeSingle();
+    // An anonymous session without a person is a pairing that never finished
+    if (!me) return null;
+    const { count } = await supabase
+      .from('consents')
+      .select('id', { count: 'exact', head: true })
+      .eq('person_id', me.id)
+      .is('revoked_at', null);
+    return count ? '/home' : { pathname: '/consent', params: { personId: me.id } };
+  }
+  return nextFamilyRoute(session.user.id);
 }

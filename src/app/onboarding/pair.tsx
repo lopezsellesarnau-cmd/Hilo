@@ -26,10 +26,9 @@ export default function PairStep() {
   useEffect(newCode, [newCode]);
 
   const done = () => {
-    // TODO: family tabs (Hoy / Libro / Ajustes). Until then, Ajustes.
-    // The onboarding is finished: clear it so "Atrás" cannot go back into it
+    // The onboarding is finished (or this came from Hoy): clear it so "Atrás" cannot go back into it
     router.dismissAll();
-    router.replace('/settings');
+    router.replace('/family/today');
   };
 
   return (
