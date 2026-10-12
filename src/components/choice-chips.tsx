@@ -13,27 +13,55 @@ type Props<T extends string> = {
   label: string;
 };
 
-/** Pick one option from a few, as rounded chips that wrap. */
-export function ChoiceChips<T extends string>({ options, value, onChange, label }: Props<T>) {
+type MultiProps<T extends string> = Omit<Props<T>, 'value' | 'onChange'> & {
+  value: readonly T[];
+  onChange: (value: T[]) => void;
+};
+
+function Chips<T extends string>({
+  options,
+  label,
+  isOn,
+  onPress,
+  multiple,
+}: {
+  options: readonly Option<T>[];
+  label: string;
+  isOn: (v: T) => boolean;
+  onPress: (v: T) => void;
+  multiple: boolean;
+}) {
   return (
-    <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={label}>
+    <View style={styles.row} accessibilityRole={multiple ? undefined : 'radiogroup'} accessibilityLabel={label}>
       {options.map((o) => {
-        const on = o.value === value;
+        const on = isOn(o.value);
         return (
           <PressScale
             key={o.value}
-            onPress={() => onChange(o.value)}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: on }}
+            onPress={() => onPress(o.value)}
+            accessibilityRole={multiple ? 'checkbox' : 'radio'}
+            accessibilityState={multiple ? { checked: on } : { selected: on }}
             accessibilityLabel={o.label}
             animateColor
             style={[styles.chip, on && styles.chipOn]}>
-            <Text style={[styles.text, on && styles.textOn]}>{o.label}</Text>
+            <Text style={styles.text}>{o.label}</Text>
           </PressScale>
         );
       })}
     </View>
   );
+}
+
+/** Pick one option from a few, as rounded chips that wrap. */
+export function ChoiceChips<T extends string>({ options, value, onChange, label }: Props<T>) {
+  return <Chips options={options} label={label} isOn={(v) => v === value} onPress={onChange} multiple={false} />;
+}
+
+/** Pick several options, e.g. the times of a pill. Keeps the order of `options`. */
+export function MultiChoiceChips<T extends string>({ options, value, onChange, label }: MultiProps<T>) {
+  const toggle = (v: T) =>
+    onChange(options.map((o) => o.value).filter((x) => (x === v ? !value.includes(x) : value.includes(x))));
+  return <Chips options={options} label={label} isOn={(v) => value.includes(v)} onPress={toggle} multiple />;
 }
 
 const styles = StyleSheet.create({
@@ -57,9 +85,6 @@ const styles = StyleSheet.create({
   text: {
     fontSize: family.fontSize.body,
     fontWeight: fontWeight.semibold,
-    color: colors.ink,
-  },
-  textOn: {
     color: colors.ink,
   },
 });

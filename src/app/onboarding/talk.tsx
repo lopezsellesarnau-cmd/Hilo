@@ -50,8 +50,7 @@ export default function TalkStep() {
       setError('No hemos podido guardarlo. Comprueba tu conexión y vuelve a probar.');
       return;
     }
-    // TODO next step: pastillas
-    router.replace('/home');
+    router.push({ pathname: '/onboarding/pills', params: { seniorId, seniorName } });
   };
 
   return (
