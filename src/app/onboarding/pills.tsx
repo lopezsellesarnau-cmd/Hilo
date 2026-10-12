@@ -82,8 +82,7 @@ export default function PillsStep() {
   };
 
   const next = () => {
-    // TODO next step: emparejar su móvil
-    router.replace('/home');
+    router.push({ pathname: '/onboarding/pair', params: { seniorId, seniorName } });
   };
 
   return (
