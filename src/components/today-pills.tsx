@@ -5,48 +5,12 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { supabase } from '@/lib/supabase';
+import { buildDoses, localNow, showTime, type Dose } from '@/lib/time';
 import { colors, family, fontWeight } from '@/theme';
 
 const pillIcon = require('../../assets/icons/pill-small.svg');
 
 type Props = { seniorId: string; seniorName: string; timezone: string };
-
-type Dose = {
-  key: string;
-  name: string;
-  /** 'HH:mm', local time of the senior */
-  time: string;
-  /** 'HH:mm' when it was taken, local time of the senior */
-  takenAt: string | null;
-};
-
-const WEEKDAYS: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };
-
-/** Date, time and ISO weekday right now in the senior's time zone (not the family's phone). */
-function localNow(timeZone: string, date = new Date()) {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-      weekday: 'short',
-    })
-      .formatToParts(date)
-      .map((p) => [p.type, p.value]),
-  );
-  return {
-    date: `${parts.year}-${parts.month}-${parts.day}`,
-    time: `${parts.hour}:${parts.minute}`,
-    weekday: WEEKDAYS[parts.weekday],
-  };
-}
-
-/** '09:15' → '9:15' */
-const showTime = (t: string) => t.replace(/^0/, '');
 
 const MOMENTS = [
   { label: 'POR LA MAÑANA', until: '12:00' },
@@ -76,29 +40,13 @@ export function TodayPills({ seniorId, seniorName, timezone }: Props) {
         const { data: events, error: e2 } = ids.length
           ? await supabase
               .from('medication_events')
-              .select('medication_id, scheduled_time, status, confirmed_at')
+              .select('id, medication_id, scheduled_time, status, confirmed_at')
               .in('medication_id', ids)
               .eq('scheduled_date', today.date)
           : { data: [], error: null };
         if (e2 || !events) return setError(true);
 
-        const list: Dose[] = meds
-          .filter((m) => (m.weekdays as number[]).includes(today.weekday))
-          .flatMap((m) =>
-            (m.times as string[]).map((t) => {
-              const time = t.slice(0, 5);
-              const event = events.find(
-                (ev) => ev.medication_id === m.id && ev.scheduled_time.slice(0, 5) === time && ev.status === 'taken',
-              );
-              return {
-                key: `${m.id}-${time}`,
-                name: m.name,
-                time,
-                takenAt: event?.confirmed_at ? localNow(timezone, new Date(event.confirmed_at)).time : event ? time : null,
-              };
-            }),
-          )
-          .sort((a, b) => a.time.localeCompare(b.time));
+        const list = buildDoses(meds, events, timezone, today.weekday);
         setError(false);
         setDoses(list);
       })();
