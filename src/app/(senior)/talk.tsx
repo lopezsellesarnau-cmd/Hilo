@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,7 +9,8 @@ import { BigButton } from '@/components/big-button';
 import { Bot, type BotMood } from '@/components/bot';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
-import { sampleTalk } from '@/data/sample';
+import { loadSeniorDay } from '@/lib/senior-day';
+import { sendTurn } from '@/lib/talk';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
 const labels: Record<BotMood, string> = {
@@ -24,44 +25,69 @@ export default function TalkScreen() {
   // Smaller than on Home: this screen has more text (prototype overlap bug)
   const botSize = Math.min(size.bot, width * 0.7, height * 0.25);
 
-  const [step, setStep] = useState(0);
-  const [mood, setMood] = useState<BotMood>('speaking');
-  const [prefix, setPrefix] = useState('');
+  const [mood, setMood] = useState<BotMood>('thinking');
+  // What Hilo says now (from Claude, through the talk Edge Function)
+  const [say, setSay] = useState('');
   const [reply, setReply] = useState<string | null>(null);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  // Long stories don't push everything off screen: the text gets about a fifth of it and scrolls, newest at the bottom
-  const textBox = useRef<ScrollView>(null);
-
-  const later = (fn: () => void, ms: number) => {
-    timers.current.push(setTimeout(fn, ms));
-  };
-
-  // Each new step: the bot speaks, then it's her turn
-  useEffect(() => {
-    const text = sampleTalk[step].say;
-    const id = setTimeout(() => setMood('idle'), Math.max(2400, text.length * 55));
-    return () => clearTimeout(id);
-  }, [step]);
-
-  useEffect(() => {
-    const list = timers.current;
-    return () => list.forEach(clearTimeout);
-  }, []);
-
-  const next = () => {
-    setMood('thinking');
-    later(() => {
-      setReply(null);
-      setHeard('');
-      setStep((s) => s + 1);
-      setMood('speaking');
-    }, 1300);
-  };
-
+  const [ended, setEnded] = useState(false);
   // What she is saying right now, live while she holds the button
   const [heard, setHeard] = useState('');
   const [hint, setHint] = useState<string | null>(null);
   const heardRef = useRef('');
+  const session = useRef<string | null>(null);
+  // Long stories don't push everything off screen: the text gets about a fifth of it and scrolls, newest at the bottom
+  const textBox = useRef<ScrollView>(null);
+  const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Until Hilo has a voice: "speaking" for about as long as reading the sentence takes, then it's her turn
+  const show = (text: string) => {
+    setSay(text);
+    setReply(null);
+    setHeard('');
+    setMood('speaking');
+    if (speakTimer.current) clearTimeout(speakTimer.current);
+    speakTimer.current = setTimeout(() => setMood('idle'), Math.max(2400, text.length * 55));
+  };
+
+  const handle = (result: Awaited<ReturnType<typeof sendTurn>>) => {
+    if ('error' in result) {
+      if (result.error === 'too_long') {
+        setEnded(true);
+        show('Hoy ya hemos charlado mucho. Lo guardo en tu libro. ¡Hasta mañana!');
+        return;
+      }
+      setMood('idle');
+      setHint(
+        result.error === 'offline'
+          ? 'No hay conexión. Prueba otra vez en un momento.'
+          : 'Algo ha fallado. Mantén pulsado y prueba otra vez.',
+      );
+      return;
+    }
+    session.current = result.sessionId;
+    show(result.reply);
+  };
+
+  const turn = (text: string) => {
+    setMood('thinking');
+    setHint(null);
+    sendTurn(session.current, text).then(handle);
+  };
+
+  // Hilo starts the talk when the screen opens
+  const started = useRef(false);
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    // Once per screen, even if React runs effects twice in development: each start is a new talk
+    if (started.current) return;
+    started.current = true;
+    sendTurn(null).then(handle);
+    loadSeniorDay().then((day) => day.me && setName(day.me.display_name));
+    return () => {
+      if (speakTimer.current) clearTimeout(speakTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Ask for the microphone and speech recognition when the talk opens, not in the middle of the first press
   useEffect(() => {
@@ -83,7 +109,7 @@ export default function TalkScreen() {
       return;
     }
     setReply(text);
-    next();
+    turn(text);
   });
   useSpeechRecognitionEvent('error', (e) => {
     if (e.error === 'no-speech' || e.error === 'aborted') return; // 'end' comes next and handles it
@@ -112,13 +138,12 @@ export default function TalkScreen() {
     });
   };
 
-  const current = sampleTalk[step];
-  const yourTurn = mood === 'idle' || mood === 'listening';
+  const yourTurn = !ended && (mood === 'idle' || mood === 'listening');
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.screen} bounces={false}>
-        <ScreenHeader backLabel="Inicio" title="¡Hola, Carmen!" subtitle="¿Cómo estás?" />
+        <ScreenHeader backLabel="Inicio" title={name ? `¡Hola, ${name}!` : '¡Hola!'} subtitle="¿Cómo estás?" />
 
         <Animated.View layout={LinearTransition.duration(250)} style={styles.stage}>
           <Bot size={botSize} mood={mood} look="left" />
@@ -134,17 +159,14 @@ export default function TalkScreen() {
             onContentSizeChange={() => textBox.current?.scrollToEnd({ animated: true })}
             showsVerticalScrollIndicator
             nestedScrollEnabled>
-            <Text style={styles.say}>
-              {step === 2 ? prefix : ''}
-              {current.say}
-            </Text>
+            <Text style={styles.say}>{say}</Text>
             {reply || heard ? <Text style={styles.reply}>Tú: «{reply ?? heard}»</Text> : null}
             {hint ? <Text style={styles.hint}>{hint}</Text> : null}
           </ScrollView>
         </Animated.View>
 
         <Animated.View layout={LinearTransition.duration(250)} style={styles.controls}>
-          {current.input === 'hold' && yourTurn ? (
+          {yourTurn ? (
             <PressScale
               animateColor
               onPressIn={listen}
@@ -159,27 +181,7 @@ export default function TalkScreen() {
             </PressScale>
           ) : null}
 
-          {current.input === 'yesno' && mood === 'idle' ? (
-            <View style={styles.yesno}>
-              <View style={styles.half}>
-                <BigButton label="Sí" onPress={next} />
-              </View>
-              <View style={styles.half}>
-                <BigButton
-                  variant="outline"
-                  label="No"
-                  onPress={() => {
-                    setPrefix('Vale, te lo recuerdo en media hora. ');
-                    next();
-                  }}
-                />
-              </View>
-            </View>
-          ) : null}
-
-          {current.input === 'end' && mood === 'idle' ? (
-            <BigButton label="Volver al inicio" onPress={() => router.back()} />
-          ) : null}
+          {ended && mood === 'idle' ? <BigButton label="Volver al inicio" onPress={() => router.back()} /> : null}
         </Animated.View>
       </ScrollView>
     </SafeAreaView>
@@ -261,12 +263,5 @@ const styles = StyleSheet.create({
     transitionProperty: 'color',
     transitionDuration: '300ms',
     transitionTimingFunction: 'ease-out',
-  },
-  yesno: {
-    flexDirection: 'row',
-    gap: 14,
-  },
-  half: {
-    flex: 1,
   },
 });
