@@ -1,11 +1,13 @@
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { loadSeniorDay } from '@/lib/senior-day';
 import { colors, fontSize, fontWeight, lineHeight, size, spacing } from '@/theme';
 
 const pill = require('../../../assets/icons/pill-small.svg');
@@ -20,11 +22,27 @@ export default function HomeScreen() {
   // Never a fixed 265: on short screens a fixed bot overlaps the greeting (prototype bug)
   const botSize = Math.min(size.bot, width * 0.7, height * 0.28);
 
+  // Name and today's pills, refreshed every time the senior comes back to the home
+  const [name, setName] = useState<string | null>(null);
+  const [pills, setPills] = useState<{ taken: number; total: number } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      loadSeniorDay().then((day) => {
+        if (!day.me) return;
+        setName(day.me.display_name);
+        setPills({
+          taken: day.doses.filter((d) => d.takenAt).length,
+          total: day.doses.length,
+        });
+      });
+    }, []),
+  );
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.screen} bounces={false}>
         <Animated.View entering={enter(0)} accessibilityRole="header" style={styles.header}>
-          <Text style={styles.title}>¡Hola, Carmen!</Text>
+          <Text style={styles.title}>{name ? `¡Hola, ${name}!` : '¡Hola!'}</Text>
           <Text style={styles.subtitle}>¿Cómo estás?</Text>
         </Animated.View>
 
@@ -40,7 +58,7 @@ export default function HomeScreen() {
             <BigButton
               variant="outline"
               label="Mis pastillas"
-              detail="0 de 3"
+              detail={pills?.total ? `${pills.taken} de ${pills.total}` : undefined}
               onPress={() => router.push('/pills')}
               icon={<Image source={pill} style={styles.icon} contentFit="contain" />}
             />

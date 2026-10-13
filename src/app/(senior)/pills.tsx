@@ -1,15 +1,16 @@
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
-import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { supabase } from '@/lib/supabase';
-import { buildDoses, localNow, showTime, type Dose } from '@/lib/time';
+import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
+import { localNow, showTime, type Dose } from '@/lib/time';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
 const pillLarge = require('../../../assets/icons/pill-large.svg');
@@ -19,12 +20,15 @@ const SNOOZE_MINUTES = 30;
 
 /** "Domingo 11 de octubre": Spanish writes the month in lower case */
 function todayLabel() {
-  const text = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  const text = new Date().toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
   return (text.charAt(0).toUpperCase() + text.slice(1)).replace(',', '');
 }
 
 type DayPill = Dose & { snoozedUntil?: string };
-type Me = { id: string; family_id: string; timezone: string };
 
 /** 'HH:mm' a number of minutes from now, in the senior's time zone */
 const inMinutes = (timeZone: string, minutes: number) => localNow(timeZone, new Date(Date.now() + minutes * 60_000)).time;
@@ -34,10 +38,12 @@ const inMinutes = (timeZone: string, minutes: number) => localNow(timeZone, new 
  * and the whole day below as a thread.
  */
 export default function PillsScreen() {
-  const [me, setMe] = useState<Me | null>(null);
+  const [me, setMe] = useState<SeniorMe | null>(null);
   const [pills, setPills] = useState<DayPill[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const fade = useScrollFade();
+  const { width, height } = useWindowDimensions();
+  // Same size as the bot on the home
+  const botSize = Math.min(size.bot, width * 0.7, height * 0.28);
   const timezone = me?.timezone ?? 'Europe/Madrid';
   const now = localNow(timezone).time;
 
@@ -45,34 +51,11 @@ export default function PillsScreen() {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const { data: person } = await supabase
-          .from('people')
-          .select('id, family_id, timezone')
-          .eq('user_id', session?.user.id ?? '')
-          .eq('role', 'senior')
-          .maybeSingle();
-        if (!person) return setError('Este móvil aún no está conectado con tu familia.');
-        const today = localNow(person.timezone);
-        const { data: meds } = await supabase
-          .from('medications')
-          .select('id, name, times, weekdays')
-          .eq('person_id', person.id)
-          .eq('active', true);
-        const ids = (meds ?? []).map((m) => m.id);
-        const { data: events } = ids.length
-          ? await supabase
-              .from('medication_events')
-              .select('id, medication_id, scheduled_time, status, confirmed_at')
-              .in('medication_id', ids)
-              .eq('scheduled_date', today.date)
-          : { data: [] };
-        if (!meds || !events) return setError('No hay conexión. Prueba otra vez en un momento.');
+        const day = await loadSeniorDay();
+        if (!day.me) return setError(day.error);
         setError(null);
-        setMe(person);
-        setPills(buildDoses(meds, events, person.timezone, today.weekday));
+        setMe(day.me);
+        setPills(day.doses);
       })();
     }, []),
   );
@@ -145,72 +128,80 @@ export default function PillsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.screen} bounces={false}>
         <ScreenHeader backLabel="Inicio" title="Mis pastillas" subtitle={todayLabel()} />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <View style={styles.focus}>
-          {!pills ? null : list.length === 0 ? (
-            <>
-              <Bot size={168} />
-              <Text style={styles.focusName}>Hoy no tienes pastillas</Text>
-              <Text style={styles.focusDetail}>Si tu familia añade alguna, te la recordaré.</Text>
-            </>
-          ) : due ? (
-            <>
-              <View style={styles.iconCircle}>
-                <Image source={pillLarge} style={styles.icon} contentFit="contain" />
-              </View>
-              <Text style={styles.kicker}>Ahora te toca</Text>
-              <Text style={styles.focusName}>{due.name}</Text>
-              <Text style={styles.focusDetail}>La de las {showTime(due.time)}</Text>
-            </>
-          ) : pending.length === 0 ? (
-            <>
-              <Bot size={168} mood="speaking" />
-              <Text style={styles.focusName}>¡Todo hecho por hoy!</Text>
-              <Text style={styles.focusDetail}>Te has tomado todas las pastillas.</Text>
-            </>
-          ) : (
-            <>
-              <View style={styles.iconCircle}>
-                <Image source={pillLarge} style={[styles.icon, styles.iconLater]} contentFit="contain" />
-              </View>
-              <Text style={styles.kicker}>Ahora no te toca ninguna</Text>
-              {next ? (
-                <Text style={styles.focusDetail}>
-                  La siguiente es {next.name.toLowerCase()}, a las {showTime(next.time)}. Te aviso.
-                </Text>
-              ) : (
-                <Text style={styles.focusDetail}>Te lo recuerdo en un rato.</Text>
-              )}
-            </>
-          )}
-        </View>
+        {/* Fills the space between the header and the day, so nothing is left blank at the bottom */}
+        <View style={styles.stage}>
+          <Animated.View layout={LinearTransition.duration(250)} style={styles.focus}>
+            {!pills ? null : list.length === 0 ? (
+              <>
+                <View style={styles.botWrap}>
+                  <Bot size={botSize} />
+                </View>
+                <Text style={styles.focusName}>Hoy no tienes pastillas</Text>
+                <Text style={styles.focusDetail}>Si tu familia añade alguna, te la recordaré.</Text>
+              </>
+            ) : due ? (
+              <>
+                <View style={[styles.iconCircle, { width: botSize, height: botSize, borderRadius: botSize / 2 }]}>
+                  <Image source={pillLarge} style={styles.icon} contentFit="contain" />
+                </View>
+                <Text style={styles.kicker}>Ahora te toca</Text>
+                <Text style={styles.focusName}>{due.name}</Text>
+                <Text style={styles.focusDetail}>La de las {showTime(due.time)}</Text>
+              </>
+            ) : pending.length === 0 ? (
+              <>
+                <View style={styles.botWrap}>
+                  <Bot size={botSize} />
+                </View>
+                <Text style={styles.focusName}>¡Todo hecho por hoy!</Text>
+                <Text style={styles.focusDetail}>Te has tomado todas las pastillas.</Text>
+              </>
+            ) : (
+              <>
+                <View style={[styles.iconCircle, { width: botSize, height: botSize, borderRadius: botSize / 2 }]}>
+                  <Image source={pillLarge} style={[styles.icon, styles.iconLater]} contentFit="contain" />
+                </View>
+                <Text style={styles.kicker}>Ahora no te toca ninguna</Text>
+                {next ? (
+                  <Text style={styles.focusDetail}>
+                    La siguiente es {next.name.toLowerCase()}, a las {showTime(next.time)}. Te aviso.
+                  </Text>
+                ) : (
+                  <Text style={styles.focusDetail}>Te lo recuerdo en un rato.</Text>
+                )}
+              </>
+            )}
+          </Animated.View>
 
-        {undoPill ? (
-          <View style={styles.undoRow}>
-            <Text style={styles.undoText}>Hecho: {undoPill.name.toLowerCase()}.</Text>
-            <Pressable
-              onPress={() => undo(undoPill)}
-              accessibilityRole="button"
-              accessibilityLabel="Deshacer, no la he tomado"
-              hitSlop={12}>
-              <Text style={styles.undoLink}>Deshacer</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {due ? (
           <View style={styles.actions}>
-            <BigButton label="Ya me la he tomado" onPress={() => markTaken(due)} />
-            <Pressable onPress={() => snooze(due)} accessibilityRole="button" hitSlop={8} style={styles.later}>
-              <Text style={styles.laterText}>Recuérdamelo en un rato</Text>
-            </Pressable>
+            {undoPill ? (
+              <View style={styles.undoRow}>
+                <Text style={styles.undoText}>Hecho: {undoPill.name.toLowerCase()}.</Text>
+                <Pressable
+                  onPress={() => undo(undoPill)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Deshacer, no la he tomado"
+                  hitSlop={12}>
+                  <Text style={styles.undoLink}>Deshacer</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {due ? (
+              <>
+                <BigButton label="Ya me la he tomado" onPress={() => markTaken(due)} />
+                <Pressable onPress={() => snooze(due)} accessibilityRole="button" hitSlop={8} style={styles.later}>
+                  <Text style={styles.laterText}>Recuérdamelo en un rato</Text>
+                </Pressable>
+              </>
+            ) : null}
           </View>
-        ) : null}
+        </View>
 
         <Text style={styles.dayLabel}>TU DÍA</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.threadScroll}>
@@ -240,7 +231,6 @@ export default function PillsScreen() {
           </View>
         </ScrollView>
       </ScrollView>
-      <ScrollFade visible={fade.visible} />
     </SafeAreaView>
   );
 }
@@ -254,9 +244,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   screen: {
+    flexGrow: 1,
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
-    paddingBottom: 72,
+    paddingBottom: spacing.screenBottom,
+  },
+  stage: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 20,
   },
   error: {
     marginTop: 18,
@@ -268,17 +264,18 @@ const styles = StyleSheet.create({
   },
   focus: {
     alignItems: 'center',
-    marginTop: 36,
     gap: 6,
   },
   iconCircle: {
     flexShrink: 0,
-    width: 168,
-    height: 168,
-    borderRadius: 84,
     backgroundColor: 'rgba(143, 168, 138, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 22,
+  },
+  // Same gap below the bot as below the pill circle
+  botWrap: {
+    flexShrink: 0,
     marginBottom: 22,
   },
   icon: {
@@ -295,8 +292,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   focusName: {
-    fontSize: 38,
-    lineHeight: 44,
+    fontSize: 32,
+    lineHeight: 38,
     fontWeight: fontWeight.heavy,
     color: colors.ink,
     textAlign: 'center',
@@ -312,7 +309,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    marginTop: 18,
   },
   undoText: {
     fontSize: fontSize.label,
@@ -340,7 +336,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   dayLabel: {
-    marginTop: 40,
+    marginTop: 12,
     marginBottom: 16,
     fontSize: 16,
     fontWeight: '700',
