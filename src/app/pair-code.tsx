@@ -7,33 +7,8 @@ import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextField } from '@/components/text-field';
-import { supabase } from '@/lib/supabase';
+import { pair, PAIR_MESSAGES } from '@/lib/pairing';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
-
-/**
- * The senior's phone: sign in anonymously and claim the family's code.
- * That links this phone to the senior row the family created.
- */
-async function pair(code: string) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  // A family account on this phone (or on the simulator while testing) is signed out first
-  if (session && !session.user.is_anonymous) await supabase.auth.signOut();
-  if (!session || !session.user.is_anonymous) {
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) throw new Error('offline');
-  }
-  const { data, error } = await supabase.rpc('claim_pairing_code', { pairing_code: code });
-  if (error) throw new Error(error.message.includes('Already paired') ? 'paired' : 'code');
-  return data as string;
-}
-
-const MESSAGES: Record<string, string> = {
-  code: 'Ese código no sirve. Pide a tu familia uno nuevo.',
-  paired: 'Este móvil ya está conectado.',
-  offline: 'No hay conexión. Prueba otra vez en un momento.',
-};
 
 export default function PairCodeScreen() {
   const [code, setCode] = useState('');
@@ -49,7 +24,7 @@ export default function PairCodeScreen() {
       personId = await pair(value);
     } catch (e) {
       setChecking(false);
-      setError(MESSAGES[(e as Error).message] ?? MESSAGES.offline);
+      setError(PAIR_MESSAGES[(e as Error).message] ?? PAIR_MESSAGES.offline);
       return;
     }
     setChecking(false);
@@ -63,7 +38,11 @@ export default function PairCodeScreen() {
           <View style={styles.bot}>
             <Bot size={110} mood={checking ? 'thinking' : 'idle'} />
           </View>
-          <ScreenHeader title="Escribe el código" subtitle="Te lo da tu familia. Son 6 números." backLabel="Atrás" />
+          <ScreenHeader
+            title="Escribe el código"
+            subtitle="Te lo da tu familia. Son 6 números, o un código QR."
+            backLabel="Atrás"
+          />
 
           <View style={styles.body}>
             <TextField
@@ -79,12 +58,12 @@ export default function PairCodeScreen() {
               placeholder="······"
               keyboardType="number-pad"
               maxLength={6}
-              autoFocus
             />
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </View>
 
           <View style={styles.footer}>
+            <BigButton variant="outline" label="Escanear el código QR" onPress={() => router.push('/pair-scan')} />
             <BigButton
               label={checking ? 'Conectando…' : 'Conectar'}
               onPress={code.length === 6 && !checking ? () => submit(code) : undefined}
@@ -128,5 +107,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 'auto',
     paddingTop: 28,
+    gap: 14,
   },
 });

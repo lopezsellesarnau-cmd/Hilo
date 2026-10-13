@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
+import { pairingLink } from '@/lib/pairing';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
 
@@ -45,7 +47,11 @@ export default function PairStep() {
       <View style={styles.steps}>
         <Text style={styles.step}>1. En su móvil, instala Hilo desde la App Store.</Text>
         <Text style={styles.step}>2. Abre Hilo y toca «Tengo un código».</Text>
-        <Text style={styles.step}>3. Escribe este código:</Text>
+        <Text style={styles.step}>3. Toca «Escanear el código QR» y apunta aquí, o escribe los números.</Text>
+      </View>
+
+      <View style={styles.qr} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {code ? <QRCode value={pairingLink(code)} size={176} color={colors.ink} backgroundColor={colors.background} /> : null}
       </View>
 
       <View style={styles.codeBox} accessible accessibilityLabel={code ? `Código ${code.split('').join(' ')}` : 'Creando código'}>
@@ -69,6 +75,14 @@ const styles = StyleSheet.create({
     fontSize: family.fontSize.body,
     lineHeight: 26,
     color: colors.ink,
+  },
+  // Fixed size, also while the code is being created, so nothing jumps
+  qr: {
+    flexShrink: 0,
+    alignSelf: 'center',
+    width: 176,
+    height: 176,
+    marginTop: 8,
   },
   codeBox: {
     flexShrink: 0,
