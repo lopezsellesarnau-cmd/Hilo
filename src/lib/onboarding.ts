@@ -1,3 +1,4 @@
+import { isAuthApiError } from '@supabase/supabase-js';
 import type { Href } from 'expo-router';
 
 import { supabase } from '@/lib/supabase';
@@ -40,6 +41,15 @@ export async function startRoute(): Promise<Href | null> {
     data: { session },
   } = await supabase.auth.getSession();
   if (!session) return null;
+
+  // The saved session can belong to a user that no longer exists (e.g. after "Borrar cuenta"):
+  // ask the server, and if it is gone, clear it and start from Welcome.
+  // Offline is not "gone": then keep the session, or the senior would have to pair again.
+  const { error } = await supabase.auth.getUser();
+  if (error && isAuthApiError(error)) {
+    await supabase.auth.signOut({ scope: 'local' });
+    return null;
+  }
 
   if (session.user.is_anonymous) {
     const { data: me } = await supabase.from('people').select('id').eq('user_id', session.user.id).maybeSingle();
