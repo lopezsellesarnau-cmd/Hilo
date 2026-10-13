@@ -39,22 +39,24 @@ She is not the only one. In Europe there are millions of people over 65 living a
 
 - React Native + Expo (SDK 57) + TypeScript, Expo Router
 - iPhone, iPad and Android from one codebase (development builds, not Expo Go)
-- Supabase (EU region) for data, auth and server functions
-- On-device speech recognition, ElevenLabs for the voice, an LLM through the server for the conversation
+- Supabase (EU region, Frankfurt) for data, auth and server functions
+- On-device speech recognition (expo-speech-recognition), Claude Haiku for the conversation through a Supabase Edge Function, local notifications for the talk and the pills
 - API keys live only on the server, never in the app
 
 ## Progress
 
 **Done**
-- Senior app (sample data): Home with the animated bot, the daily Talk (scripted), Pills with confirm and undo, My book with an editorial chapter page
-- Design tokens from the Figma, app icon, splash, press and page animations, scroll fade
-- Welcome screen and family login with a 6-digit email code (Supabase Auth)
-- Database: families, people, consents, medications and dose records, all with Row Level Security
+- Family side: sign in with a 6-digit email code, onboarding (your name, who Hilo is for, talk time, pills), pairing the senior's phone with a code or a QR, tabs Today, Book and Settings
+- Senior side: the senior's own consent, Home with real data, Pills with confirm and undo, reminders for the talk and each pill (tap opens the right screen)
+- The daily talk: speech recognition on the phone, Claude replies through the `talk` Edge Function, every turn saved, token usage counted per senior and day
+- Database: families, people, consents, medications, doses, pairing codes, talks, turns and usage, all with Row Level Security
+- Landing page with a waitlist: [hilo-web.vercel.app](https://hilo-web.vercel.app) (separate repo)
 
 **Next**
-- Family onboarding: your name, who Hilo is for, chat time, pills, pairing the senior's phone with a QR code
-- The senior's own consent on their phone, then the family tabs (Today, Book, Settings)
-- Real voice: on-device speech recognition and ElevenLabs, through Supabase Edge Functions
+- Hilo's voice: text to speech inside the `talk` function, voice speed per senior, a Repeat button
+- The pill question back inside the talk
+- Editable settings and the book with real chapters
+- TestFlight and a first test with a real person
 - iPad layouts
 
 ## Project structure
@@ -62,15 +64,19 @@ She is not the only one. In Europe there are millions of people over 65 living a
 ```
 src/
   app/                 screens (Expo Router)
-    index.tsx          welcome
+    index.tsx          start: decides where each user goes
     onboarding/        family onboarding
+    family/            family tabs: today, book, settings
     (senior)/          senior app: home, talk, pills, book
+    pair-code.tsx      senior: pair with a 6-digit code
+    pair-scan.tsx      senior: pair by scanning the QR
+    consent.tsx        senior: their own consent
   components/          shared UI (BigButton, Bot, ScrollFade…)
-  lib/supabase.ts      Supabase client
+  lib/                 supabase client, onboarding, pairing, reminders, talk
   theme.ts             design tokens from the Figma
-  data/sample.ts       sample data until everything reads from Supabase
 assets/icons/          SVGs exported from the Figma
 supabase/migrations/   database schema, versioned in git
+supabase/functions/    Edge Functions (Deno): talk
 ```
 
 ## Run it locally
@@ -78,10 +84,11 @@ supabase/migrations/   database schema, versioned in git
 ```bash
 npm install
 cp .env.example .env   # add your Supabase URL and anon key
-npx expo start --ios
+npx expo prebuild -p ios
+npx expo run:ios --device   # development build on a plugged-in iPhone
 ```
 
-Everything so far runs in Expo Go. Real speech recognition will need a development build (`npx expo run:ios`).
+After the first build, `npx expo start` is enough. Rebuild only when a native library changes. Speech recognition and notifications need the development build, not Expo Go.
 
 **Database:** migrations live in `supabase/migrations/`. To apply them to your project:
 
@@ -91,6 +98,8 @@ npx supabase db push
 ```
 
 For the email code to arrive, the Magic Link email template in Supabase must include `{{ .Token }}`.
+
+**Talk function:** deploy `supabase/functions/talk/index.ts` and set the `ANTHROPIC_API_KEY` secret in Supabase.
 
 ## Languages
 
