@@ -56,8 +56,9 @@ export function OnboardingStep({ step, question, hint, children, footer, mood = 
           {hint ? <Text style={styles.hint}>{hint}</Text> : null}
 
           <View style={styles.body}>{children}</View>
-          {footer ? <View style={styles.footer}>{footer}</View> : null}
         </ScrollView>
+        {/* Outside the scroll: on long steps it would be cut at the bottom edge */}
+        {footer ? <View style={styles.footer}>{footer}</View> : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -131,8 +132,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   footer: {
-    marginTop: 'auto',
-    paddingTop: 28,
+    flexShrink: 0,
+    paddingHorizontal: spacing.screenX,
+    paddingTop: 12,
+    paddingBottom: 12,
     gap: 12,
   },
 });
