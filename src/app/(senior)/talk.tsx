@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
@@ -28,6 +28,8 @@ export default function TalkScreen() {
   const [prefix, setPrefix] = useState('');
   const [reply, setReply] = useState<string | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Long stories don't push everything off screen: the text gets about a fifth of it and scrolls, newest at the bottom
+  const textBox = useRef<ScrollView>(null);
 
   const later = (fn: () => void, ms: number) => {
     timers.current.push(setTimeout(fn, ms));
@@ -62,20 +64,29 @@ export default function TalkScreen() {
       <ScrollView contentContainerStyle={styles.screen} bounces={false}>
         <ScreenHeader backLabel="Inicio" title="¡Hola, Carmen!" subtitle="¿Cómo estás?" />
 
-        <View style={styles.stage}>
+        <Animated.View layout={LinearTransition.duration(250)} style={styles.stage}>
           <Bot size={botSize} mood={mood} look="left" />
-        </View>
+        </Animated.View>
 
-        <View style={styles.talk} accessibilityLiveRegion="polite">
+        {/* Sits right above the buttons; while the bot speaks there are none, so it moves down to use the space */}
+        <Animated.View layout={LinearTransition.duration(250)} style={styles.talk} accessibilityLiveRegion="polite">
           <Text style={styles.label}>{labels[mood]}</Text>
-          <Text style={styles.say}>
-            {step === 2 ? prefix : ''}
-            {current.say}
-          </Text>
-          {reply ? <Text style={styles.reply}>Tú: «{reply}»</Text> : null}
-        </View>
+          <ScrollView
+            ref={textBox}
+            style={{ maxHeight: height * 0.2 }}
+            contentContainerStyle={styles.text}
+            onContentSizeChange={() => textBox.current?.scrollToEnd({ animated: true })}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled>
+            <Text style={styles.say}>
+              {step === 2 ? prefix : ''}
+              {current.say}
+            </Text>
+            {reply ? <Text style={styles.reply}>Tú: «{reply}»</Text> : null}
+          </ScrollView>
+        </Animated.View>
 
-        <View style={styles.controls}>
+        <Animated.View layout={LinearTransition.duration(250)} style={styles.controls}>
           {current.input === 'hold' && yourTurn ? (
             <PressScale
               animateColor
@@ -116,7 +127,7 @@ export default function TalkScreen() {
           {current.input === 'end' && mood === 'idle' ? (
             <BigButton label="Volver al inicio" onPress={() => router.back()} />
           ) : null}
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -140,9 +151,10 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   talk: {
-    minHeight: 150,
     gap: 14,
-    marginBottom: 24,
+  },
+  text: {
+    gap: 14,
   },
   label: {
     fontSize: fontSize.label,
@@ -163,7 +175,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   controls: {
-    minHeight: size.buttonHeight,
+    marginTop: 24,
   },
   hold: {
     minHeight: size.buttonHeight,
