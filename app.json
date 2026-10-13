@@ -11,9 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.arnolop.hilo",
       "infoPlist": {
-        "UISupportedInterfaceOrientations": [
-          "UIInterfaceOrientationPortrait"
-        ],
+        "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortraitUpsideDown",
@@ -42,7 +40,7 @@
         "expo-camera",
         {
           "cameraPermission": "Hilo usa la cámara para leer el código QR que te da tu familia.",
-          "microphonePermission": false,
+          "microphonePermission": "Hilo usa el micrófono para escucharte mientras mantienes pulsado el botón.",
           "recordAudioAndroid": false
         }
       ],
@@ -52,6 +50,19 @@
           "backgroundColor": "#ffffff",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 160
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Hilo usa el micrófono para escucharte mientras mantienes pulsado el botón.",
+          "speechRecognitionPermission": "Hilo convierte lo que cuentas en texto para guardarlo en tu libro."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Hilo usa el micrófono para escucharte mientras mantienes pulsado el botón."
         }
       ]
     ],

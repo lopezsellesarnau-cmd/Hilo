@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
@@ -51,9 +52,64 @@ export default function TalkScreen() {
     setMood('thinking');
     later(() => {
       setReply(null);
+      setHeard('');
       setStep((s) => s + 1);
       setMood('speaking');
     }, 1300);
+  };
+
+  // What she is saying right now, live while she holds the button
+  const [heard, setHeard] = useState('');
+  const [hint, setHint] = useState<string | null>(null);
+  const heardRef = useRef('');
+
+  // Ask for the microphone and speech recognition when the talk opens, not in the middle of the first press
+  useEffect(() => {
+    ExpoSpeechRecognitionModule.requestPermissionsAsync();
+  }, []);
+
+  useSpeechRecognitionEvent('result', (e) => {
+    const text = e.results[0]?.transcript ?? '';
+    heardRef.current = text;
+    setHeard(text);
+  });
+  // Recognition is done (after letting go): her words are the reply, and the talk goes on
+  useSpeechRecognitionEvent('end', () => {
+    if (mood !== 'listening') return;
+    const text = heardRef.current.trim();
+    if (!text) {
+      setMood('idle');
+      setHint('No te he oído bien. Mantén pulsado y habla otra vez.');
+      return;
+    }
+    setReply(text);
+    next();
+  });
+  useSpeechRecognitionEvent('error', (e) => {
+    if (e.error === 'no-speech' || e.error === 'aborted') return; // 'end' comes next and handles it
+    setMood('idle');
+    setHint(
+      e.error === 'not-allowed'
+        ? 'Hilo no puede usar el micrófono. Actívalo en Ajustes > Hilo.'
+        : 'No te he oído bien. Mantén pulsado y habla otra vez.',
+    );
+  });
+
+  const listen = () => {
+    if (mood !== 'idle') return;
+    heardRef.current = '';
+    setHeard('');
+    setHint(null);
+    setMood('listening');
+    ExpoSpeechRecognitionModule.start({
+      lang: 'es-ES',
+      interimResults: true,
+      continuous: true,
+      addsPunctuation: true,
+      // Voice is health-adjacent personal data: keep it on the phone when the phone can do it
+      requiresOnDeviceRecognition: ExpoSpeechRecognitionModule.supportsOnDeviceRecognition(),
+      iosTaskHint: 'dictation',
+    });
   };
 
   const current = sampleTalk[step];
@@ -82,7 +138,8 @@ export default function TalkScreen() {
               {step === 2 ? prefix : ''}
               {current.say}
             </Text>
-            {reply ? <Text style={styles.reply}>Tú: «{reply}»</Text> : null}
+            {reply || heard ? <Text style={styles.reply}>Tú: «{reply ?? heard}»</Text> : null}
+            {hint ? <Text style={styles.hint}>{hint}</Text> : null}
           </ScrollView>
         </Animated.View>
 
@@ -90,12 +147,8 @@ export default function TalkScreen() {
           {current.input === 'hold' && yourTurn ? (
             <PressScale
               animateColor
-              onPressIn={() => mood === 'idle' && setMood('listening')}
-              onPressOut={() => {
-                if (mood !== 'listening') return;
-                setReply(current.reply ?? null);
-                next();
-              }}
+              onPressIn={listen}
+              onPressOut={() => mood === 'listening' && ExpoSpeechRecognitionModule.stop()}
               accessibilityRole="button"
               accessibilityLabel="Mantén pulsado para hablar"
               accessibilityHint="Mantén el botón pulsado mientras hablas y suéltalo al terminar"
@@ -173,6 +226,12 @@ const styles = StyleSheet.create({
     lineHeight: 27,
     fontWeight: fontWeight.semibold,
     color: colors.muted,
+  },
+  hint: {
+    fontSize: fontSize.label,
+    lineHeight: 24,
+    fontWeight: fontWeight.semibold,
+    color: '#b3261e',
   },
   controls: {
     marginTop: 24,
