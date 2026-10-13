@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
+import { askForReminders } from '@/lib/reminders';
 import { supabase } from '@/lib/supabase';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
@@ -38,9 +39,9 @@ export default function ConsentScreen() {
     const { data: me, error: meError } = await supabase.from('people').select('family_id').eq('id', personId).single();
     const { error: e } = meError
       ? { error: meError }
-      : await supabase.from('consents').insert(
-          KINDS.map((kind) => ({ family_id: me.family_id, person_id: personId, kind, version: CONSENT_VERSION })),
-        );
+      : await supabase
+          .from('consents')
+          .insert(KINDS.map((kind) => ({ family_id: me.family_id, person_id: personId, kind, version: CONSENT_VERSION })));
     setSaving(false);
     if (e) {
       setError('No se ha podido guardar. Prueba otra vez en un momento.');
@@ -62,7 +63,14 @@ export default function ConsentScreen() {
             </Text>
             <Text style={styles.doneText}>Cada día, Hilo te avisará para charlar un rato.</Text>
           </View>
-          <BigButton label="Empezar" onPress={() => router.replace('/home')} />
+          <BigButton
+            label="Empezar"
+            onPress={async () => {
+              // The screen just promised "Hilo te avisará": ask for notifications now, when it makes sense
+              await askForReminders();
+              router.replace('/home');
+            }}
+          />
         </View>
       </SafeAreaView>
     );

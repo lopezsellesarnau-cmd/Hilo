@@ -9,6 +9,7 @@ import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { supabase } from '@/lib/supabase';
+import { remindLater } from '@/lib/reminders';
 import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
 import { localNow, showTime, type Dose } from '@/lib/time';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
@@ -114,7 +115,10 @@ export default function PillsScreen() {
   };
 
   // Only on this phone: the reminder comes back in a while
-  const snooze = (dose: DayPill) => update(dose.key, { snoozedUntil: inMinutes(timezone, SNOOZE_MINUTES) });
+  const snooze = (dose: DayPill) => {
+    update(dose.key, { snoozedUntil: inMinutes(timezone, SNOOZE_MINUTES) });
+    remindLater(dose.name, SNOOZE_MINUTES);
+  };
 
   const undo = async (dose: DayPill) => {
     setUndoId(null);

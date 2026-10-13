@@ -1,9 +1,21 @@
-import { Stack } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
+import { reminderUrl } from '@/lib/reminders';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
+  // Tapping a reminder while Hilo is running opens the talk or the pills (cold start: see index.tsx)
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => {
+      const url = reminderUrl(r.notification);
+      if (url) router.push(url);
+    });
+    return () => sub.remove();
+  }, []);
+
   return (
     <>
       <StatusBar style="dark" />

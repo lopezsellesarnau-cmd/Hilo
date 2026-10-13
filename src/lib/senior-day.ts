@@ -6,19 +6,25 @@ export type SeniorMe = {
   family_id: string;
   display_name: string;
   timezone: string;
+  talk_time: string | null;
 };
+
+type Medication = { id: string; name: string; times: string[]; weekdays: number[] };
 
 /**
  * The senior's own row on this phone and today's doses (schedule + confirmations).
  * Shared by the home and the pills screen so both count the same thing.
+ * `meds` is the whole schedule, for the reminders.
  */
-export async function loadSeniorDay(): Promise<{ me: SeniorMe; doses: Dose[] } | { me: null; error: string }> {
+export async function loadSeniorDay(): Promise<
+  { me: SeniorMe; doses: Dose[]; meds: Medication[] } | { me: null; error: string }
+> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
   const { data: me } = await supabase
     .from('people')
-    .select('id, family_id, display_name, timezone')
+    .select('id, family_id, display_name, timezone, talk_time')
     .eq('user_id', session?.user.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();
@@ -46,5 +52,5 @@ export async function loadSeniorDay(): Promise<{ me: SeniorMe; doses: Dose[] } |
       me: null,
       error: 'No hay conexión. Prueba otra vez en un momento.',
     };
-  return { me, doses: buildDoses(meds, events, me.timezone, today.weekday) };
+  return { me, meds, doses: buildDoses(meds, events, me.timezone, today.weekday) };
 }

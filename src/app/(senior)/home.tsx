@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadSeniorDay } from '@/lib/senior-day';
 import { colors, fontSize, fontWeight, lineHeight, size, spacing } from '@/theme';
 
@@ -33,6 +34,11 @@ export default function HomeScreen() {
         setPills({
           taken: day.doses.filter((d) => d.takenAt).length,
           total: day.doses.length,
+        });
+        // Picks up any change the family made to the talk time or the pills.
+        // Asks first on phones paired before reminders existed (iOS only ever asks once).
+        askForReminders().then((ok) => {
+          if (ok) scheduleReminders(day.me.talk_time, day.meds);
         });
       });
     }, []),

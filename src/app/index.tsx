@@ -1,3 +1,4 @@
+import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -7,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { startRoute } from '@/lib/onboarding';
+import { reminderUrl } from '@/lib/reminders';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
 /**
@@ -21,8 +23,12 @@ export default function WelcomeScreen() {
   useEffect(() => {
     startRoute()
       .then((route) => {
-        if (route) router.replace(route);
-        else setChecking(false);
+        if (!route) return setChecking(false);
+        router.replace(route);
+        // Hilo was opened by tapping a reminder: go on to the talk or the pills
+        const last = Notifications.getLastNotificationResponse();
+        const url = route === '/home' && last ? reminderUrl(last.notification) : null;
+        if (url) router.push(url);
       })
       .catch(() => setChecking(false));
   }, []);
