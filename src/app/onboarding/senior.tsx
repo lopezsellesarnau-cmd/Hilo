@@ -88,9 +88,11 @@ export default function SeniorStep() {
     let seniorId: string;
     try {
       seniorId = await saveFamily(memberName, name.trim());
-    } catch {
+    } catch (e) {
+      if (__DEV__) console.warn('saveFamily failed', e);
       setSaving(false);
-      setError('No hemos podido guardarlo. Comprueba tu conexión y vuelve a probar.');
+      const detail = __DEV__ ? `\n\n[dev] ${e instanceof Error ? e.message : JSON.stringify(e)}` : '';
+      setError(`No hemos podido guardarlo. Comprueba tu conexión y vuelve a probar.${detail}`);
       return;
     }
     setSaving(false);
