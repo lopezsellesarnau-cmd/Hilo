@@ -24,6 +24,7 @@ Cómo hablas:
 - Cálido y tranquilo, sin prisa. Trata de tú. Nada de emojis, listas ni símbolos: todo lo que dices se lee en voz alta.
 - Escucha de verdad: repite algún detalle que te ha contado antes de preguntar lo siguiente.
 - Si se repite o se confunde, no le corriges. Sigues con cariño.
+- Si te pide que hables más despacio, más deprisa o normal, usa ajustar_voz y después le dices que ya está, con una frase corta.
 
 De qué habláis:
 - Primero, cómo está hoy: si ha dormido bien, qué va a hacer.
@@ -37,6 +38,35 @@ Límites:
 - Nunca inventas cosas de su vida. Solo usas lo que te ha contado.
 
 La charla dura unos minutos. Cuando ya habéis hablado un rato del recuerdo (unas 8 o 10 respuestas suyas), o si dice que se tiene que ir, te despides con cariño, le dices que lo guardas en su libro y que mañana seguís.`;
+
+// ── Tools ─────────────────────────────────────────────────────────────────
+// Fixed like SYSTEM, so they stay in the cache.
+
+const TOOLS: Anthropic.Tool[] = [
+  {
+    name: 'ajustar_voz',
+    description:
+      'Cambia la velocidad a la que hablas con esta persona y la guarda para los próximos días. ' +
+      'Úsala solo cuando ella lo pida o cuando diga que no te entiende porque vas muy rápido o muy lento ' +
+      '(por ejemplo "habla más despacio", "vas muy deprisa", "habla normal").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cambio: { type: 'string', enum: ['mas_despacio', 'mas_deprisa', 'normal'] },
+      },
+      required: ['cambio'],
+    },
+  },
+];
+
+const SPEED_STEP = 0.1;
+const MIN_SPEED = 0.7;
+const MAX_SPEED = 1.2;
+
+function nextSpeed(speed: number, cambio: unknown): number {
+  const next = cambio === 'mas_despacio' ? speed - SPEED_STEP : cambio === 'mas_deprisa' ? speed + SPEED_STEP : 1;
+  return Math.round(Math.min(MAX_SPEED, Math.max(MIN_SPEED, next)) * 100) / 100;
+}
 
 // ── Voice ─────────────────────────────────────────────────────────────────
 // VOICE_PROVIDER = 'azure' (default) or 'elevenlabs'. Speed: 1 = normal, from people.voice_speed (0.70-1.20).
@@ -152,16 +182,48 @@ Deno.serve(async (req) => {
     ...history.map((t): Anthropic.MessageParam => ({ role: t.speaker === 'hilo' ? 'assistant' : 'user', content: t.text })),
   ];
 
-  let response: Anthropic.Message;
+  // At most one tool call per turn: Claude changes the speed, then says it out loud at the new speed
+  let speed = Number(me.voice_speed);
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let response!: Anthropic.Message;
   try {
-    response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 400,
-      // Spoken chat: short and fast matters more than deep reasoning
-      output_config: { effort: 'low' },
-      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
-      messages,
-    });
+    for (let step = 0; step < 2; step++) {
+      response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 400,
+        // Spoken chat: short and fast matters more than deep reasoning
+        output_config: { effort: 'low' },
+        system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+        tools: TOOLS,
+        messages,
+      });
+      const u = response.usage;
+      inputTokens += u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
+      outputTokens += u.output_tokens;
+
+      const call = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+      if (response.stop_reason !== 'tool_use' || !call || step === 1) break;
+
+      const wanted = nextSpeed(speed, (call.input as { cambio?: unknown }).cambio);
+      const { error } = await admin.from('people').update({ voice_speed: wanted }).eq('id', me.id);
+      if (error) console.error('voice_speed', error.message);
+      else speed = wanted;
+      messages.push(
+        { role: 'assistant', content: response.content },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: call.id,
+              content: error ? 'No se ha podido cambiar.' : `Hecho. Velocidad ahora ${speed.toFixed(2)} (1 = normal).`,
+              is_error: Boolean(error),
+            },
+          ],
+        },
+      );
+    }
   } catch (e) {
     console.error('anthropic', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
     return json({ error: 'llm' }, 502);
@@ -171,10 +233,10 @@ Deno.serve(async (req) => {
     response.stop_reason === 'refusal'
       ? 'Perdona, de eso prefiero no hablar. ¿Me cuentas otra cosa?'
       : response.content
-          .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-          .map((b) => b.text)
-          .join(' ')
-          .trim();
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join(' ')
+        .trim();
   if (!reply) return json({ error: 'llm' }, 502);
 
   const { error: saveError } = await db
@@ -185,14 +247,13 @@ Deno.serve(async (req) => {
   // On screen the comma before her name is right ("Qué bonito, Margarita"); out loud the voice stops there and sounds robotic
   const firstName = me.display_name.trim().split(/\s+/)[0];
   const spoken = firstName ? reply.replaceAll(`, ${firstName}`, ` ${firstName}`) : reply;
-  const audio = await speak(spoken, Number(me.voice_speed));
+  const audio = await speak(spoken, speed);
 
-  const u = response.usage;
   await admin.rpc('add_usage', {
     pid: me.id,
     usage_day: new Date().toLocaleDateString('sv-SE', { timeZone: me.timezone }),
-    input_tokens: u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0),
-    output_tokens: u.output_tokens,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
     characters: audio ? spoken.length : 0,
   });
 
