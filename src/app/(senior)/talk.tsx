@@ -20,6 +20,24 @@ const labels: Record<BotMood, string> = {
   thinking: 'UN MOMENTO…',
 };
 
+// She taps once to talk. Her turn ends after a pause, when she taps "He terminado", or at the limit
+const PAUSE_MS = 3500;
+/** If she hasn't said anything yet, wait longer before giving up */
+const FIRST_WORDS_MS = 8000;
+const MAX_TURN_MS = 2 * 60 * 1000;
+
+// Spanish, live text while she speaks
+const startRecognition = () =>
+  ExpoSpeechRecognitionModule.start({
+    lang: 'es-ES',
+    interimResults: true,
+    continuous: true,
+    addsPunctuation: true,
+    // Voice is health-adjacent personal data: keep it on the phone when the phone can do it
+    requiresOnDeviceRecognition: ExpoSpeechRecognitionModule.supportsOnDeviceRecognition(),
+    iosTaskHint: 'dictation',
+  });
+
 export default function TalkScreen() {
   const { width, height } = useWindowDimensions();
   // Smaller than on Home: this screen has more text (prototype overlap bug)
@@ -30,10 +48,15 @@ export default function TalkScreen() {
   const [say, setSay] = useState('');
   const [reply, setReply] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
-  // What she is saying right now, live while she holds the button
+  // What she is saying right now, live while she talks
   const [heard, setHeard] = useState('');
   const [hint, setHint] = useState<string | null>(null);
   const heardRef = useRef('');
+  // iOS can end recognition by itself on a short pause; while her turn is still open we start it again and keep what she said
+  const listening = useRef(false);
+  const earlier = useRef('');
+  const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const session = useRef<string | null>(null);
   // Long stories don't push everything off screen: the text gets about a fifth of it and scrolls, newest at the bottom
   const textBox = useRef<ScrollView>(null);
@@ -60,7 +83,7 @@ export default function TalkScreen() {
       setHint(
         result.error === 'offline'
           ? 'No hay conexión. Prueba otra vez en un momento.'
-          : 'Algo ha fallado. Mantén pulsado y prueba otra vez.',
+          : 'Algo ha fallado. Toca el botón y prueba otra vez.',
       );
       return;
     }
@@ -85,6 +108,9 @@ export default function TalkScreen() {
     loadSeniorDay().then((day) => day.me && setName(day.me.display_name));
     return () => {
       if (speakTimer.current) clearTimeout(speakTimer.current);
+      if (pauseTimer.current) clearTimeout(pauseTimer.current);
+      if (maxTimer.current) clearTimeout(maxTimer.current);
+      if (listening.current) ExpoSpeechRecognitionModule.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -94,18 +120,43 @@ export default function TalkScreen() {
     ExpoSpeechRecognitionModule.requestPermissionsAsync();
   }, []);
 
+  const stopTimers = () => {
+    if (pauseTimer.current) clearTimeout(pauseTimer.current);
+    if (maxTimer.current) clearTimeout(maxTimer.current);
+  };
+
+  // Her turn is over: recognition stops and 'end' sends what she said
+  const finish = () => {
+    if (!listening.current) return;
+    listening.current = false;
+    stopTimers();
+    ExpoSpeechRecognitionModule.stop();
+  };
+
+  const waitForPause = (ms: number) => {
+    if (pauseTimer.current) clearTimeout(pauseTimer.current);
+    pauseTimer.current = setTimeout(finish, ms);
+  };
+
   useSpeechRecognitionEvent('result', (e) => {
-    const text = e.results[0]?.transcript ?? '';
+    const text = [earlier.current, e.results[0]?.transcript ?? ''].filter(Boolean).join(' ');
     heardRef.current = text;
     setHeard(text);
+    // She is still talking: the pause starts counting again
+    waitForPause(text ? PAUSE_MS : FIRST_WORDS_MS);
   });
-  // Recognition is done (after letting go): her words are the reply, and the talk goes on
+  // Recognition is done (her turn is over): her words are the reply, and the talk goes on
   useSpeechRecognitionEvent('end', () => {
     if (mood !== 'listening') return;
+    if (listening.current) {
+      earlier.current = heardRef.current;
+      startRecognition();
+      return;
+    }
     const text = heardRef.current.trim();
     if (!text) {
       setMood('idle');
-      setHint('No te he oído bien. Mantén pulsado y habla otra vez.');
+      setHint('No te he oído bien. Toca el botón y habla otra vez.');
       return;
     }
     setReply(text);
@@ -113,29 +164,27 @@ export default function TalkScreen() {
   });
   useSpeechRecognitionEvent('error', (e) => {
     if (e.error === 'no-speech' || e.error === 'aborted') return; // 'end' comes next and handles it
+    stopTimers();
+    listening.current = false;
     setMood('idle');
     setHint(
       e.error === 'not-allowed'
         ? 'Hilo no puede usar el micrófono. Actívalo en Ajustes > Hilo.'
-        : 'No te he oído bien. Mantén pulsado y habla otra vez.',
+        : 'No te he oído bien. Toca el botón y habla otra vez.',
     );
   });
 
   const listen = () => {
     if (mood !== 'idle') return;
+    listening.current = true;
+    earlier.current = '';
     heardRef.current = '';
     setHeard('');
     setHint(null);
     setMood('listening');
-    ExpoSpeechRecognitionModule.start({
-      lang: 'es-ES',
-      interimResults: true,
-      continuous: true,
-      addsPunctuation: true,
-      // Voice is health-adjacent personal data: keep it on the phone when the phone can do it
-      requiresOnDeviceRecognition: ExpoSpeechRecognitionModule.supportsOnDeviceRecognition(),
-      iosTaskHint: 'dictation',
-    });
+    startRecognition();
+    waitForPause(FIRST_WORDS_MS);
+    maxTimer.current = setTimeout(finish, MAX_TURN_MS);
   };
 
   const yourTurn = !ended && (mood === 'idle' || mood === 'listening');
@@ -169,14 +218,15 @@ export default function TalkScreen() {
           {yourTurn ? (
             <PressScale
               animateColor
-              onPressIn={listen}
-              onPressOut={() => mood === 'listening' && ExpoSpeechRecognitionModule.stop()}
+              onPress={mood === 'listening' ? finish : listen}
               accessibilityRole="button"
-              accessibilityLabel="Mantén pulsado para hablar"
-              accessibilityHint="Mantén el botón pulsado mientras hablas y suéltalo al terminar"
+              accessibilityLabel={mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
+              accessibilityHint={
+                mood === 'listening' ? 'Toca cuando acabes de hablar' : 'Toca y habla. Cuando te calles un momento, Hilo te contesta'
+              }
               style={[styles.hold, mood === 'listening' && styles.holdOn]}>
               <Animated.Text style={[styles.holdText, mood === 'listening' && styles.holdTextOn, styles.smoothText]}>
-                {mood === 'listening' ? 'Suelta cuando acabes' : 'Mantén pulsado para hablar'}
+                {mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
               </Animated.Text>
             </PressScale>
           ) : null}
