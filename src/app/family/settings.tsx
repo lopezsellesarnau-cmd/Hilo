@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,16 +11,61 @@ import { colors, family, fontWeight, spacing } from '@/theme';
 
 const SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
 
-function Row({ label, onPress, danger = false }: { label: string; onPress: () => void; danger?: boolean }) {
+const LANGUAGE_NAMES: Record<string, string> = { es: 'Español', en: 'English', nl: 'Nederlands' };
+
+// Texts of the section about the senior, together for the translation later
+const text = {
+  talk: 'La charla',
+  talkValue: (time: string | null, locale: string) =>
+    `${time ? time.slice(0, 5).replace(/^0/, '') : 'Sin hora'} · ${LANGUAGE_NAMES[locale] ?? locale}`,
+  pills: 'Sus pastillas',
+  pillsValue: (n: number) => (n ? String(n) : 'Ninguna'),
+  phone: 'Su móvil',
+  phoneValue: (connected: boolean) => (connected ? 'Conectado' : 'Sin conectar'),
+  relinkTitle: '¿Conectar otro móvil?',
+  relinkText: (name: string) =>
+    `El móvil que tiene ahora ${name} dejará de funcionar con Hilo. Luego escaneas el código nuevo con el otro móvil.`,
+  relinkYes: 'Sí, conectar otro',
+  cancel: 'Cancelar',
+  relinkError: 'No hemos podido desconectarlo. Comprueba tu conexión y vuelve a probar.',
+};
+
+type Senior = {
+  id: string;
+  display_name: string;
+  talk_time: string | null;
+  locale: string;
+  user_id: string | null;
+  medications: { count: number }[];
+};
+
+function Row({
+  label,
+  value,
+  onPress,
+  danger = false,
+}: {
+  label: string;
+  value?: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
       <Text style={[styles.rowText, danger && styles.danger]}>{label}</Text>
-      <Text style={styles.chevron}>›</Text>
+      <View style={styles.rowRight}>
+        {value ? (
+          <Text style={styles.value} numberOfLines={1}>
+            {value}
+          </Text>
+        ) : null}
+        <Text style={styles.chevron}>›</Text>
+      </View>
     </Pressable>
   );
 }
 
-/** Family settings. For now: account, subscription and legal. Later also talk time, pills and pairing. */
+/** Family settings: the senior's talk, pills and phone, then account, subscription and legal. */
 export default function SettingsScreen() {
   const [email, setEmail] = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -30,6 +75,42 @@ export default function SettingsScreen() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? ''));
   }, []);
+
+  const [senior, setSenior] = useState<Senior | null>(null);
+  const [relinking, setRelinking] = useState(false);
+  const [relinkError, setRelinkError] = useState<string | null>(null);
+
+  // Again when coming back from editing the talk, the pills or the phone
+  useFocusEffect(
+    useCallback(() => {
+      supabase
+        .from('people')
+        .select('id, display_name, talk_time, locale, user_id, medications(count)')
+        .eq('role', 'senior')
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => setSenior(data as Senior | null));
+    }, []),
+  );
+
+  const edit = (pathname: '/onboarding/talk' | '/onboarding/pills') =>
+    senior && router.push({ pathname, params: { seniorId: senior.id, seniorName: senior.display_name, from: 'settings' } });
+
+  const pair = () =>
+    senior && router.push({ pathname: '/onboarding/pair', params: { seniorId: senior.id, seniorName: senior.display_name } });
+
+  // A phone is connected: unlink it first, so a new code can be made for the other phone
+  const relink = async () => {
+    if (!senior) return;
+    setRelinkError(null);
+    const { error: e } = await supabase.rpc('unlink_senior_phone', { senior_id: senior.id });
+    if (e) {
+      setRelinkError(text.relinkError);
+      return;
+    }
+    setRelinking(false);
+    pair();
+  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -57,6 +138,35 @@ export default function SettingsScreen() {
         <Text style={styles.title} accessibilityRole="header">
           Ajustes
         </Text>
+
+        {senior ? (
+          <>
+            <Text style={styles.section}>{senior.display_name.toUpperCase()}</Text>
+            <View style={styles.group}>
+              <Row label={text.talk} value={text.talkValue(senior.talk_time, senior.locale)} onPress={() => edit('/onboarding/talk')} />
+              <Row
+                label={text.pills}
+                value={text.pillsValue(senior.medications[0]?.count ?? 0)}
+                onPress={() => edit('/onboarding/pills')}
+              />
+              <Row
+                label={text.phone}
+                value={text.phoneValue(Boolean(senior.user_id))}
+                onPress={() => (senior.user_id ? setRelinking(true) : pair())}
+              />
+            </View>
+
+            {relinking ? (
+              <View style={styles.confirm}>
+                <Text style={styles.confirmTitle}>{text.relinkTitle}</Text>
+                <Text style={styles.confirmText}>{text.relinkText(senior.display_name)}</Text>
+                <BigButton scale="family" label={text.relinkYes} onPress={relink} />
+                <BigButton scale="family" variant="outline" label={text.cancel} onPress={() => setRelinking(false)} />
+                {relinkError ? <Text style={styles.error}>{relinkError}</Text> : null}
+              </View>
+            ) : null}
+          </>
+        ) : null}
 
         <Text style={styles.section}>TU CUENTA</Text>
         <View style={styles.group}>
@@ -142,6 +252,12 @@ const styles = StyleSheet.create({
     fontSize: family.fontSize.body,
     fontWeight: fontWeight.semibold,
     color: colors.ink,
+  },
+  rowRight: {
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   value: {
     flexShrink: 1,

@@ -29,7 +29,7 @@ export default function PillsStep() {
   const { seniorId = '', seniorName = '', from = '' } = useLocalSearchParams<{
     seniorId: string;
     seniorName: string;
-    /** 'today' when opened from Hoy: go back there instead of on to pairing */
+    /** 'today' or 'settings' when opened from Hoy or Ajustes: go back there instead of on to pairing */
     from?: string;
   }>();
   const [familyId, setFamilyId] = useState<string | null>(null);
@@ -87,13 +87,13 @@ export default function PillsStep() {
   };
 
   const next = () => {
-    if (from === 'today') return router.back();
+    if (from) return router.back();
     router.push({ pathname: '/onboarding/pair', params: { seniorId, seniorName } });
   };
 
   return (
     <OnboardingStep
-      step={5}
+      step={from === 'settings' ? undefined : 5}
       mood={saving ? 'thinking' : 'idle'}
       question={`¿Qué pastillas toma ${seniorName || 'cada día'}?`}
       hint="Hilo se lo recordará a su hora y te avisará si se le olvida."
@@ -101,7 +101,7 @@ export default function PillsStep() {
         <BigButton
           scale="family"
           variant={pills.length ? 'fill' : 'outline'}
-          label={pills.length ? 'Continuar' : 'Lo haré luego'}
+          label={from === 'settings' ? 'Listo' : pills.length ? 'Continuar' : 'Lo haré luego'}
           onPress={next}
         />
       }>
@@ -135,7 +135,7 @@ export default function PillsStep() {
       />
       <Text style={styles.label}>A QUÉ HORA</Text>
       <MultiChoiceChips label="Horas de la pastilla" options={TIMES} value={times} onChange={setTimes} />
-      <Text style={styles.note}>Todos los días. Puedes cambiarlo luego en Ajustes.</Text>
+      <Text style={styles.note}>{from === 'settings' ? 'Todos los días.' : 'Todos los días. Puedes cambiarlo luego en Ajustes.'}</Text>
 
       <BigButton
         scale="family"

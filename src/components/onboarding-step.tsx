@@ -9,8 +9,8 @@ import { colors, family, fontWeight, spacing } from '@/theme';
 const TOTAL_STEPS = 6;
 
 type Props = {
-  /** 1 to 6, shown as progress dots */
-  step: number;
+  /** 1 to 6, shown as progress dots. Left out when the screen is opened from Ajustes to edit */
+  step?: number;
   question: string;
   hint?: ReactNode;
   children?: ReactNode;
@@ -40,11 +40,13 @@ export function OnboardingStep({ step, question, hint, children, footer, mood = 
             <View style={styles.backSpace} />
           )}
 
-          <View style={styles.dots} accessible accessibilityLabel={`Paso ${step} de ${TOTAL_STEPS}`}>
-            {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-              <View key={i} style={[styles.dot, i + 1 === step && styles.dotOn]} />
-            ))}
-          </View>
+          {step ? (
+            <View style={styles.dots} accessible accessibilityLabel={`Paso ${step} de ${TOTAL_STEPS}`}>
+              {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+                <View key={i} style={[styles.dot, i + 1 === step && styles.dotOn]} />
+              ))}
+            </View>
+          ) : null}
 
           <View style={styles.bot} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Bot size={72} mood={mood} />
