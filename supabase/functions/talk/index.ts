@@ -38,7 +38,7 @@ Límites:
 - No finges ser una persona. Si te pregunta, eres Hilo, un programa que su familia ha puesto para charlar.
 - Nunca inventas cosas de su vida. Solo usas lo que te ha contado.
 
-La charla dura unos minutos. Cuando ya habéis hablado un rato del recuerdo (unas 8 o 10 respuestas suyas), o si dice que se tiene que ir, te despides con cariño, le dices que lo guardas en su libro y que mañana seguís.`;
+La charla dura unos minutos. Cuando ya habéis hablado un rato del recuerdo (unas 8 o 10 respuestas suyas), o si dice que se tiene que ir, te despides con cariño, le dices que lo guardas en su libro y que mañana seguís. En esa misma respuesta usas terminar_charla.`;
 
 // ── Tools ─────────────────────────────────────────────────────────────────
 // Fixed like SYSTEM, so they stay in the cache.
@@ -57,6 +57,13 @@ const TOOLS: Anthropic.Tool[] = [
       },
       required: ['cambio'],
     },
+  },
+  {
+    name: 'terminar_charla',
+    description:
+      'Cierra la charla de hoy. Úsala solo en la respuesta en la que te despides al final: ' +
+      'cuando ya habéis hablado un rato del recuerdo o cuando ella dice que se tiene que ir.',
+    input_schema: { type: 'object', properties: {} },
   },
 ];
 
@@ -228,7 +235,10 @@ Deno.serve(async (req) => {
     db.from('talk_sessions').select('pills_asked_at').eq('id', sessionId).single(),
   ]);
   if (turnsError || !talk) return json({ error: 'session' }, 404);
-  if (turns.length >= MAX_TURNS) return json({ error: 'too_long' }, 429);
+  if (turns.length >= MAX_TURNS) {
+    await db.from('talk_sessions').update({ ended_at: new Date().toISOString() }).eq('id', sessionId);
+    return json({ error: 'too_long' }, 429);
+  }
 
   const history = [...turns];
   if (text) {
@@ -277,8 +287,9 @@ Deno.serve(async (req) => {
     last.content = `${last.content}\n\n[Nota: en esta respuesta no hagas ninguna pregunta. Justo después le pregunto por sus pastillas.]`;
   }
 
-  // At most one tool call per turn: Claude changes the speed, then says it out loud at the new speed
+  // At most one round of tools per turn: Claude changes the speed or closes the talk, then speaks
   let speed = Number(me.voice_speed);
+  let ended = false;
   let inputTokens = 0;
   let outputTokens = 0;
   let response!: Anthropic.Message;
@@ -297,27 +308,30 @@ Deno.serve(async (req) => {
       inputTokens += u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
       outputTokens += u.output_tokens;
 
-      const call = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-      if (response.stop_reason !== 'tool_use' || !call || step === 1) break;
+      const calls = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+      if (response.stop_reason !== 'tool_use' || !calls.length) break;
 
-      const wanted = nextSpeed(speed, (call.input as { cambio?: unknown }).cambio);
-      const { error } = await admin.from('people').update({ voice_speed: wanted }).eq('id', me.id);
-      if (error) console.error('voice_speed', error.message);
-      else speed = wanted;
-      messages.push(
-        { role: 'assistant', content: response.content },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'tool_result',
-              tool_use_id: call.id,
-              content: error ? 'No se ha podido cambiar.' : `Hecho. Velocidad ahora ${speed.toFixed(2)} (1 = normal).`,
-              is_error: Boolean(error),
-            },
-          ],
-        },
-      );
+      const results: Anthropic.ToolResultBlockParam[] = [];
+      for (const call of calls) {
+        if (call.name === 'terminar_charla') {
+          ended = true;
+          results.push({ type: 'tool_result', tool_use_id: call.id, content: 'Hecho. Despídete si aún no lo has hecho.' });
+          continue;
+        }
+        const wanted = nextSpeed(speed, (call.input as { cambio?: unknown }).cambio);
+        const { error } = await admin.from('people').update({ voice_speed: wanted }).eq('id', me.id);
+        if (error) console.error('voice_speed', error.message);
+        else speed = wanted;
+        results.push({
+          type: 'tool_result',
+          tool_use_id: call.id,
+          content: error ? 'No se ha podido cambiar.' : `Hecho. Velocidad ahora ${speed.toFixed(2)} (1 = normal).`,
+          is_error: Boolean(error),
+        });
+      }
+      // The goodbye usually comes with terminar_charla: no need to ask Claude again
+      if (step === 1 || (ended && response.content.some((b) => b.type === 'text' && b.text.trim()))) break;
+      messages.push({ role: 'assistant', content: response.content }, { role: 'user', content: results });
     }
   } catch (e) {
     console.error('anthropic', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
@@ -353,5 +367,7 @@ Deno.serve(async (req) => {
     characters: audio ? spoken.length : 0,
   });
 
-  return json({ session_id: sessionId, reply, audio, ask_pills: askPills.length > 0 });
+  if (ended) await db.from('talk_sessions').update({ ended_at: new Date().toISOString() }).eq('id', sessionId);
+
+  return json({ session_id: sessionId, reply, audio, ask_pills: askPills.length > 0, ended });
 });

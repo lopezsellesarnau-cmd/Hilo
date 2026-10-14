@@ -120,6 +120,7 @@ export default function TalkScreen() {
     }
     session.current = result.sessionId;
     setAskPills(result.askPills);
+    if (result.ended) setEnded(true);
     show(result.reply, result.audio);
   };
 
