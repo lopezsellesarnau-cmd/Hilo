@@ -8,6 +8,10 @@ import Anthropic from 'npm:@anthropic-ai/sdk@0.133.0';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.117.3';
 
 const MODEL = 'claude-haiku-5-5';
+/** The book is read for years: quality matters more than speed here, and it's one call per talk */
+const WRITER_MODEL = 'claude-sonnet-5-5';
+/** Less than this from her (characters) is small talk, not a story */
+const MIN_STORY_CHARS = 200;
 /** A talk is ~6 minutes; this stops a stuck loop from costing money */
 const MAX_TURNS = 40;
 const MAX_TEXT = 4000;
@@ -187,6 +191,126 @@ function pillQuestion(doses: Dose[]): string {
   return `Por cierto, hoy te tocaba esto: ${list}. ¿Te lo has tomado todo?`;
 }
 
+// ── Book ──────────────────────────────────────────────────────────────────
+// When a talk ends, its memory becomes a draft chapter in her words. The family approves it before she sees it.
+
+const WRITER = `Conviertes la charla de hoy entre Hilo y una persona mayor en una historia para el libro de su vida.
+Su familia la leerá y la aprobará antes de que ella la vea.
+
+Reglas:
+- Escribe en primera persona, como si ella lo contara. Usa sus palabras y su forma de decir las cosas, también las palabras de su tierra.
+- Solo lo que ella ha contado. No inventes nada: ni hechos, ni nombres, ni fechas, ni lugares, ni sentimientos que no haya dicho. No adornes.
+- Puedes ordenar lo que dijo, unir frases y arreglar la puntuación o errores claros de transcripción. Nada más.
+- Deja fuera lo del día (cómo ha dormido, las pastillas, sus planes de hoy) y las preguntas de Hilo, salvo que formen parte del recuerdo.
+- Si no ha contado ningún recuerdo de verdad, solo charla del día, no hay historia.
+
+Formato:
+- Título corto, de 2 a 6 palabras, con palabras concretas de su historia. Sin comillas.
+- De 1 a 6 párrafos cortos.
+- Cita: una frase suya copiada tal cual de lo que dijo, la más viva. Si ninguna sirve, déjala vacía.`;
+
+// Structured output: the answer is always this JSON (Sonnet 5.5 doesn't take a forced tool call)
+const STORY_SCHEMA = {
+  type: 'object',
+  properties: {
+    hay_historia: { type: 'boolean' },
+    titulo: { type: 'string' },
+    parrafos: { type: 'array', items: { type: 'string' } },
+    cita: { type: 'string' },
+  },
+  required: ['hay_historia', 'titulo', 'parrafos', 'cita'],
+  additionalProperties: false,
+};
+
+type Turn = { speaker: string; text: string };
+type Senior = { id: string; family_id: string; display_name: string; timezone: string };
+
+/** Lowercase letters and numbers only, to compare her words without punctuation */
+const bare = (t: string) =>
+  t.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+
+/** Writes the draft chapter of a finished talk. Runs after the goodbye is sent, so it never slows the talk */
+async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string, transcript: Turn[]) {
+  const hers = transcript.filter((t) => t.speaker === 'senior').map((t) => t.text);
+  if (hers.join(' ').length < MIN_STORY_CHARS) {
+    console.log('chapter skipped: she said too little', hers.join(' ').length);
+    return;
+  }
+  try {
+    const res = await anthropic.messages.create({
+      model: WRITER_MODEL,
+      max_tokens: 8000,
+      system: WRITER,
+      output_config: { format: { type: 'json_schema', schema: STORY_SCHEMA } },
+      messages: [
+        {
+          role: 'user',
+          content:
+            `Se llama ${me.display_name}.\n\nLa charla:\n` +
+            transcript.map((t) => `${t.speaker === 'hilo' ? 'Hilo' : me.display_name}: ${t.text}`).join('\n'),
+        },
+      ],
+    });
+    await admin.rpc('add_usage', {
+      pid: me.id,
+      usage_day: localNow(me.timezone).date,
+      input_tokens: res.usage.input_tokens,
+      output_tokens: res.usage.output_tokens,
+      characters: 0,
+    });
+
+    if (res.stop_reason !== 'end_turn') {
+      console.error('chapter skipped: stopped by', res.stop_reason);
+      return;
+    }
+    const raw = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    const story = JSON.parse(raw) as { hay_historia: boolean; titulo: string; parrafos: string[]; cita: string };
+    if (!story.hay_historia) {
+      console.log('chapter skipped: no memory in this talk');
+      return;
+    }
+    const title = story.titulo.trim().slice(0, 120);
+    const paragraphs = story.parrafos.map((p) => p.trim()).filter(Boolean).slice(0, 20);
+    if (!title || !paragraphs.length) {
+      console.error('chapter skipped: empty title or paragraphs');
+      return;
+    }
+    // The quote has to be hers word for word: if it isn't in what she said, it's left out
+    const quote = story.cita.trim().replace(/^[«"“]|[»"”]$/g, '');
+    const hersQuote = quote && bare(hers.join(' ')).includes(bare(quote)) ? quote.slice(0, 400) : null;
+
+    const { error } = await admin.from('chapters').insert({
+      family_id: me.family_id,
+      person_id: me.id,
+      session_id: sessionId,
+      title,
+      quote: hersQuote,
+      paragraphs,
+    });
+    if (error) console.error('chapter', error.message);
+    else console.log('chapter written', title);
+  } catch (e) {
+    console.error('chapter', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
+  }
+}
+
+// Supabase keeps the function alive for promises passed here, after the response is sent
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
+
+/** Sets ended_at once (goodbye, turn limit or she left) and writes the chapter in the background */
+async function closeTalk(db: SupabaseClient, admin: SupabaseClient, me: Senior, sessionId: string, transcript: Turn[]) {
+  const { data: closed } = await db
+    .from('talk_sessions')
+    .update({ ended_at: new Date().toISOString() })
+    .eq('id', sessionId)
+    .is('ended_at', null)
+    .select('id');
+  if (closed?.length) EdgeRuntime.waitUntil(writeChapter(admin, me, sessionId, transcript));
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -195,7 +319,13 @@ Deno.serve(async (req) => {
   const auth = req.headers.get('Authorization');
   if (!auth) return json({ error: 'auth' }, 401);
 
-  const body = (await req.json().catch(() => ({}))) as { session_id?: string; text?: string; pills?: 'yes' | 'no' };
+  const body = (await req.json().catch(() => ({}))) as {
+    session_id?: string;
+    text?: string;
+    pills?: 'yes' | 'no';
+    /** She left the talk screen without a goodbye: close the talk and keep her story */
+    leave?: boolean;
+  };
   const { session_id, pills } = body;
   if (body.text !== undefined && (typeof body.text !== 'string' || !body.text.trim() || body.text.length > MAX_TEXT)) {
     return json({ error: 'text' }, 400);
@@ -219,8 +349,9 @@ Deno.serve(async (req) => {
   if (!me) return json({ error: 'not_senior' }, 403);
 
   // Open today's talk, or continue the one the phone is in
-  let sessionId = session_id;
-  if (!sessionId) {
+  let sessionId: string;
+  if (session_id) sessionId = session_id;
+  else {
     const { data, error } = await db
       .from('talk_sessions')
       .insert({ family_id: me.family_id, person_id: me.id, locale: me.locale })
@@ -235,8 +366,13 @@ Deno.serve(async (req) => {
     db.from('talk_sessions').select('pills_asked_at').eq('id', sessionId).single(),
   ]);
   if (turnsError || !talk) return json({ error: 'session' }, 404);
+
+  if (body.leave) {
+    if (session_id) await closeTalk(db, admin, me, sessionId, turns);
+    return json({ ended: true });
+  }
   if (turns.length >= MAX_TURNS) {
-    await db.from('talk_sessions').update({ ended_at: new Date().toISOString() }).eq('id', sessionId);
+    await closeTalk(db, admin, me, sessionId, turns);
     return json({ error: 'too_long' }, 429);
   }
 
@@ -367,7 +503,7 @@ Deno.serve(async (req) => {
     characters: audio ? spoken.length : 0,
   });
 
-  if (ended) await db.from('talk_sessions').update({ ended_at: new Date().toISOString() }).eq('id', sessionId);
+  if (ended) await closeTalk(db, admin, me, sessionId, [...history, { speaker: 'hilo', text: reply }]);
 
   return json({ session_id: sessionId, reply, audio, ask_pills: askPills.length > 0, ended });
 });

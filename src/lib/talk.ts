@@ -36,3 +36,8 @@ export async function sendTurn(
     ended: Boolean(data.ended),
   };
 }
+
+/** She left the talk without a goodbye: the talk is closed and her story still goes to the book */
+export function leaveTalk(sessionId: string) {
+  supabase.functions.invoke('talk', { body: { session_id: sessionId, leave: true } });
+}

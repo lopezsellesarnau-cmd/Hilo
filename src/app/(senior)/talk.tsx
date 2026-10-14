@@ -12,7 +12,7 @@ import { Bot, type BotMood } from '@/components/bot';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { loadSeniorDay } from '@/lib/senior-day';
-import { sendTurn } from '@/lib/talk';
+import { leaveTalk, sendTurn } from '@/lib/talk';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
 const labels: Record<BotMood, string> = {
@@ -62,6 +62,10 @@ export default function TalkScreen() {
   const pauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const session = useRef<string | null>(null);
+  // The server already closed this talk (goodbye or turn limit)
+  const closed = useRef(false);
+  // False once she leaves the screen: a reply that arrives later is ignored (its audio player is gone)
+  const alive = useRef(true);
   // Long stories don't push everything off screen: the text gets about a fifth of it and scrolls, newest at the bottom
   const textBox = useRef<ScrollView>(null);
   // Older lines fade out at the top instead of being cut by a hard line
@@ -91,6 +95,7 @@ export default function TalkScreen() {
     if (!audio) return;
     // Loudspeaker, even with the iPhone on silent: many seniors never turn the ringer back on
     await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false, interruptionMode: 'duckOthers' });
+    if (!alive.current) return;
     player.replace({ uri: `data:audio/mpeg;base64,${audio}` });
     player.play();
   };
@@ -104,8 +109,10 @@ export default function TalkScreen() {
   };
 
   const handle = (result: Awaited<ReturnType<typeof sendTurn>>) => {
+    if (!alive.current) return;
     if ('error' in result) {
       if (result.error === 'too_long') {
+        closed.current = true;
         setEnded(true);
         show('Hoy ya hemos charlado mucho. Lo guardo en tu libro. ¡Hasta mañana!', null);
         return;
@@ -120,7 +127,10 @@ export default function TalkScreen() {
     }
     session.current = result.sessionId;
     setAskPills(result.askPills);
-    if (result.ended) setEnded(true);
+    if (result.ended) {
+      closed.current = true;
+      setEnded(true);
+    }
     show(result.reply, result.audio);
   };
 
@@ -141,18 +151,26 @@ export default function TalkScreen() {
   // Hilo starts the talk when the screen opens
   const started = useRef(false);
   const [name, setName] = useState<string | null>(null);
+  // Leaving the screen: stop everything, and close the talk if Hilo didn't say goodbye
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      if (speakTimer.current) clearTimeout(speakTimer.current);
+      if (pauseTimer.current) clearTimeout(pauseTimer.current);
+      if (maxTimer.current) clearTimeout(maxTimer.current);
+      if (listening.current) ExpoSpeechRecognitionModule.abort();
+      // What she told still goes to her book
+      if (session.current && !closed.current) leaveTalk(session.current);
+    };
+  }, []);
+
   useEffect(() => {
     // Once per screen, even if React runs effects twice in development: each start is a new talk
     if (started.current) return;
     started.current = true;
     sendTurn(null).then(handle);
     loadSeniorDay().then((day) => day.me && setName(day.me.display_name));
-    return () => {
-      if (speakTimer.current) clearTimeout(speakTimer.current);
-      if (pauseTimer.current) clearTimeout(pauseTimer.current);
-      if (maxTimer.current) clearTimeout(maxTimer.current);
-      if (listening.current) ExpoSpeechRecognitionModule.abort();
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

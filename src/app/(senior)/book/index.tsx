@@ -1,4 +1,5 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,44 +7,65 @@ import { BookCover } from '@/components/book-cover';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
-import { sampleBook, sampleChapters } from '@/data/sample';
+import { loadBook } from '@/lib/book';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
+
+const text = {
+  title: 'Mi libro',
+  back: 'Inicio',
+  cover: (name: string) => `La vida de ${name}`,
+  count: (n: number) => (n === 1 ? '1 historia guardada' : `${n} historias guardadas`),
+  kicker: (n: number) => `CAPÍTULO ${n}`,
+  empty: 'Aún no hay historias. Cuando charles con Hilo, tu familia las revisará y aparecerán aquí.',
+};
 
 export default function BookScreen() {
   const fade = useScrollFade();
   const { width } = useWindowDimensions();
+  const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(null);
+
+  // Again each time she comes back: the family may have approved a new story
+  useFocusEffect(
+    useCallback(() => {
+      loadBook().then(setBook);
+    }, []),
+  );
+
+  const chapters = book && 'chapters' in book ? book.chapters : [];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
-        <ScreenHeader backLabel="Inicio" title="Mi libro" subtitle={`${sampleBook.storyCount} historias guardadas`} />
+        <ScreenHeader
+          backLabel={text.back}
+          title={text.title}
+          subtitle={book && 'chapters' in book ? text.count(chapters.length) : undefined}
+        />
 
-        <View style={styles.cover}>
-          <BookCover width={Math.min(220, width * 0.55)} title={sampleBook.title} caption={sampleBook.place} />
-        </View>
+        {book && 'name' in book ? (
+          <View style={styles.cover}>
+            <BookCover width={Math.min(220, width * 0.55)} title={text.cover(book.name)} />
+          </View>
+        ) : null}
+
+        {book && 'error' in book ? <Text style={styles.note}>{book.error}</Text> : null}
+        {book && 'chapters' in book && !chapters.length ? <Text style={styles.note}>{text.empty}</Text> : null}
 
         <View style={styles.list}>
-          {sampleChapters.map((chapter) =>
-            chapter.status === 'approved' ? (
-              <PressScale
-                key={chapter.number}
-                onPress={() => router.push({ pathname: '/book/[chapter]', params: { chapter: String(chapter.number) } })}
-                accessibilityRole="button"
-                accessibilityLabel={`Capítulo ${chapter.number}, ${chapter.title}`}
-                style={styles.chapter}>
-                <View style={styles.chapterText}>
-                  <Text style={styles.kicker}>CAPÍTULO {chapter.number}</Text>
-                  <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </PressScale>
-            ) : (
-              <View key={chapter.number} style={styles.soon}>
-                <Text style={styles.soonTitle}>{chapter.title}</Text>
-                <Text style={styles.soonNote}>Lo estamos escribiendo contigo</Text>
+          {chapters.map((chapter) => (
+            <PressScale
+              key={chapter.id}
+              onPress={() => router.push({ pathname: '/book/[chapter]', params: { chapter: chapter.id } })}
+              accessibilityRole="button"
+              accessibilityLabel={`Capítulo ${chapter.number}, ${chapter.title}`}
+              style={styles.chapter}>
+              <View style={styles.chapterText}>
+                <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
+                <Text style={styles.chapterTitle}>{chapter.title}</Text>
               </View>
-            ),
-          )}
+              <Text style={styles.chevron}>›</Text>
+            </PressScale>
+          ))}
         </View>
       </ScrollView>
       <ScrollFade visible={fade.visible} />
@@ -103,18 +125,12 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.ink,
   },
-  soon: {
-    paddingVertical: 8,
-    paddingHorizontal: 26,
-  },
-  soonTitle: {
-    fontSize: 24,
+  note: {
+    marginTop: 40,
+    fontSize: fontSize.talk,
+    lineHeight: 30,
     fontWeight: fontWeight.semibold,
     color: colors.muted,
-  },
-  soonNote: {
-    fontSize: fontSize.label,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
+    textAlign: 'center',
   },
 });
