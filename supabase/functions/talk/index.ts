@@ -200,6 +200,7 @@ Su familia la leerá y la aprobará antes de que ella la vea.
 Reglas:
 - Escribe en primera persona, como si ella lo contara. Usa sus palabras y su forma de decir las cosas, también las palabras de su tierra.
 - Solo lo que ella ha contado. No inventes nada: ni hechos, ni nombres, ni fechas, ni lugares, ni sentimientos que no haya dicho. No adornes.
+- Las palabras de las preguntas de Hilo no son suyas. No las uses como si ella las hubiera dicho, salvo que ella las repita.
 - Puedes ordenar lo que dijo, unir frases y arreglar la puntuación o errores claros de transcripción. Nada más.
 - Deja fuera lo del día (cómo ha dormido, las pastillas, sus planes de hoy) y las preguntas de Hilo, salvo que formen parte del recuerdo.
 - Si no ha contado ningún recuerdo de verdad, solo charla del día, no hay historia.

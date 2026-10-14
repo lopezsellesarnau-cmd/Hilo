@@ -42,7 +42,8 @@ export default function ChapterScreen() {
   const quote = chapter.quote ? (
     <View style={styles.quote}>
       <Text style={styles.quoteMark}>“</Text>
-      <Text style={styles.quoteText}>{chapter.quote}</Text>
+      {/* Her words are copied as she said them; only the first letter is capitalised */}
+      <Text style={styles.quoteText}>{chapter.quote.charAt(0).toUpperCase() + chapter.quote.slice(1)}</Text>
     </View>
   ) : null;
 
