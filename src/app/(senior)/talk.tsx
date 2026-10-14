@@ -1,3 +1,4 @@
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { router } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useEffect, useRef, useState } from 'react';
@@ -61,22 +62,47 @@ export default function TalkScreen() {
   // Long stories don't push everything off screen: the text gets about a fifth of it and scrolls, newest at the bottom
   const textBox = useRef<ScrollView>(null);
   const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Hilo's last sentence as audio, so "Repetir" plays it again without asking Claude
+  const player = useAudioPlayer();
+  const [lastAudio, setLastAudio] = useState<string | null>(null);
 
-  // Until Hilo has a voice: "speaking" for about as long as reading the sentence takes, then it's her turn
-  const show = (text: string) => {
+  // When the voice ends, it's her turn
+  useEffect(() => {
+    const sub = player.addListener('playbackStatusUpdate', (status) => {
+      if (status.didJustFinish) {
+        if (speakTimer.current) clearTimeout(speakTimer.current);
+        setMood('idle');
+      }
+    });
+    return () => sub.remove();
+  }, [player]);
+
+  // Hilo says the sentence out loud; without audio, "speaking" lasts about as long as reading it
+  const speak = async (text: string, audio: string | null) => {
+    setMood('speaking');
+    if (speakTimer.current) clearTimeout(speakTimer.current);
+    // Also a safety net if the audio never reports that it ended
+    speakTimer.current = setTimeout(() => setMood('idle'), Math.max(2400, text.length * (audio ? 120 : 55)));
+    if (!audio) return;
+    // Loudspeaker, even with the iPhone on silent: many seniors never turn the ringer back on
+    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false, interruptionMode: 'duckOthers' });
+    player.replace({ uri: `data:audio/mpeg;base64,${audio}` });
+    player.play();
+  };
+
+  const show = (text: string, audio: string | null) => {
     setSay(text);
     setReply(null);
     setHeard('');
-    setMood('speaking');
-    if (speakTimer.current) clearTimeout(speakTimer.current);
-    speakTimer.current = setTimeout(() => setMood('idle'), Math.max(2400, text.length * 55));
+    setLastAudio(audio);
+    speak(text, audio);
   };
 
   const handle = (result: Awaited<ReturnType<typeof sendTurn>>) => {
     if ('error' in result) {
       if (result.error === 'too_long') {
         setEnded(true);
-        show('Hoy ya hemos charlado mucho. Lo guardo en tu libro. ¡Hasta mañana!');
+        show('Hoy ya hemos charlado mucho. Lo guardo en tu libro. ¡Hasta mañana!', null);
         return;
       }
       setMood('idle');
@@ -88,7 +114,7 @@ export default function TalkScreen() {
       return;
     }
     session.current = result.sessionId;
-    show(result.reply);
+    show(result.reply, result.audio);
   };
 
   const turn = (text: string) => {
@@ -231,6 +257,15 @@ export default function TalkScreen() {
             </PressScale>
           ) : null}
 
+          {mood === 'idle' && lastAudio ? (
+            <BigButton
+              label="Repetir"
+              variant="outline"
+              onPress={() => speak(say, lastAudio)}
+              accessibilityHint="Hilo vuelve a decir lo último"
+            />
+          ) : null}
+
           {ended && mood === 'idle' ? <BigButton label="Volver al inicio" onPress={() => router.back()} /> : null}
         </Animated.View>
       </ScrollView>
@@ -287,6 +322,7 @@ const styles = StyleSheet.create({
   },
   controls: {
     marginTop: 24,
+    gap: 12,
   },
   hold: {
     minHeight: size.buttonHeight,

@@ -6,12 +6,13 @@ export type TalkError = 'offline' | 'too_long' | 'other';
 
 /**
  * One turn of the daily talk (Edge Function `talk`): send what the senior said,
- * or nothing to start, and get Hilo's next sentence. The session id ties the turns of one talk together.
+ * or nothing to start, and get Hilo's next sentence with its audio (mp3 in base64, or null if the voice failed).
+ * The session id ties the turns of one talk together.
  */
 export async function sendTurn(
   sessionId: string | null,
   text?: string,
-): Promise<{ sessionId: string; reply: string } | { error: TalkError }> {
+): Promise<{ sessionId: string; reply: string; audio: string | null } | { error: TalkError }> {
   const { data, error } = await supabase.functions.invoke('talk', {
     body: { session_id: sessionId ?? undefined, text },
   });
@@ -22,5 +23,5 @@ export async function sendTurn(
     }
     return { error: 'offline' };
   }
-  return { sessionId: data.session_id, reply: data.reply };
+  return { sessionId: data.session_id, reply: data.reply, audio: data.audio ?? null };
 }
