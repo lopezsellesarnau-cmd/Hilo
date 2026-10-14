@@ -1,7 +1,8 @@
 // Hilo: one turn of the daily talk.
 // The senior's phone sends what they said (or nothing, to start), and gets Hilo's next sentence back.
 // Runs as the senior (their JWT, so RLS applies); only the usage counters use the service role.
-// The Anthropic key lives in the function's secrets, never in the app.
+// The reply comes with its audio (one trip less). The voice provider is a secret, so Azure and ElevenLabs can be compared.
+// Every key lives in the function's secrets, never in the app.
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.133.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
@@ -37,6 +38,58 @@ Límites:
 
 La charla dura unos minutos. Cuando ya habéis hablado un rato del recuerdo (unas 8 o 10 respuestas suyas), o si dice que se tiene que ir, te despides con cariño, le dices que lo guardas en su libro y que mañana seguís.`;
 
+// ── Voice ─────────────────────────────────────────────────────────────────
+// VOICE_PROVIDER = 'azure' (default) or 'elevenlabs'. Speed: 1 = normal, from people.voice_speed (0.70-1.20).
+
+const escapeXml = (t: string) =>
+  t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+
+async function azureSpeech(text: string, speed: number): Promise<ArrayBuffer> {
+  const region = Deno.env.get('AZURE_SPEECH_REGION');
+  const voice = Deno.env.get('AZURE_SPEECH_VOICE') ?? 'es-ES-ElviraNeural';
+  const ssml =
+    `<speak version="1.0" xml:lang="es-ES"><voice name="${voice}">` +
+    `<prosody rate="${speed.toFixed(2)}">${escapeXml(text)}</prosody></voice></speak>`;
+  const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+    method: 'POST',
+    headers: {
+      'Ocp-Apim-Subscription-Key': Deno.env.get('AZURE_SPEECH_KEY')!,
+      'Content-Type': 'application/ssml+xml',
+      'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3',
+      'User-Agent': 'hilo-talk',
+    },
+    body: ssml,
+  });
+  if (!res.ok) throw new Error(`azure ${res.status} ${await res.text()}`);
+  return res.arrayBuffer();
+}
+
+async function elevenLabsSpeech(text: string, speed: number): Promise<ArrayBuffer> {
+  const voice = Deno.env.get('ELEVENLABS_VOICE_ID');
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_64`, {
+    method: 'POST',
+    headers: { 'xi-api-key': Deno.env.get('ELEVENLABS_API_KEY')!, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, model_id: 'eleven_flash_v2_5', language_code: 'es', voice_settings: { speed } }),
+  });
+  if (!res.ok) throw new Error(`elevenlabs ${res.status} ${await res.text()}`);
+  return res.arrayBuffer();
+}
+
+/** Hilo's sentence as mp3 in base64, or null if the voice fails: the talk goes on as text */
+async function speak(text: string, speed: number): Promise<string | null> {
+  try {
+    const audio =
+      Deno.env.get('VOICE_PROVIDER') === 'elevenlabs' ? await elevenLabsSpeech(text, speed) : await azureSpeech(text, speed);
+    const bytes = new Uint8Array(audio);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(binary);
+  } catch (e) {
+    console.error('voice', e);
+    return null;
+  }
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -58,7 +111,7 @@ Deno.serve(async (req) => {
   const { data: userData } = await db.auth.getUser(auth.replace('Bearer ', ''));
   const { data: me } = await db
     .from('people')
-    .select('id, family_id, display_name, locale, timezone')
+    .select('id, family_id, display_name, locale, timezone, voice_speed')
     .eq('user_id', userData.user?.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();
@@ -129,14 +182,16 @@ Deno.serve(async (req) => {
     .insert({ family_id: me.family_id, session_id: sessionId, seq: history.length + 1, speaker: 'hilo', text: reply });
   if (saveError) return json({ error: 'save' }, 500);
 
+  const audio = await speak(reply, Number(me.voice_speed));
+
   const u = response.usage;
   await admin.rpc('add_usage', {
     pid: me.id,
     usage_day: new Date().toLocaleDateString('sv-SE', { timeZone: me.timezone }),
     input_tokens: u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0),
     output_tokens: u.output_tokens,
-    characters: 0,
+    characters: audio ? reply.length : 0,
   });
 
-  return json({ session_id: sessionId, reply });
+  return json({ session_id: sessionId, reply, audio });
 });
