@@ -7,6 +7,7 @@ import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { TodayPills } from '@/components/today-pills';
 import { supabase } from '@/lib/supabase';
+import { localNow } from '@/lib/time';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
 type Senior = { id: string; display_name: string; talk_time: string | null; user_id: string | null; timezone: string };
@@ -14,12 +15,31 @@ type Senior = { id: string; display_name: string; talk_time: string | null; user
 /** '10:00:00' → '10:00' */
 const showTime = (t: string) => t.slice(0, 5).replace(/^0/, '');
 
+type Talk = { started_at: string; ended_at: string | null };
+
+// Texts of the talk card, together for the translation later
+const text = {
+  talked: (time: string, minutes: number | null, count: number) =>
+    `Ha charlado hoy a las ${time}` +
+    (minutes !== null ? ` · ${minutes} min` : '') +
+    (count > 1 ? ` · ${count} charlas` : '') +
+    '.',
+  notYet: (time: string | null) => `Aún no ha charlado hoy.${time ? ` Su charla es a las ${time}.` : ''}`,
+};
+
+/** Her talks today, in her time zone. The latest one first */
+const talkedToday = (talks: Talk[], timeZone: string) => {
+  const today = localNow(timeZone).date;
+  return talks.filter((t) => localNow(timeZone, new Date(t.started_at)).date === today);
+};
+
 /**
  * Hoy: how the senior's day is going.
  * Talk time, phone connected and today's pills; stories come next.
  */
 export default function TodayScreen() {
   const [senior, setSenior] = useState<Senior | null>(null);
+  const [talks, setTalks] = useState<Talk[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Reload when coming back to the tab, e.g. after pairing their phone
@@ -38,6 +58,15 @@ export default function TodayScreen() {
           }
           setError(null);
           setSenior(data as Senior | null);
+          if (!data) return;
+          // Enough to cover today even with several talks
+          supabase
+            .from('talk_sessions')
+            .select('started_at, ended_at')
+            .eq('person_id', data.id)
+            .order('started_at', { ascending: false })
+            .limit(10)
+            .then(({ data: rows }) => setTalks(talkedToday(rows ?? [], data.timezone)));
         });
     }, []),
   );
@@ -63,7 +92,15 @@ export default function TodayScreen() {
               <View style={styles.cardText}>
                 <Text style={styles.cardTitle}>La charla</Text>
                 <Text style={styles.cardBody}>
-                  {senior.talk_time ? `Cada día a las ${showTime(senior.talk_time)}.` : 'Aún no tiene hora.'}
+                  {talks.length
+                    ? text.talked(
+                        localNow(senior.timezone, new Date(talks[0].started_at)).time.replace(/^0/, ''),
+                        talks[0].ended_at
+                          ? Math.max(1, Math.round((Date.parse(talks[0].ended_at) - Date.parse(talks[0].started_at)) / 60_000))
+                          : null,
+                        talks.length,
+                      )
+                    : text.notYet(senior.talk_time ? showTime(senior.talk_time) : null)}
                 </Text>
               </View>
             </View>
