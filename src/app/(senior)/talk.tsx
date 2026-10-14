@@ -1,8 +1,9 @@
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -61,6 +62,8 @@ export default function TalkScreen() {
   const session = useRef<string | null>(null);
   // Long stories don't push everything off screen: the text gets about a fifth of it and scrolls, newest at the bottom
   const textBox = useRef<ScrollView>(null);
+  // Older lines fade out at the top instead of being cut by a hard line
+  const [scrolled, setScrolled] = useState(false);
   const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Hilo's last sentence as audio, so "Repetir" plays it again without asking Claude
   const player = useAudioPlayer();
@@ -227,17 +230,26 @@ export default function TalkScreen() {
         {/* Sits right above the buttons; while the bot speaks there are none, so it moves down to use the space */}
         <Animated.View layout={LinearTransition.duration(250)} style={styles.talk} accessibilityLiveRegion="polite">
           <Text style={styles.label}>{labels[mood]}</Text>
-          <ScrollView
-            ref={textBox}
-            style={{ maxHeight: height * 0.2 }}
-            contentContainerStyle={styles.text}
-            onContentSizeChange={() => textBox.current?.scrollToEnd({ animated: true })}
-            showsVerticalScrollIndicator
-            nestedScrollEnabled>
-            <Text style={styles.say}>{say}</Text>
-            {reply || heard ? <Text style={styles.reply}>Tú: «{reply ?? heard}»</Text> : null}
-            {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-          </ScrollView>
+          <View>
+            <ScrollView
+              ref={textBox}
+              style={{ maxHeight: height * 0.2 }}
+              contentContainerStyle={styles.text}
+              onContentSizeChange={() => textBox.current?.scrollToEnd({ animated: true })}
+              onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > 2)}
+              scrollEventThrottle={32}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled>
+              <Text style={styles.say}>{say}</Text>
+              {reply || heard ? <Text style={styles.reply}>Tú: «{reply ?? heard}»</Text> : null}
+              {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+            </ScrollView>
+            <LinearGradient
+              pointerEvents="none"
+              colors={[colors.background, `${colors.background}00`]}
+              style={[styles.fade, { opacity: scrolled ? 1 : 0 }]}
+            />
+          </View>
         </Animated.View>
 
         <Animated.View layout={LinearTransition.duration(250)} style={styles.controls}>
@@ -295,6 +307,13 @@ const styles = StyleSheet.create({
   },
   text: {
     gap: 14,
+  },
+  fade: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 30,
   },
   label: {
     fontSize: fontSize.label,
