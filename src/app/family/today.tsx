@@ -24,6 +24,9 @@ const text = {
     (minutes !== null ? ` · ${minutes} min` : '') +
     (count > 1 ? ` · ${count} charlas` : '') +
     '.',
+  story: 'Nueva historia',
+  stories: (n: number) => `${n} historias para revisar`,
+  review: 'Revisar',
   notYet: (time: string | null) => `Aún no ha charlado hoy.${time ? ` Su charla es a las ${time}.` : ''}`,
 };
 
@@ -40,6 +43,8 @@ const talkedToday = (talks: Talk[], timeZone: string) => {
 export default function TodayScreen() {
   const [senior, setSenior] = useState<Senior | null>(null);
   const [talks, setTalks] = useState<Talk[]>([]);
+  // Stories from her talks waiting for the family, newest first
+  const [drafts, setDrafts] = useState<{ id: string; title: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Reload when coming back to the tab, e.g. after pairing their phone
@@ -67,6 +72,13 @@ export default function TodayScreen() {
             .order('started_at', { ascending: false })
             .limit(10)
             .then(({ data: rows }) => setTalks(talkedToday(rows ?? [], data.timezone)));
+          supabase
+            .from('chapters')
+            .select('id, title')
+            .eq('person_id', data.id)
+            .eq('status', 'draft')
+            .order('created_at', { ascending: false })
+            .then(({ data: rows }) => setDrafts(rows ?? []));
         });
     }, []),
   );
@@ -104,6 +116,20 @@ export default function TodayScreen() {
                 </Text>
               </View>
             </View>
+
+            {drafts.length ? (
+              <View style={[styles.card, styles.cardTodo]}>
+                <View style={styles.cardText}>
+                  <Text style={styles.cardTitle}>{drafts.length === 1 ? text.story : text.stories(drafts.length)}</Text>
+                  <Text style={styles.cardBody}>«{drafts[0].title}»</Text>
+                </View>
+                <BigButton
+                  scale="family"
+                  label={text.review}
+                  onPress={() => router.push({ pathname: '/review/[id]', params: { id: drafts[0].id } })}
+                />
+              </View>
+            ) : null}
 
             {senior.user_id ? (
               <View style={styles.card}>
