@@ -182,7 +182,10 @@ Deno.serve(async (req) => {
     .insert({ family_id: me.family_id, session_id: sessionId, seq: history.length + 1, speaker: 'hilo', text: reply });
   if (saveError) return json({ error: 'save' }, 500);
 
-  const audio = await speak(reply, Number(me.voice_speed));
+  // On screen the comma before her name is right ("Qué bonito, Margarita"); out loud the voice stops there and sounds robotic
+  const firstName = me.display_name.trim().split(/\s+/)[0];
+  const spoken = firstName ? reply.replaceAll(`, ${firstName}`, ` ${firstName}`) : reply;
+  const audio = await speak(spoken, Number(me.voice_speed));
 
   const u = response.usage;
   await admin.rpc('add_usage', {
@@ -190,7 +193,7 @@ Deno.serve(async (req) => {
     usage_day: new Date().toLocaleDateString('sv-SE', { timeZone: me.timezone }),
     input_tokens: u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0),
     output_tokens: u.output_tokens,
-    characters: audio ? reply.length : 0,
+    characters: audio ? spoken.length : 0,
   });
 
   return json({ session_id: sessionId, reply, audio });
