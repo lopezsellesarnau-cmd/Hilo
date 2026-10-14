@@ -46,3 +46,6 @@ example
 .env
 .env.*
 !.env.example
+
+# Dross scan memory (local)
+.dross/
