@@ -45,6 +45,8 @@ export default function PillsScreen() {
   const { width, height } = useWindowDimensions();
   // Same size as the bot on the home
   const botSize = Math.min(size.bot, width * 0.7, height * 0.28);
+  // The pill circle is smaller: with the day list below, the screen must fit without scrolling
+  const circleSize = Math.min(size.bot, width * 0.5, height * 0.2);
   const timezone = me?.timezone ?? 'Europe/Madrid';
   const now = localNow(timezone).time;
 
@@ -151,7 +153,7 @@ export default function PillsScreen() {
               </>
             ) : due ? (
               <>
-                <View style={[styles.iconCircle, { width: botSize, height: botSize, borderRadius: botSize / 2 }]}>
+                <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
                   <Image source={pillLarge} style={styles.icon} contentFit="contain" />
                 </View>
                 <Text style={styles.kicker}>Ahora te toca</Text>
@@ -168,7 +170,7 @@ export default function PillsScreen() {
               </>
             ) : (
               <>
-                <View style={[styles.iconCircle, { width: botSize, height: botSize, borderRadius: botSize / 2 }]}>
+                <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
                   <Image source={pillLarge} style={[styles.icon, styles.iconLater]} contentFit="contain" />
                 </View>
                 <Text style={styles.kicker}>Ahora no te toca ninguna</Text>
