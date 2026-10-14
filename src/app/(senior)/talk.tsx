@@ -50,6 +50,8 @@ export default function TalkScreen() {
   const [say, setSay] = useState('');
   const [reply, setReply] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
+  // Hilo just asked about her pills: she answers with Sí / No, not by voice, so it's recorded right
+  const [askPills, setAskPills] = useState(false);
   // What she is saying right now, live while she talks
   const [heard, setHeard] = useState('');
   const [hint, setHint] = useState<string | null>(null);
@@ -117,6 +119,7 @@ export default function TalkScreen() {
       return;
     }
     session.current = result.sessionId;
+    setAskPills(result.askPills);
     show(result.reply, result.audio);
   };
 
@@ -124,6 +127,14 @@ export default function TalkScreen() {
     setMood('thinking');
     setHint(null);
     sendTurn(session.current, text).then(handle);
+  };
+
+  const answerPills = (answer: 'yes' | 'no') => {
+    setAskPills(false);
+    setReply(answer === 'yes' ? 'Sí, ya me lo he tomado.' : 'No, todavía no.');
+    setMood('thinking');
+    setHint(null);
+    sendTurn(session.current, undefined, answer).then(handle);
   };
 
   // Hilo starts the talk when the screen opens
@@ -216,7 +227,7 @@ export default function TalkScreen() {
     maxTimer.current = setTimeout(finish, MAX_TURN_MS);
   };
 
-  const yourTurn = !ended && (mood === 'idle' || mood === 'listening');
+  const yourTurn = !ended && !askPills && (mood === 'idle' || mood === 'listening');
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -267,6 +278,17 @@ export default function TalkScreen() {
                 {mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
               </Animated.Text>
             </PressScale>
+          ) : null}
+
+          {askPills && mood === 'idle' ? (
+            <View style={styles.yesno}>
+              <View style={styles.half}>
+                <BigButton label="Sí" onPress={() => answerPills('yes')} accessibilityHint="Ya me lo he tomado" />
+              </View>
+              <View style={styles.half}>
+                <BigButton variant="outline" label="No" onPress={() => answerPills('no')} accessibilityHint="Todavía no me lo he tomado" />
+              </View>
+            </View>
           ) : null}
 
           {mood === 'idle' && lastAudio ? (
@@ -342,6 +364,13 @@ const styles = StyleSheet.create({
   controls: {
     marginTop: 24,
     gap: 12,
+  },
+  yesno: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  half: {
+    flex: 1,
   },
   hold: {
     minHeight: size.buttonHeight,

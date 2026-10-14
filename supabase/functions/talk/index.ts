@@ -5,7 +5,7 @@
 // Every key lives in the function's secrets, never in the app.
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.133.0';
-import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.117.3';
 
 const MODEL = 'claude-haiku-5-5';
 /** A talk is ~6 minutes; this stops a stuck loop from costing money */
@@ -25,6 +25,7 @@ Cómo hablas:
 - Escucha de verdad: repite algún detalle que te ha contado antes de preguntar lo siguiente.
 - Si se repite o se confunde, no le corriges. Sigues con cariño.
 - Si te pide que hables más despacio, más deprisa o normal, usa ajustar_voz y después le dices que ya está, con una frase corta.
+- Si te dice que aún no se ha tomado las pastillas, le recuerdas con calma que se las tome ahora y lo marque en Mis pastillas. No insistas más.
 
 De qué habláis:
 - Primero, cómo está hoy: si ha dormido bien, qué va a hacer.
@@ -120,6 +121,63 @@ async function speak(text: string, speed: number): Promise<string | null> {
   }
 }
 
+// ── Pills ─────────────────────────────────────────────────────────────────
+// Deterministic: the question and the record never depend on Claude.
+
+/** Today in the senior's time zone: 'YYYY-MM-DD', 'HH:mm' and ISO weekday (1 = Monday) */
+function localNow(timeZone: string) {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      weekday: 'short',
+    })
+      .formatToParts(new Date())
+      .map((x) => [x.type, x.value]),
+  );
+  const weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(p.weekday) + 1;
+  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}`, weekday };
+}
+
+type Dose = { medicationId: string; name: string; time: string };
+
+/** Today's doses that were already due and aren't marked as taken */
+async function pendingDoses(db: SupabaseClient, personId: string, timeZone: string): Promise<Dose[]> {
+  const now = localNow(timeZone);
+  const { data: meds } = await db
+    .from('medications')
+    .select('id, name, times, weekdays')
+    .eq('person_id', personId)
+    .eq('active', true);
+  if (!meds?.length) return [];
+  const { data: taken } = await db
+    .from('medication_events')
+    .select('medication_id, scheduled_time')
+    .in('medication_id', meds.map((m) => m.id))
+    .eq('scheduled_date', now.date)
+    .eq('status', 'taken');
+  return meds
+    .filter((m) => (m.weekdays as number[]).includes(now.weekday))
+    .flatMap((m) => (m.times as string[]).map((t) => ({ medicationId: m.id, name: m.name, time: t.slice(0, 5) })))
+    .filter((d) => d.time <= now.time)
+    .filter((d) => !taken?.some((e) => e.medication_id === d.medicationId && e.scheduled_time.slice(0, 5) === d.time))
+    .sort((a, b) => a.time.localeCompare(b.time));
+}
+
+function pillQuestion(doses: Dose[]): string {
+  if (doses.length === 1) {
+    return `Por cierto, a las ${doses[0].time.replace(/^0/, '')} te tocaba esto: ${doses[0].name}. ¿Te lo has tomado?`;
+  }
+  const names = [...new Set(doses.map((d) => d.name))];
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
+  return `Por cierto, hoy te tocaba esto: ${list}. ¿Te lo has tomado todo?`;
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -128,10 +186,14 @@ Deno.serve(async (req) => {
   const auth = req.headers.get('Authorization');
   if (!auth) return json({ error: 'auth' }, 401);
 
-  const { session_id, text } = (await req.json().catch(() => ({}))) as { session_id?: string; text?: string };
-  if (text !== undefined && (typeof text !== 'string' || !text.trim() || text.length > MAX_TEXT)) {
+  const body = (await req.json().catch(() => ({}))) as { session_id?: string; text?: string; pills?: 'yes' | 'no' };
+  const { session_id, pills } = body;
+  if (body.text !== undefined && (typeof body.text !== 'string' || !body.text.trim() || body.text.length > MAX_TEXT)) {
     return json({ error: 'text' }, 400);
   }
+  if (pills !== undefined && ((pills !== 'yes' && pills !== 'no') || !session_id)) return json({ error: 'pills' }, 400);
+  // Her answer to the pill question comes from the Sí / No buttons, and is said as a sentence in the transcript
+  const text = pills === 'yes' ? 'Sí, ya me lo he tomado.' : pills === 'no' ? 'No, todavía no.' : body.text;
 
   const url = Deno.env.get('SUPABASE_URL')!;
   const db = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } } });
@@ -159,12 +221,11 @@ Deno.serve(async (req) => {
     sessionId = data.id;
   }
 
-  const { data: turns, error: turnsError } = await db
-    .from('turns')
-    .select('seq, speaker, text')
-    .eq('session_id', sessionId)
-    .order('seq');
-  if (turnsError) return json({ error: 'session' }, 404);
+  const [{ data: turns, error: turnsError }, { data: talk }] = await Promise.all([
+    db.from('turns').select('seq, speaker, text').eq('session_id', sessionId).order('seq'),
+    db.from('talk_sessions').select('pills_asked_at').eq('id', sessionId).single(),
+  ]);
+  if (turnsError || !talk) return json({ error: 'session' }, 404);
   if (turns.length >= MAX_TURNS) return json({ error: 'too_long' }, 429);
 
   const history = [...turns];
@@ -175,12 +236,44 @@ Deno.serve(async (req) => {
     history.push(turn);
   }
 
+  // "Sí": the doses that were pending are taken now, from the talk
+  const doses = pills === 'yes' ? await pendingDoses(db, me.id, me.timezone) : [];
+  if (doses.length) {
+    const today = localNow(me.timezone).date;
+    const { error } = await db.from('medication_events').upsert(
+      doses.map((d) => ({
+        family_id: me.family_id,
+        medication_id: d.medicationId,
+        scheduled_date: today,
+        scheduled_time: d.time,
+        status: 'taken',
+        confirmed_at: new Date().toISOString(),
+        confirmed_by: me.id,
+        source: 'talk',
+      })),
+      { onConflict: 'medication_id,scheduled_date,scheduled_time' },
+    );
+    if (error) console.error('pills', error.message);
+  }
+
+  // After her first answer, once per talk: if a dose is due and not marked, Hilo asks about it
+  let askPills: Dose[] = [];
+  if (text && !pills && !talk.pills_asked_at && history.filter((t) => t.speaker === 'senior').length === 1) {
+    askPills = await pendingDoses(db, me.id, me.timezone);
+    if (askPills.length) await db.from('talk_sessions').update({ pills_asked_at: new Date().toISOString() }).eq('id', sessionId);
+  }
+
   // Only today's talk, never the full history (cost and privacy). The opening user message is fixed.
   const now = new Date().toLocaleString('es-ES', { timeZone: me.timezone, weekday: 'long', hour: '2-digit', minute: '2-digit' });
   const messages: Anthropic.MessageParam[] = [
     { role: 'user', content: `[Empieza la charla de hoy. Se llama ${me.display_name}. Ahora es ${now}.]` },
     ...history.map((t): Anthropic.MessageParam => ({ role: t.speaker === 'hilo' ? 'assistant' : 'user', content: t.text })),
   ];
+  // The pill question goes right after Claude's reply, so Claude must not ask one of its own (not saved in turns)
+  if (askPills.length) {
+    const last = messages[messages.length - 1];
+    last.content = `${last.content}\n\n[Nota: en esta respuesta no hagas ninguna pregunta. Justo después le pregunto por sus pastillas.]`;
+  }
 
   // At most one tool call per turn: Claude changes the speed, then says it out loud at the new speed
   let speed = Number(me.voice_speed);
@@ -229,7 +322,7 @@ Deno.serve(async (req) => {
     return json({ error: 'llm' }, 502);
   }
 
-  const reply =
+  const answer =
     response.stop_reason === 'refusal'
       ? 'Perdona, de eso prefiero no hablar. ¿Me cuentas otra cosa?'
       : response.content
@@ -237,7 +330,8 @@ Deno.serve(async (req) => {
         .map((b) => b.text)
         .join(' ')
         .trim();
-  if (!reply) return json({ error: 'llm' }, 502);
+  if (!answer) return json({ error: 'llm' }, 502);
+  const reply = askPills.length ? `${answer} ${pillQuestion(askPills)}` : answer;
 
   const { error: saveError } = await db
     .from('turns')
@@ -257,5 +351,5 @@ Deno.serve(async (req) => {
     characters: audio ? spoken.length : 0,
   });
 
-  return json({ session_id: sessionId, reply, audio });
+  return json({ session_id: sessionId, reply, audio, ask_pills: askPills.length > 0 });
 });
