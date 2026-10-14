@@ -36,3 +36,43 @@ export async function loadBook(): Promise<{ name: string; chapters: Chapter[] } 
 
   return { name: me.display_name, chapters: data.map((c, i) => ({ ...c, number: i + 1 })) };
 }
+
+export type Draft = Omit<Chapter, 'number'> & {
+  status: 'draft' | 'approved';
+  /** Words of the story that don't appear in what she said: the family checks them */
+  unheardWords: string[];
+  createdAt: string;
+};
+
+/** The family's view of the book: every chapter of their senior, drafts included (RLS), newest first */
+export async function loadFamilyBook(): Promise<{ name: string; chapters: Draft[] } | { error: string }> {
+  const { data: senior } = await supabase.from('people').select('id, display_name').eq('role', 'senior').limit(1).maybeSingle();
+  if (!senior) return { error: 'No hemos podido cargar los datos. Comprueba tu conexión.' };
+
+  const { data, error } = await supabase
+    .from('chapters')
+    .select('id, title, quote, paragraphs, status, unheard_words, created_at')
+    .eq('person_id', senior.id)
+    .order('created_at', { ascending: false });
+  if (error) return { error: 'No hemos podido cargar los datos. Comprueba tu conexión.' };
+
+  return {
+    name: senior.display_name,
+    chapters: data.map(({ unheard_words, created_at, ...c }) => ({ ...c, unheardWords: unheard_words, createdAt: created_at })),
+  };
+}
+
+/** Approve (she sees it in Mi libro) or take it back to the drafts */
+export async function setChapterStatus(id: string, status: 'draft' | 'approved') {
+  const { error } = await supabase
+    .from('chapters')
+    .update({ status, approved_at: status === 'approved' ? new Date().toISOString() : null })
+    .eq('id', id);
+  return !error;
+}
+
+/** Discard a story for good */
+export async function deleteChapter(id: string) {
+  const { error } = await supabase.from('chapters').delete().eq('id', id);
+  return !error;
+}

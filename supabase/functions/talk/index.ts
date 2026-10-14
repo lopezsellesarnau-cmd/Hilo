@@ -230,6 +230,23 @@ type Senior = { id: string; family_id: string; display_name: string; timezone: s
 const bare = (t: string) =>
   t.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
 
+/** Shorter words are mostly "que", "pero", "casa"…: too common to say anything */
+const MIN_CHECKED_WORD = 5;
+/** Same start = same word in another form ("manzana" / "manzanas", "mirábamos" / "mirar") */
+const WORD_ROOT = 5;
+
+/**
+ * Words of the story that she never said, as a hint for the family (not a block: the writer may join sentences).
+ * Compared by their first letters without accents, so plurals and verb forms of her own words don't count.
+ */
+function unheardWords(story: string, hers: string): string[] {
+  const words = (t: string) => bare(t).split(' ').filter((w) => w.length >= MIN_CHECKED_WORD);
+  // Without accents too: "mirábamos" and "miraba" have the same root
+  const root = (w: string) => w.normalize('NFD').replace(/\p{M}/gu, '').slice(0, WORD_ROOT);
+  const roots = new Set(words(hers).map(root));
+  return [...new Set(words(story).filter((w) => !roots.has(root(w))))];
+}
+
 /** Writes the draft chapter of a finished talk. Runs after the goodbye is sent, so it never slows the talk */
 async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string, transcript: Turn[]) {
   const hers = transcript.filter((t) => t.speaker === 'senior').map((t) => t.text);
@@ -290,6 +307,7 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
       title,
       quote: hersQuote,
       paragraphs,
+      unheard_words: unheardWords([title, ...paragraphs].join(' '), hers.join(' ')),
     });
     if (error) console.error('chapter', error.message);
     else console.log('chapter written', title);
