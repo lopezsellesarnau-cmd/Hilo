@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
@@ -18,6 +18,10 @@ const text = {
   approve: 'Aprobar',
   approveHint: (name: string) => `${name} la verá en Mi libro`,
   unapprove: 'Quitar de su libro',
+  share: 'Compartir con la familia',
+  // The story as plain text for WhatsApp; the link brings the rest of the family to Hilo
+  shareMessage: (name: string, title: string, paragraphs: string[]) =>
+    `${name} ha contado: «${title}»\n\n${paragraphs.join('\n\n')}\n\nGuardado en su libro de Hilo: hilo-web.vercel.app`,
   discard: 'Descartar',
   discardTitle: '¿Descartar esta historia?',
   discardText: 'Se borra para siempre. Sus charlas no se borran.',
@@ -116,12 +120,19 @@ export default function ReviewScreen() {
               <BigButton scale="family" variant="outline" label={text.discard} onPress={() => setConfirming(true)} />
             </>
           ) : (
-            <BigButton
-              scale="family"
-              variant="outline"
-              label={saving ? 'Guardando…' : text.unapprove}
-              onPress={() => save(() => setChapterStatus(chapter.id, 'draft'))}
-            />
+            <>
+              <BigButton
+                scale="family"
+                label={text.share}
+                onPress={() => Share.share({ message: text.shareMessage(name, chapter.title, chapter.paragraphs) })}
+              />
+              <BigButton
+                scale="family"
+                variant="outline"
+                label={saving ? 'Guardando…' : text.unapprove}
+                onPress={() => save(() => setChapterStatus(chapter.id, 'draft'))}
+              />
+            </>
           )}
 
           {confirming ? (
