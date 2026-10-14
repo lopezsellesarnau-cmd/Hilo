@@ -15,6 +15,8 @@ const MIN_STORY_CHARS = 200;
 /** A talk is ~6 minutes; this stops a stuck loop from costing money */
 const MAX_TURNS = 40;
 const MAX_TEXT = 4000;
+/** Fair use: talks per day where she actually answered. One number, until the plans split it (Básico 1, Familia 3) */
+const MAX_TALKS_PER_DAY = 3;
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
@@ -138,7 +140,7 @@ async function speak(text: string, speed: number): Promise<string | null> {
 // Deterministic: the question and the record never depend on Claude.
 
 /** Today in the senior's time zone: 'YYYY-MM-DD', 'HH:mm' and ISO weekday (1 = Monday) */
-function localNow(timeZone: string) {
+function localNow(timeZone: string, date = new Date()) {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat('en-US', {
       timeZone,
@@ -150,7 +152,7 @@ function localNow(timeZone: string) {
       hourCycle: 'h23',
       weekday: 'short',
     })
-      .formatToParts(new Date())
+      .formatToParts(date)
       .map((x) => [x.type, x.value]),
   );
   const weekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(p.weekday) + 1;
@@ -371,6 +373,25 @@ Deno.serve(async (req) => {
   let sessionId: string;
   if (session_id) sessionId = session_id;
   else {
+    // A new talk: after the daily limit, Hilo says goodbye gently instead of starting one
+    const { data: recent } = await db
+      .from('talk_sessions')
+      .select('started_at, turns(count)')
+      .eq('person_id', me.id)
+      .gte('started_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    const today = localNow(me.timezone).date;
+    const talksToday = (recent ?? []).filter(
+      (t) =>
+        localNow(me.timezone, new Date(t.started_at)).date === today &&
+        // More than Hilo's greeting: she answered at least once
+        ((t.turns as { count: number }[])[0]?.count ?? 0) > 1,
+    ).length;
+    if (talksToday >= MAX_TALKS_PER_DAY) {
+      const reply = `Hoy ya hemos charlado mucho, ${me.display_name}. Descansa, y mañana seguimos.`;
+      const spoken = reply.replaceAll(`, ${me.display_name}`, ` ${me.display_name}`);
+      return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed)), ask_pills: false, ended: true });
+    }
+
     const { data, error } = await db
       .from('talk_sessions')
       .insert({ family_id: me.family_id, person_id: me.id, locale: me.locale })

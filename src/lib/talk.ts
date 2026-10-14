@@ -16,7 +16,9 @@ export async function sendTurn(
   /** Her answer to the pill question, from the Sí / No buttons */
   pills?: 'yes' | 'no',
 ): Promise<
-  { sessionId: string; reply: string; audio: string | null; askPills: boolean; ended: boolean } | { error: TalkError }
+  /** sessionId is null when Hilo said no to a new talk (daily limit) */
+  | { sessionId: string | null; reply: string; audio: string | null; askPills: boolean; ended: boolean }
+  | { error: TalkError }
 > {
   const { data, error } = await supabase.functions.invoke('talk', {
     body: { session_id: sessionId ?? undefined, text, pills },
