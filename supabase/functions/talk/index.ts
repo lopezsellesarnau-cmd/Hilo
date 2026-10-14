@@ -78,9 +78,11 @@ const escapeXml = (t: string) =>
 async function azureSpeech(text: string, speed: number): Promise<ArrayBuffer> {
   const region = Deno.env.get('AZURE_SPEECH_REGION');
   const voice = Deno.env.get('AZURE_SPEECH_VOICE') ?? 'es-ES-ElviraNeural';
+  // <lang> forces Spanish: multilingual voices guess the language by themselves and sometimes say a name in English
   const ssml =
-    `<speak version="1.0" xml:lang="es-ES"><voice name="${voice}">` +
-    `<prosody rate="${speed.toFixed(2)}">${escapeXml(text)}</prosody></voice></speak>`;
+    `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es-ES">` +
+    `<voice name="${voice}"><lang xml:lang="es-ES">` +
+    `<prosody rate="${speed.toFixed(2)}">${escapeXml(text)}</prosody></lang></voice></speak>`;
   const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
     method: 'POST',
     headers: {
