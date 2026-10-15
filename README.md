@@ -2,7 +2,7 @@
 
 Hilo is an app for older people who live alone. Every day it asks them how they are, reminds them about their pills and asks them one question about their life. Over time, their answers become a book of their life for the family.
 
-> Status: in development. The daily talk works end to end with voice, the pills are asked inside the talk, and each talk becomes a story the family reviews for the book. Next: TestFlight and a first test with a real person. See [Progress](#progress).
+> Status: in development. The daily talk works end to end with voice, the pills are asked inside the talk, and each talk becomes a story the family reviews for the book. It is on TestFlight (iPhone and iPad). Next: a first test with a real person. See [Progress](#progress).
 
 ## Why I'm building it
 
@@ -58,15 +58,19 @@ She is not the only one. In Europe there are millions of people over 65 living a
 - The book: one story per talk written in the senior's words, the family reviews it with the doubtful words marked and approves or discards it, the senior reads the approved ones in My book
 - Family Settings: change the talk time and language, the pills, and connect a new phone for the senior
 - Database: families, people, consents, medications, doses, pairing codes, talks, turns, usage and chapters, all with Row Level Security
+- Family Today tab: today's talk and the new story, which can be shared with the family
+- A daily limit of talks per senior, checked on the server before a new talk starts
+- iPad: the same screens centred upright, and two halves on its side (the bot, or her book, on the left and the content on the right). iPhone stays portrait
+- TestFlight builds for iPhone and iPad
 - Landing page with a waitlist: [hilo-web.vercel.app](https://hilo-web.vercel.app) (separate repo)
 
 **Next**
-- TestFlight and a first test with a real person
-- A daily fair-use limit for the talk (a gentle goodbye, never a cut in the middle)
+- A first test with a real person
+- Claude through an EU region (Bedrock) before real families
+- Subscriptions (two plans)
 - My book with the senior's own voice (their recorded answers, with consent)
-- The family's Today tab with the talks and the stories of the day
 - English version, then Dutch
-- iPad layouts
+- Android
 
 ## Project structure
 
@@ -81,8 +85,8 @@ src/
     pair-code.tsx      senior: pair with a 6-digit code
     pair-scan.tsx      senior: pair by scanning the QR
     consent.tsx        senior: their own consent
-  components/          shared UI (BigButton, Bot, ScrollFade…)
-  lib/                 supabase client, onboarding, pairing, reminders, talk, book
+  components/          shared UI (BigButton, Bot, ScrollFade, WideSplit for iPad landscape…)
+  lib/                 supabase client, onboarding, pairing, reminders, talk, book, layout
   theme.ts             design tokens from the Figma
 assets/icons/          SVGs exported from the Figma
 supabase/migrations/   database schema, versioned in git
