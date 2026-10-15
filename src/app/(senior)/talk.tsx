@@ -202,7 +202,10 @@ export default function TalkScreen() {
   };
 
   useSpeechRecognitionEvent('result', (e) => {
-    const text = [earlier.current, e.results[0]?.transcript ?? ''].filter(Boolean).join(' ');
+    const part = e.results[0]?.transcript ?? '';
+    // The iPad can send one last empty result when recognition stops: it must not wipe what she said
+    if (!part && heardRef.current) return;
+    const text = [earlier.current, part].filter(Boolean).join(' ');
     heardRef.current = text;
     setHeard(text);
     // She is still talking: the pause starts counting again
