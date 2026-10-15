@@ -84,6 +84,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   screen: {
+    width: '100%',
+    maxWidth: spacing.contentMax,
+    alignSelf: 'center',
     flexGrow: 1,
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,

@@ -332,6 +332,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   screen: {
+    width: '100%',
+    maxWidth: spacing.contentMax,
+    alignSelf: 'center',
     flexGrow: 1,
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,

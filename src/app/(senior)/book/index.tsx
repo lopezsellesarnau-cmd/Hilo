@@ -79,6 +79,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   screen: {
+    width: '100%',
+    maxWidth: spacing.contentMax,
+    alignSelf: 'center',
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: 72,

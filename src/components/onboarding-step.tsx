@@ -75,6 +75,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   screen: {
+    width: '100%',
+    maxWidth: spacing.contentMax,
+    alignSelf: 'center',
     flexGrow: 1,
     paddingHorizontal: spacing.screenX,
     paddingTop: 24,
@@ -134,6 +137,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   footer: {
+    width: '100%',
+    maxWidth: spacing.contentMax,
+    alignSelf: 'center',
     flexShrink: 0,
     paddingHorizontal: spacing.screenX,
     paddingTop: 12,
