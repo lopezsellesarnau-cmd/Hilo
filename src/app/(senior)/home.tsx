@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { WideSplit } from '@/components/wide-split';
 import { useWide } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadSeniorDay } from '@/lib/senior-day';
@@ -89,13 +90,12 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={[styles.screen, wide && styles.screenWide]} bounces={false}>
         {wide ? (
-          <>
-            {stage}
+          <WideSplit side={stage}>
             <View style={styles.side}>
               {header}
               {buttons}
             </View>
-          </>
+          </WideSplit>
         ) : (
           <>
             {header}
@@ -124,8 +124,6 @@ const styles = StyleSheet.create({
   },
   screenWide: {
     maxWidth: spacing.wideMax,
-    flexDirection: 'row',
-    gap: spacing.wideGap,
   },
   // Right column on a wide screen: greeting at the top, buttons at the bottom
   side: {

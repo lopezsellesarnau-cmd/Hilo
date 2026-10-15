@@ -11,6 +11,7 @@ import { BigButton } from '@/components/big-button';
 import { Bot, type BotMood } from '@/components/bot';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
+import { WideSplit } from '@/components/wide-split';
 import { useWide } from '@/lib/layout';
 import { loadSeniorDay } from '@/lib/senior-day';
 import { leaveTalk, sendTurn } from '@/lib/talk';
@@ -332,13 +333,12 @@ export default function TalkScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={[styles.screen, wide && styles.screenWide]} bounces={false}>
         {wide ? (
-          <>
-            {stage}
+          <WideSplit side={stage}>
             <View style={styles.side}>
               {header}
               <View style={styles.sideTalk}>{talk}</View>
             </View>
-          </>
+          </WideSplit>
         ) : (
           <>
             {header}
@@ -367,8 +367,6 @@ const styles = StyleSheet.create({
   },
   screenWide: {
     maxWidth: spacing.wideMax,
-    flexDirection: 'row',
-    gap: spacing.wideGap,
   },
   // Right column on a wide screen: greeting at the top, the talk and its buttons at the bottom
   side: {
