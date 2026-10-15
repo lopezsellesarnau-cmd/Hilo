@@ -5,7 +5,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
-import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
+import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
@@ -180,8 +180,9 @@ export default function SettingsScreen() {
           <Row label="Cerrar sesión" onPress={signOut} />
         </View>
 
-        <Text style={styles.section}>LEGAL</Text>
+        <Text style={styles.section}>AYUDA Y LEGAL</Text>
         <View style={styles.group}>
+          <Row label="Ayuda" onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} />
           <Row label="Términos" onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
           <Row label="Política de privacidad" onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} />
         </View>

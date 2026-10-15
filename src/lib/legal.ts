@@ -1,9 +1,10 @@
 /**
- * Legal pages, opened in the in-app browser.
- * TODO before App Store review: publish these pages (the privacy policy URL also goes in App Store Connect).
+ * Legal and help pages on the Hilo website, opened in the in-app browser.
+ * The same URLs go in App Store Connect and Google Play.
  */
-export const TERMS_URL = 'https://hilo-app.vercel.app/terms';
-export const PRIVACY_URL = 'https://hilo-app.vercel.app/privacy';
+export const TERMS_URL = 'https://hilo-web.vercel.app/terminos';
+export const PRIVACY_URL = 'https://hilo-web.vercel.app/privacidad';
+export const SUPPORT_URL = 'https://hilo-web.vercel.app/soporte';
 
 /** Bump when the terms change, so people accept the new version. */
-export const TERMS_VERSION = '2026-10-v1';
+export const TERMS_VERSION = '2026-10-15';
