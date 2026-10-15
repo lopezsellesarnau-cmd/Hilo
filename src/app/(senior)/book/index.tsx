@@ -7,7 +7,9 @@ import { BookCover } from '@/components/book-cover';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
+import { WideFrame } from '@/components/wide-split';
 import { loadBook } from '@/lib/book';
+import { useWide } from '@/lib/layout';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
 const text = {
@@ -21,7 +23,9 @@ const text = {
 
 export default function BookScreen() {
   const fade = useScrollFade();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  // iPad on its side: her book big on the left instead of the bot, the chapters on the right
+  const wide = useWide();
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(null);
 
   // Again each time she comes back: the family may have approved a new story
@@ -32,42 +36,51 @@ export default function BookScreen() {
   );
 
   const chapters = book && 'chapters' in book ? book.chapters : [];
+  // The book is 282 tall for 230 wide (Figma)
+  const bigCover =
+    book && 'name' in book ? (
+      <BookCover width={Math.min(300, width * 0.25, (height * 0.6 * 230) / 282)} title={text.cover(book.name)} />
+    ) : (
+      <View />
+    );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
-        <ScreenHeader
-          backLabel={text.back}
-          title={text.title}
-          subtitle={book && 'chapters' in book ? text.count(chapters.length) : undefined}
-        />
+      <WideFrame side={bigCover}>
+        <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
+          <ScreenHeader
+            backLabel={text.back}
+            title={text.title}
+            subtitle={book && 'chapters' in book ? text.count(chapters.length) : undefined}
+          />
 
-        {book && 'name' in book ? (
-          <View style={styles.cover}>
-            <BookCover width={Math.min(220, width * 0.55)} title={text.cover(book.name)} />
+          {book && 'name' in book && !wide ? (
+            <View style={styles.cover}>
+              <BookCover width={Math.min(220, width * 0.55)} title={text.cover(book.name)} />
+            </View>
+          ) : null}
+
+          {book && 'error' in book ? <Text style={styles.note}>{book.error}</Text> : null}
+          {book && 'chapters' in book && !chapters.length ? <Text style={styles.note}>{text.empty}</Text> : null}
+
+          <View style={styles.list}>
+            {chapters.map((chapter) => (
+              <PressScale
+                key={chapter.id}
+                onPress={() => router.push({ pathname: '/book/[chapter]', params: { chapter: chapter.id } })}
+                accessibilityRole="button"
+                accessibilityLabel={`Capítulo ${chapter.number}, ${chapter.title}`}
+                style={styles.chapter}>
+                <View style={styles.chapterText}>
+                  <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
+                  <Text style={styles.chapterTitle}>{chapter.title}</Text>
+                </View>
+                <Text style={styles.chevron}>›</Text>
+              </PressScale>
+            ))}
           </View>
-        ) : null}
-
-        {book && 'error' in book ? <Text style={styles.note}>{book.error}</Text> : null}
-        {book && 'chapters' in book && !chapters.length ? <Text style={styles.note}>{text.empty}</Text> : null}
-
-        <View style={styles.list}>
-          {chapters.map((chapter) => (
-            <PressScale
-              key={chapter.id}
-              onPress={() => router.push({ pathname: '/book/[chapter]', params: { chapter: chapter.id } })}
-              accessibilityRole="button"
-              accessibilityLabel={`Capítulo ${chapter.number}, ${chapter.title}`}
-              style={styles.chapter}>
-              <View style={styles.chapterText}>
-                <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
-                <Text style={styles.chapterTitle}>{chapter.title}</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </PressScale>
-          ))}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </WideFrame>
       <ScrollFade visible={fade.visible} />
     </SafeAreaView>
   );
