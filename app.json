@@ -17,9 +17,11 @@
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationPortraitUpsideDown"
-        ]
+        ],
+        "NSPhotoLibraryUsageDescription": "Hilo no usa tus fotos. Si algún día lo necesita, te lo preguntará antes."
       },
-      "requireFullScreen": true
+      "requireFullScreen": true,
+      "buildNumber": "2"
     },
     "android": {
       "package": "com.arnolop.hilo",
