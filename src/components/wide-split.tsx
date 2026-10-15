@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { Bot } from '@/components/bot';
+import { useWide, wideBotSize } from '@/lib/layout';
 import { spacing } from '@/theme';
 
 type Props = {
@@ -20,6 +22,30 @@ export function WideSplit({ side, children }: Props) {
   );
 }
 
+/**
+ * For screens that are one scrolling column: on a wide screen the column moves to the right half
+ * and the bot (or `side`) stays still on the left. On a phone it changes nothing.
+ */
+export function WideFrame({ side, children }: { side?: ReactNode; children: ReactNode }) {
+  const { width, height } = useWindowDimensions();
+  const wide = useWide();
+  if (!wide) return children;
+  return (
+    <View style={styles.frame}>
+      <WideSplit
+        side={
+          side ?? (
+            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <Bot size={wideBotSize(width, height)} />
+            </View>
+          )
+        }>
+        {children}
+      </WideSplit>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   row: {
     flex: 1,
@@ -35,5 +61,12 @@ const styles = StyleSheet.create({
   side: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  frame: {
+    flex: 1,
+    width: '100%',
+    maxWidth: spacing.wideMax,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.screenX,
   },
 });

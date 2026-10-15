@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { TodayPills } from '@/components/today-pills';
+import { WideFrame } from '@/components/wide-split';
 import { supabase } from '@/lib/supabase';
 import { localNow } from '@/lib/time';
 import { colors, family, fontWeight, spacing } from '@/theme';
@@ -88,70 +89,73 @@ export default function TodayScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.screen}>
-        <Text style={styles.title} accessibilityRole="header">
-          Hoy
-        </Text>
-        {senior ? <Text style={styles.subtitle}>Con {senior.display_name}</Text> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+      {/* iPad on its side: the bot on the left, this column on the right */}
+      <WideFrame>
+        <ScrollView contentContainerStyle={styles.screen}>
+          <Text style={styles.title} accessibilityRole="header">
+            Hoy
+          </Text>
+          {senior ? <Text style={styles.subtitle}>Con {senior.display_name}</Text> : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {senior ? (
-          <>
-            <View style={styles.card}>
-              <View style={styles.cardBot}>
-                <Bot size={56} />
-              </View>
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>La charla</Text>
-                <Text style={styles.cardBody}>
-                  {talks.length
-                    ? text.talked(
-                        localNow(senior.timezone, new Date(talks[0].started_at)).time.replace(/^0/, ''),
-                        talks[0].ended_at
-                          ? Math.max(1, Math.round((Date.parse(talks[0].ended_at) - Date.parse(talks[0].started_at)) / 60_000))
-                          : null,
-                        talks.length,
-                      )
-                    : text.notYet(senior.talk_time ? showTime(senior.talk_time) : null)}
-                </Text>
-              </View>
-            </View>
-
-            {drafts.length ? (
-              <View style={[styles.card, styles.cardTodo]}>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>{drafts.length === 1 ? text.story : text.stories(drafts.length)}</Text>
-                  <Text style={styles.cardBody}>«{drafts[0].title}»</Text>
-                </View>
-                <BigButton
-                  scale="family"
-                  label={text.review}
-                  onPress={() => router.push({ pathname: '/review/[id]', params: { id: drafts[0].id } })}
-                />
-              </View>
-            ) : null}
-
-            {senior.user_id ? (
+          {senior ? (
+            <>
               <View style={styles.card}>
+                <View style={styles.cardBot}>
+                  <Bot size={56} />
+                </View>
                 <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>Su móvil</Text>
-                  <Text style={styles.cardBody}>Conectado. Hilo ya puede avisarle.</Text>
+                  <Text style={styles.cardTitle}>La charla</Text>
+                  <Text style={styles.cardBody}>
+                    {talks.length
+                      ? text.talked(
+                          localNow(senior.timezone, new Date(talks[0].started_at)).time.replace(/^0/, ''),
+                          talks[0].ended_at
+                            ? Math.max(1, Math.round((Date.parse(talks[0].ended_at) - Date.parse(talks[0].started_at)) / 60_000))
+                            : null,
+                          talks.length,
+                        )
+                      : text.notYet(senior.talk_time ? showTime(senior.talk_time) : null)}
+                  </Text>
                 </View>
               </View>
-            ) : (
-              <View style={[styles.card, styles.cardTodo]}>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>Falta conectar su móvil</Text>
-                  <Text style={styles.cardBody}>Sin esto, Hilo no puede hablar con {senior.display_name}.</Text>
-                </View>
-                <BigButton scale="family" label="Conectar su móvil" onPress={pair} />
-              </View>
-            )}
 
-            <TodayPills seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
-          </>
-        ) : null}
-      </ScrollView>
+              {drafts.length ? (
+                <View style={[styles.card, styles.cardTodo]}>
+                  <View style={styles.cardText}>
+                    <Text style={styles.cardTitle}>{drafts.length === 1 ? text.story : text.stories(drafts.length)}</Text>
+                    <Text style={styles.cardBody}>«{drafts[0].title}»</Text>
+                  </View>
+                  <BigButton
+                    scale="family"
+                    label={text.review}
+                    onPress={() => router.push({ pathname: '/review/[id]', params: { id: drafts[0].id } })}
+                  />
+                </View>
+              ) : null}
+
+              {senior.user_id ? (
+                <View style={styles.card}>
+                  <View style={styles.cardText}>
+                    <Text style={styles.cardTitle}>Su móvil</Text>
+                    <Text style={styles.cardBody}>Conectado. Hilo ya puede avisarle.</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={[styles.card, styles.cardTodo]}>
+                  <View style={styles.cardText}>
+                    <Text style={styles.cardTitle}>Falta conectar su móvil</Text>
+                    <Text style={styles.cardBody}>Sin esto, Hilo no puede hablar con {senior.display_name}.</Text>
+                  </View>
+                  <BigButton scale="family" label="Conectar su móvil" onPress={pair} />
+                </View>
+              )}
+
+              <TodayPills seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
+            </>
+          ) : null}
+        </ScrollView>
+      </WideFrame>
     </SafeAreaView>
   );
 }

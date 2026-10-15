@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { WideFrame } from '@/components/wide-split';
 import { loadFamilyBook, type Draft } from '@/lib/book';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
@@ -58,38 +59,41 @@ export default function FamilyBookScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.screen}>
-        <Text style={styles.title} accessibilityRole="header">
-          {text.title}
-        </Text>
-        {book && 'error' in book ? <Text style={styles.error}>{book.error}</Text> : null}
+      {/* iPad on its side: the bot on the left, this column on the right */}
+      <WideFrame>
+        <ScrollView contentContainerStyle={styles.screen}>
+          <Text style={styles.title} accessibilityRole="header">
+            {text.title}
+          </Text>
+          {book && 'error' in book ? <Text style={styles.error}>{book.error}</Text> : null}
 
-        {book && 'chapters' in book && !chapters.length ? (
-          <View style={styles.empty}>
-            <Image source={bookIcon} style={styles.book} contentFit="contain" />
-            <Text style={styles.emptyTitle}>{text.emptyTitle}</Text>
-            <Text style={styles.emptyText}>{text.emptyText}</Text>
-          </View>
-        ) : null}
+          {book && 'chapters' in book && !chapters.length ? (
+            <View style={styles.empty}>
+              <Image source={bookIcon} style={styles.book} contentFit="contain" />
+              <Text style={styles.emptyTitle}>{text.emptyTitle}</Text>
+              <Text style={styles.emptyText}>{text.emptyText}</Text>
+            </View>
+          ) : null}
 
-        {drafts.length ? (
-          <>
-            <Text style={styles.section}>{text.toReview}</Text>
-            {drafts.map((c) => (
-              <StoryRow key={c.id} chapter={c} />
-            ))}
-          </>
-        ) : null}
+          {drafts.length ? (
+            <>
+              <Text style={styles.section}>{text.toReview}</Text>
+              {drafts.map((c) => (
+                <StoryRow key={c.id} chapter={c} />
+              ))}
+            </>
+          ) : null}
 
-        {approved.length ? (
-          <>
-            <Text style={styles.section}>{text.inBook}</Text>
-            {approved.map((c) => (
-              <StoryRow key={c.id} chapter={c} />
-            ))}
-          </>
-        ) : null}
-      </ScrollView>
+          {approved.length ? (
+            <>
+              <Text style={styles.section}>{text.inBook}</Text>
+              {approved.map((c) => (
+                <StoryRow key={c.id} chapter={c} />
+              ))}
+            </>
+          ) : null}
+        </ScrollView>
+      </WideFrame>
     </SafeAreaView>
   );
 }

@@ -5,6 +5,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { WideFrame } from '@/components/wide-split';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight, spacing } from '@/theme';
@@ -134,76 +135,79 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.screen}>
-        <Text style={styles.title} accessibilityRole="header">
-          Ajustes
-        </Text>
+      {/* iPad on its side: the bot on the left, this column on the right */}
+      <WideFrame>
+        <ScrollView contentContainerStyle={styles.screen}>
+          <Text style={styles.title} accessibilityRole="header">
+            Ajustes
+          </Text>
 
-        {senior ? (
-          <>
-            <Text style={styles.section}>{senior.display_name.toUpperCase()}</Text>
-            <View style={styles.group}>
-              <Row label={text.talk} value={text.talkValue(senior.talk_time, senior.locale)} onPress={() => edit('/onboarding/talk')} />
-              <Row
-                label={text.pills}
-                value={text.pillsValue(senior.medications[0]?.count ?? 0)}
-                onPress={() => edit('/onboarding/pills')}
-              />
-              <Row
-                label={text.phone}
-                value={text.phoneValue(Boolean(senior.user_id))}
-                onPress={() => (senior.user_id ? setRelinking(true) : pair())}
-              />
-            </View>
-
-            {relinking ? (
-              <View style={styles.confirm}>
-                <Text style={styles.confirmTitle}>{text.relinkTitle}</Text>
-                <Text style={styles.confirmText}>{text.relinkText(senior.display_name)}</Text>
-                <BigButton scale="family" label={text.relinkYes} onPress={relink} />
-                <BigButton scale="family" variant="outline" label={text.cancel} onPress={() => setRelinking(false)} />
-                {relinkError ? <Text style={styles.error}>{relinkError}</Text> : null}
+          {senior ? (
+            <>
+              <Text style={styles.section}>{senior.display_name.toUpperCase()}</Text>
+              <View style={styles.group}>
+                <Row label={text.talk} value={text.talkValue(senior.talk_time, senior.locale)} onPress={() => edit('/onboarding/talk')} />
+                <Row
+                  label={text.pills}
+                  value={text.pillsValue(senior.medications[0]?.count ?? 0)}
+                  onPress={() => edit('/onboarding/pills')}
+                />
+                <Row
+                  label={text.phone}
+                  value={text.phoneValue(Boolean(senior.user_id))}
+                  onPress={() => (senior.user_id ? setRelinking(true) : pair())}
+                />
               </View>
-            ) : null}
-          </>
-        ) : null}
 
-        <Text style={styles.section}>TU CUENTA</Text>
-        <View style={styles.group}>
-          <View style={styles.row}>
-            <Text style={styles.rowText}>Email</Text>
-            <Text style={styles.value} numberOfLines={1}>
-              {email}
-            </Text>
+              {relinking ? (
+                <View style={styles.confirm}>
+                  <Text style={styles.confirmTitle}>{text.relinkTitle}</Text>
+                  <Text style={styles.confirmText}>{text.relinkText(senior.display_name)}</Text>
+                  <BigButton scale="family" label={text.relinkYes} onPress={relink} />
+                  <BigButton scale="family" variant="outline" label={text.cancel} onPress={() => setRelinking(false)} />
+                  {relinkError ? <Text style={styles.error}>{relinkError}</Text> : null}
+                </View>
+              ) : null}
+            </>
+          ) : null}
+
+          <Text style={styles.section}>TU CUENTA</Text>
+          <View style={styles.group}>
+            <View style={styles.row}>
+              <Text style={styles.rowText}>Email</Text>
+              <Text style={styles.value} numberOfLines={1}>
+                {email}
+              </Text>
+            </View>
+            <Row label="Gestionar suscripción" onPress={() => Linking.openURL(SUBSCRIPTIONS_URL)} />
+            <Row label="Cerrar sesión" onPress={signOut} />
           </View>
-          <Row label="Gestionar suscripción" onPress={() => Linking.openURL(SUBSCRIPTIONS_URL)} />
-          <Row label="Cerrar sesión" onPress={signOut} />
-        </View>
 
-        <Text style={styles.section}>AYUDA Y LEGAL</Text>
-        <View style={styles.group}>
-          <Row label="Ayuda" onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} />
-          <Row label="Términos" onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
-          <Row label="Política de privacidad" onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} />
-        </View>
-
-        <View style={styles.group}>
-          <Row label="Borrar mi cuenta" danger onPress={() => setConfirming(true)} />
-        </View>
-
-        {confirming ? (
-          <View style={styles.confirm}>
-            <Text style={styles.confirmTitle}>¿Borrar tu cuenta?</Text>
-            <Text style={styles.confirmText}>
-              Si eres el único familiar en Hilo, también se borra todo lo de tu familia: sus pastillas, sus charlas y su
-              libro. No se puede deshacer.
-            </Text>
-            <BigButton scale="family" label={deleting ? 'Borrando…' : 'Sí, borrar todo'} onPress={deleteAccount} />
-            <BigButton scale="family" variant="outline" label="Cancelar" onPress={() => setConfirming(false)} />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Text style={styles.section}>AYUDA Y LEGAL</Text>
+          <View style={styles.group}>
+            <Row label="Ayuda" onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} />
+            <Row label="Términos" onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
+            <Row label="Política de privacidad" onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} />
           </View>
-        ) : null}
-      </ScrollView>
+
+          <View style={styles.group}>
+            <Row label="Borrar mi cuenta" danger onPress={() => setConfirming(true)} />
+          </View>
+
+          {confirming ? (
+            <View style={styles.confirm}>
+              <Text style={styles.confirmTitle}>¿Borrar tu cuenta?</Text>
+              <Text style={styles.confirmText}>
+                Si eres el único familiar en Hilo, también se borra todo lo de tu familia: sus pastillas, sus charlas y su
+                libro. No se puede deshacer.
+              </Text>
+              <BigButton scale="family" label={deleting ? 'Borrando…' : 'Sí, borrar todo'} onPress={deleteAccount} />
+              <BigButton scale="family" variant="outline" label="Cancelar" onPress={() => setConfirming(false)} />
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+            </View>
+          ) : null}
+        </ScrollView>
+      </WideFrame>
     </SafeAreaView>
   );
 }

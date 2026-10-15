@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { WideFrame } from '@/components/wide-split';
 import { deleteChapter, loadFamilyBook, setChapterStatus, type Draft } from '@/lib/book';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
@@ -87,65 +88,68 @@ export default function ReviewScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.screen}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={text.backLabel} hitSlop={12}>
-          <Text style={styles.back}>{text.back}</Text>
-        </Pressable>
+      {/* iPad on its side: the bot on the left, this column on the right */}
+      <WideFrame>
+        <ScrollView contentContainerStyle={styles.screen}>
+          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={text.backLabel} hitSlop={12}>
+            <Text style={styles.back}>{text.back}</Text>
+          </Pressable>
 
-        <Text style={styles.kicker}>{draft ? text.draft : text.approved}</Text>
-        <Text style={styles.title} accessibilityRole="header">
-          {chapter.title}
-        </Text>
-        <Text style={styles.promise}>{text.promise(name)}</Text>
-        {draft && unheard.size ? (
-          <View style={styles.checkBox}>
-            <Text style={styles.checkText}>{text.check(name)}</Text>
-          </View>
-        ) : null}
-
-        {chapter.paragraphs.map((p, i) => (
-          <Marked key={i} paragraph={p} unheard={draft ? unheard : new Set()} />
-        ))}
-        {chapter.quote ? <Text style={styles.quote}>“{chapter.quote}”</Text> : null}
-
-        <View style={styles.actions}>
-          {draft ? (
-            <>
-              <BigButton
-                scale="family"
-                label={saving ? 'Guardando…' : text.approve}
-                onPress={() => save(() => setChapterStatus(chapter.id, 'approved'))}
-                accessibilityHint={text.approveHint(name)}
-              />
-              <BigButton scale="family" variant="outline" label={text.discard} onPress={() => setConfirming(true)} />
-            </>
-          ) : (
-            <>
-              <BigButton
-                scale="family"
-                label={text.share}
-                onPress={() => Share.share({ message: text.shareMessage(name, chapter.title, chapter.paragraphs) })}
-              />
-              <BigButton
-                scale="family"
-                variant="outline"
-                label={saving ? 'Guardando…' : text.unapprove}
-                onPress={() => save(() => setChapterStatus(chapter.id, 'draft'))}
-              />
-            </>
-          )}
-
-          {confirming ? (
-            <View style={styles.confirm}>
-              <Text style={styles.confirmTitle}>{text.discardTitle}</Text>
-              <Text style={styles.confirmText}>{text.discardText}</Text>
-              <BigButton scale="family" label={text.discardYes} onPress={() => save(() => deleteChapter(chapter.id))} />
-              <BigButton scale="family" variant="outline" label={text.cancel} onPress={() => setConfirming(false)} />
+          <Text style={styles.kicker}>{draft ? text.draft : text.approved}</Text>
+          <Text style={styles.title} accessibilityRole="header">
+            {chapter.title}
+          </Text>
+          <Text style={styles.promise}>{text.promise(name)}</Text>
+          {draft && unheard.size ? (
+            <View style={styles.checkBox}>
+              <Text style={styles.checkText}>{text.check(name)}</Text>
             </View>
           ) : null}
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-        </View>
-      </ScrollView>
+
+          {chapter.paragraphs.map((p, i) => (
+            <Marked key={i} paragraph={p} unheard={draft ? unheard : new Set()} />
+          ))}
+          {chapter.quote ? <Text style={styles.quote}>“{chapter.quote}”</Text> : null}
+
+          <View style={styles.actions}>
+            {draft ? (
+              <>
+                <BigButton
+                  scale="family"
+                  label={saving ? 'Guardando…' : text.approve}
+                  onPress={() => save(() => setChapterStatus(chapter.id, 'approved'))}
+                  accessibilityHint={text.approveHint(name)}
+                />
+                <BigButton scale="family" variant="outline" label={text.discard} onPress={() => setConfirming(true)} />
+              </>
+            ) : (
+              <>
+                <BigButton
+                  scale="family"
+                  label={text.share}
+                  onPress={() => Share.share({ message: text.shareMessage(name, chapter.title, chapter.paragraphs) })}
+                />
+                <BigButton
+                  scale="family"
+                  variant="outline"
+                  label={saving ? 'Guardando…' : text.unapprove}
+                  onPress={() => save(() => setChapterStatus(chapter.id, 'draft'))}
+                />
+              </>
+            )}
+
+            {confirming ? (
+              <View style={styles.confirm}>
+                <Text style={styles.confirmTitle}>{text.discardTitle}</Text>
+                <Text style={styles.confirmText}>{text.discardText}</Text>
+                <BigButton scale="family" label={text.discardYes} onPress={() => save(() => deleteChapter(chapter.id))} />
+                <BigButton scale="family" variant="outline" label={text.cancel} onPress={() => setConfirming(false)} />
+              </View>
+            ) : null}
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+          </View>
+        </ScrollView>
+      </WideFrame>
     </SafeAreaView>
   );
 }
