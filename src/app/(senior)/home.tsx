@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { useWide } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadSeniorDay } from '@/lib/senior-day';
 import { colors, fontSize, fontWeight, lineHeight, size, spacing } from '@/theme';
@@ -20,8 +21,10 @@ const enter = (order: number) => FadeInDown.duration(500).delay(order === 0 ? 0 
 
 export default function HomeScreen() {
   const { width, height } = useWindowDimensions();
+  // iPad on its side: bot on the left, greeting and buttons on the right (Figma IPAD MINI / DUO 2)
+  const wide = useWide();
   // Never a fixed 265: on short screens a fixed bot overlaps the greeting (prototype bug)
-  const botSize = Math.min(size.bot, width * 0.7, height * 0.28);
+  const botSize = wide ? Math.min(360, width * 0.3, height * 0.5) : Math.min(size.bot, width * 0.7, height * 0.28);
 
   // Name and today's pills, refreshed every time the senior comes back to the home
   const [name, setName] = useState<string | null>(null);
@@ -44,40 +47,62 @@ export default function HomeScreen() {
     }, []),
   );
 
+  const header = (
+    <Animated.View entering={enter(0)} accessibilityRole="header" style={styles.header}>
+      <Text style={styles.title}>{name ? `¡Hola, ${name}!` : '¡Hola!'}</Text>
+      <Text style={styles.subtitle}>¿Cómo estás?</Text>
+    </Animated.View>
+  );
+
+  const stage = (
+    <Animated.View entering={FadeIn.duration(700).delay(150)} style={styles.stage}>
+      <Bot size={botSize} mood="idle" />
+    </Animated.View>
+  );
+
+  const buttons = (
+    <View style={styles.buttons}>
+      <Animated.View entering={enter(1)}>
+        <BigButton label="Hablar" accessibilityHint="Empieza la charla de hoy" onPress={() => router.push('/talk')} />
+      </Animated.View>
+      <Animated.View entering={enter(2)}>
+        <BigButton
+          variant="outline"
+          label="Mis pastillas"
+          detail={pills?.total ? `${pills.taken} de ${pills.total}` : undefined}
+          onPress={() => router.push('/pills')}
+          icon={<Image source={pill} style={styles.icon} contentFit="contain" />}
+        />
+      </Animated.View>
+      <Animated.View entering={enter(3)}>
+        <BigButton
+          variant="outline"
+          label="Mi libro"
+          onPress={() => router.push('/book')}
+          icon={<Image source={book} style={styles.bookIcon} contentFit="contain" />}
+        />
+      </Animated.View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.screen} bounces={false}>
-        <Animated.View entering={enter(0)} accessibilityRole="header" style={styles.header}>
-          <Text style={styles.title}>{name ? `¡Hola, ${name}!` : '¡Hola!'}</Text>
-          <Text style={styles.subtitle}>¿Cómo estás?</Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeIn.duration(700).delay(150)} style={styles.stage}>
-          <Bot size={botSize} mood="idle" />
-        </Animated.View>
-
-        <View style={styles.buttons}>
-          <Animated.View entering={enter(1)}>
-            <BigButton label="Hablar" accessibilityHint="Empieza la charla de hoy" onPress={() => router.push('/talk')} />
-          </Animated.View>
-          <Animated.View entering={enter(2)}>
-            <BigButton
-              variant="outline"
-              label="Mis pastillas"
-              detail={pills?.total ? `${pills.taken} de ${pills.total}` : undefined}
-              onPress={() => router.push('/pills')}
-              icon={<Image source={pill} style={styles.icon} contentFit="contain" />}
-            />
-          </Animated.View>
-          <Animated.View entering={enter(3)}>
-            <BigButton
-              variant="outline"
-              label="Mi libro"
-              onPress={() => router.push('/book')}
-              icon={<Image source={book} style={styles.bookIcon} contentFit="contain" />}
-            />
-          </Animated.View>
-        </View>
+      <ScrollView contentContainerStyle={[styles.screen, wide && styles.screenWide]} bounces={false}>
+        {wide ? (
+          <>
+            {stage}
+            <View style={styles.side}>
+              {header}
+              {buttons}
+            </View>
+          </>
+        ) : (
+          <>
+            {header}
+            {stage}
+            {buttons}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -96,6 +121,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: spacing.screenBottom,
+  },
+  screenWide: {
+    maxWidth: spacing.wideMax,
+    flexDirection: 'row',
+    gap: spacing.wideGap,
+  },
+  // Right column on a wide screen: greeting at the top, buttons at the bottom
+  side: {
+    flex: 1,
+    justifyContent: 'space-between',
   },
   header: {
     alignItems: 'center',

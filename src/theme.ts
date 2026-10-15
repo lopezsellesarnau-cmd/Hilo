@@ -57,6 +57,9 @@ export const spacing = {
   buttonGap: 16,
   /** On iPad and large screens the content stays this wide, centred, like a big iPhone. No effect on phones */
   contentMax: 560,
+  /** iPad on its side: two columns (bot left, content right) up to this width, and the space between them */
+  wideMax: 1100,
+  wideGap: 48,
 } as const;
 
 /**
