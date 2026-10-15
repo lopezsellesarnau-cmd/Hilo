@@ -6,3 +6,6 @@ export function useWide() {
   const { width, height } = useWindowDimensions();
   return width > height && width >= 900;
 }
+
+/** The bot on the left half of a wide screen: big, but never taller than half the screen */
+export const wideBotSize = (width: number, height: number) => Math.min(360, width * 0.3, height * 0.5);

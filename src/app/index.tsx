@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { WideSplit } from '@/components/wide-split';
+import { useWide, wideBotSize } from '@/lib/layout';
 import { startRoute } from '@/lib/onboarding';
 import { reminderUrl } from '@/lib/reminders';
 import { colors, family, fontWeight, spacing } from '@/theme';
@@ -16,8 +18,10 @@ import { colors, family, fontWeight, spacing } from '@/theme';
  * "Soy familiar" starts the family onboarding; "Tengo un código" is for the senior's phone.
  */
 export default function WelcomeScreen() {
-  const { width } = useWindowDimensions();
-  const logoSize = Math.min(170, width * 0.42);
+  const { width, height } = useWindowDimensions();
+  // iPad on its side: the bot alone on the left, name and buttons on the right
+  const wide = useWide();
+  const logoSize = wide ? wideBotSize(width, height) : Math.min(170, width * 0.42);
   // Signed in already? Go straight to the right place instead of showing Welcome
   const [checking, setChecking] = useState(true);
   useEffect(() => {
@@ -35,26 +39,48 @@ export default function WelcomeScreen() {
 
   if (checking) return <View style={styles.safe} />;
 
+  const bot = (
+    <Animated.View entering={FadeIn.duration(700)}>
+      <Bot size={logoSize} look={wide ? 'right' : 'left'} />
+    </Animated.View>
+  );
+
+  const words = (
+    <>
+      <Animated.Text entering={FadeInDown.duration(500).delay(150)} style={styles.name} accessibilityRole="header">
+        Hilo
+      </Animated.Text>
+      <Animated.Text entering={FadeInDown.duration(500).delay(250)} style={styles.tagline}>
+        Una charla al día para quien más quieres.
+      </Animated.Text>
+    </>
+  );
+
+  const buttons = (
+    <Animated.View entering={FadeInDown.duration(500).delay(400)} style={styles.buttons}>
+      <BigButton scale="family" label="Soy familiar" onPress={() => router.push('/onboarding/email')} />
+      <BigButton scale="family" variant="outline" label="Tengo un código" onPress={() => router.push('/pair-code')} />
+      <Text style={styles.note}>«Tengo un código» es para el móvil de tu madre, padre o abuelo.</Text>
+    </Animated.View>
+  );
+
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.screen}>
-        <View style={styles.center}>
-          <Animated.View entering={FadeIn.duration(700)}>
-            <Bot size={logoSize} look="left" />
-          </Animated.View>
-          <Animated.Text entering={FadeInDown.duration(500).delay(150)} style={styles.name} accessibilityRole="header">
-            Hilo
-          </Animated.Text>
-          <Animated.Text entering={FadeInDown.duration(500).delay(250)} style={styles.tagline}>
-            Una charla al día para quien más quieres.
-          </Animated.Text>
-        </View>
-
-        <Animated.View entering={FadeInDown.duration(500).delay(400)} style={styles.buttons}>
-          <BigButton scale="family" label="Soy familiar" onPress={() => router.push('/onboarding/email')} />
-          <BigButton scale="family" variant="outline" label="Tengo un código" onPress={() => router.push('/pair-code')} />
-          <Text style={styles.note}>«Tengo un código» es para el móvil de tu madre, padre o abuelo.</Text>
-        </Animated.View>
+      <View style={[styles.screen, wide && styles.screenWide]}>
+        {wide ? (
+          <WideSplit side={bot}>
+            <View style={styles.center}>{words}</View>
+            {buttons}
+          </WideSplit>
+        ) : (
+          <>
+            <View style={styles.center}>
+              {bot}
+              {words}
+            </View>
+            {buttons}
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -73,6 +99,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: spacing.screenBottom,
+  },
+  screenWide: {
+    maxWidth: spacing.wideMax,
   },
   center: {
     flex: 1,

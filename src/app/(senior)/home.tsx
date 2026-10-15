@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { WideSplit } from '@/components/wide-split';
-import { useWide } from '@/lib/layout';
+import { useWide, wideBotSize } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadSeniorDay } from '@/lib/senior-day';
 import { colors, fontSize, fontWeight, lineHeight, size, spacing } from '@/theme';
@@ -25,7 +25,7 @@ export default function HomeScreen() {
   // iPad on its side: bot on the left, greeting and buttons on the right (Figma IPAD MINI / DUO 2)
   const wide = useWide();
   // Never a fixed 265: on short screens a fixed bot overlaps the greeting (prototype bug)
-  const botSize = wide ? Math.min(360, width * 0.3, height * 0.5) : Math.min(size.bot, width * 0.7, height * 0.28);
+  const botSize = wide ? wideBotSize(width, height) : Math.min(size.bot, width * 0.7, height * 0.28);
 
   // Name and today's pills, refreshed every time the senior comes back to the home
   const [name, setName] = useState<string | null>(null);

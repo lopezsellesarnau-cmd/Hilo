@@ -1,9 +1,11 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Bot, type BotMood } from '@/components/bot';
+import { WideSplit } from '@/components/wide-split';
+import { useWide, wideBotSize } from '@/lib/layout';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
 const TOTAL_STEPS = 6;
@@ -22,45 +24,81 @@ type Props = {
 
 /** One question per screen, as in the family prototype. */
 export function OnboardingStep({ step, question, hint, children, footer, mood = 'idle' }: Props) {
+  const { width, height } = useWindowDimensions();
+  // iPad on its side: a big bot on the left, the question and its buttons on the right
+  const wide = useWide();
+
+  const content = (
+    <>
+      {/* Hidden when the user resumed here after signing in: there is nothing behind */}
+      {router.canGoBack() ? (
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Atrás"
+          hitSlop={12}
+          style={styles.back}>
+          <Text style={styles.backText}>‹ Atrás</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.backSpace} />
+      )}
+
+      {step ? (
+        <View style={styles.dots} accessible accessibilityLabel={`Paso ${step} de ${TOTAL_STEPS}`}>
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+            <View key={i} style={[styles.dot, i + 1 === step && styles.dotOn]} />
+          ))}
+        </View>
+      ) : null}
+
+      {wide ? null : (
+        <View style={styles.bot} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Bot size={72} mood={mood} />
+        </View>
+      )}
+
+      <Text style={styles.question} accessibilityRole="header">
+        {question}
+      </Text>
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+
+      <View style={styles.body}>{children}</View>
+    </>
+  );
+
+  // Outside the scroll: on long steps it would be cut at the bottom edge
+  const buttons = footer ? <View style={[styles.footer, wide && styles.footerWide]}>{footer}</View> : null;
+
+  if (wide) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.wide}>
+            <WideSplit
+              side={
+                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <Bot size={wideBotSize(width, height)} mood={mood} />
+                </View>
+              }>
+              <ScrollView contentContainerStyle={styles.sideScroll} keyboardShouldPersistTaps="handled">
+                {content}
+              </ScrollView>
+              {buttons}
+            </WideSplit>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-          {/* Hidden when the user resumed here after signing in: there is nothing behind */}
-          {router.canGoBack() ? (
-            <Pressable
-              onPress={() => router.back()}
-              accessibilityRole="button"
-              accessibilityLabel="Atrás"
-              hitSlop={12}
-              style={styles.back}>
-              <Text style={styles.backText}>‹ Atrás</Text>
-            </Pressable>
-          ) : (
-            <View style={styles.backSpace} />
-          )}
-
-          {step ? (
-            <View style={styles.dots} accessible accessibilityLabel={`Paso ${step} de ${TOTAL_STEPS}`}>
-              {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-                <View key={i} style={[styles.dot, i + 1 === step && styles.dotOn]} />
-              ))}
-            </View>
-          ) : null}
-
-          <View style={styles.bot} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <Bot size={72} mood={mood} />
-          </View>
-
-          <Text style={styles.question} accessibilityRole="header">
-            {question}
-          </Text>
-          {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-
-          <View style={styles.body}>{children}</View>
+          {content}
         </ScrollView>
-        {/* Outside the scroll: on long steps it would be cut at the bottom edge */}
-        {footer ? <View style={styles.footer}>{footer}</View> : null}
+        {buttons}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -80,6 +118,18 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexGrow: 1,
     paddingHorizontal: spacing.screenX,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  wide: {
+    flex: 1,
+    width: '100%',
+    maxWidth: spacing.wideMax,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.screenX,
+  },
+  sideScroll: {
+    flexGrow: 1,
     paddingTop: 24,
     paddingBottom: 24,
   },
@@ -145,5 +195,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
     gap: 12,
+  },
+  // Already inside the right half, which has its own side padding
+  footerWide: {
+    maxWidth: undefined,
+    paddingHorizontal: 0,
   },
 });

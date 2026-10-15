@@ -12,7 +12,7 @@ import { Bot, type BotMood } from '@/components/bot';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideSplit } from '@/components/wide-split';
-import { useWide } from '@/lib/layout';
+import { useWide, wideBotSize } from '@/lib/layout';
 import { loadSeniorDay } from '@/lib/senior-day';
 import { leaveTalk, sendTurn } from '@/lib/talk';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
@@ -47,7 +47,7 @@ export default function TalkScreen() {
   // iPad on its side: bot on the left, the talk on the right (Figma IPAD MINI / DUO 1)
   const wide = useWide();
   // Smaller than on Home: this screen has more text (prototype overlap bug)
-  const botSize = wide ? Math.min(360, width * 0.3, height * 0.5) : Math.min(size.bot, width * 0.7, height * 0.25);
+  const botSize = wide ? wideBotSize(width, height) : Math.min(size.bot, width * 0.7, height * 0.25);
 
   const [mood, setMood] = useState<BotMood>('thinking');
   // What Hilo says now (from Claude, through the talk Edge Function)
