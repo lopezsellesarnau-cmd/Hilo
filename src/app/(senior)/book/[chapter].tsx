@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BookCover } from '@/components/book-cover';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
+import { WideFrame } from '@/components/wide-split';
 import { loadBook } from '@/lib/book';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
@@ -13,11 +15,13 @@ const text = {
   kicker: (n: number) => `CAPÍTULO ${n}`,
   by: (name: string) => `Contado por ${name}`,
   next: 'Siguiente',
+  cover: (name: string) => `La vida de ${name}`,
 };
 
 export default function ChapterScreen() {
   const { chapter: id } = useLocalSearchParams<{ chapter: string }>();
   const fade = useScrollFade();
+  const { width, height } = useWindowDimensions();
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(null);
 
   useEffect(() => {
@@ -36,6 +40,9 @@ export default function ChapterScreen() {
   if (!chapter) return <SafeAreaView style={styles.safe} />;
   const next = book.chapters[index + 1];
 
+  // iPad on its side: her book on the left, like in Mi libro (282 tall for 230 wide)
+  const cover = <BookCover width={Math.min(300, width * 0.25, (height * 0.6 * 230) / 282)} title={text.cover(book.name)} />;
+
   const [first, ...rest] = chapter.paragraphs;
   // Her sentence goes in the middle of the story
   const quoteAt = Math.floor(rest.length / 2);
@@ -49,53 +56,55 @@ export default function ChapterScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel={text.backLabel}
-          hitSlop={12}
-          style={styles.back}>
-          <Text style={styles.backText}>{text.back}</Text>
-        </Pressable>
+      <WideFrame side={cover}>
+        <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={text.backLabel}
+            hitSlop={12}
+            style={styles.back}>
+            <Text style={styles.backText}>{text.back}</Text>
+          </Pressable>
 
-        <View accessibilityRole="header" style={styles.header}>
-          <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
-          <Text style={styles.title}>{chapter.title}</Text>
-          <Text style={styles.by}>{text.by(book.name)}</Text>
-        </View>
-
-        {first ? (
-          // Hanging initial: React Native can't wrap text around a dropped letter,
-          // so the large letter sits on the left and the paragraph runs beside it
-          <View style={styles.firstRow} accessible accessibilityLabel={first}>
-            <Text style={styles.initial}>{first.charAt(0)}</Text>
-            <Text style={[styles.paragraph, styles.firstText]}>{first.slice(1)}</Text>
+          <View accessibilityRole="header" style={styles.header}>
+            <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
+            <Text style={styles.title}>{chapter.title}</Text>
+            <Text style={styles.by}>{text.by(book.name)}</Text>
           </View>
-        ) : null}
-        {rest.map((p, i) => (
-          <View key={i}>
-            {i === quoteAt ? quote : null}
-            <Text style={styles.paragraph}>{p}</Text>
-          </View>
-        ))}
-        {rest.length === 0 ? quote : null}
 
-        <View style={styles.end}>
-          <View style={styles.dot} />
-          {next ? (
-            <>
-              <Text style={styles.nextLabel}>{text.next}</Text>
-              <Pressable
-                onPress={() => router.replace({ pathname: '/book/[chapter]', params: { chapter: next.id } })}
-                accessibilityRole="button"
-                hitSlop={8}>
-                <Text style={styles.nextLink}>{next.title} ›</Text>
-              </Pressable>
-            </>
+          {first ? (
+            // Hanging initial: React Native can't wrap text around a dropped letter,
+            // so the large letter sits on the left and the paragraph runs beside it
+            <View style={styles.firstRow} accessible accessibilityLabel={first}>
+              <Text style={styles.initial}>{first.charAt(0)}</Text>
+              <Text style={[styles.paragraph, styles.firstText]}>{first.slice(1)}</Text>
+            </View>
           ) : null}
-        </View>
-      </ScrollView>
+          {rest.map((p, i) => (
+            <View key={i}>
+              {i === quoteAt ? quote : null}
+              <Text style={styles.paragraph}>{p}</Text>
+            </View>
+          ))}
+          {rest.length === 0 ? quote : null}
+
+          <View style={styles.end}>
+            <View style={styles.dot} />
+            {next ? (
+              <>
+                <Text style={styles.nextLabel}>{text.next}</Text>
+                <Pressable
+                  onPress={() => router.replace({ pathname: '/book/[chapter]', params: { chapter: next.id } })}
+                  accessibilityRole="button"
+                  hitSlop={8}>
+                  <Text style={styles.nextLink}>{next.title} ›</Text>
+                </Pressable>
+              </>
+            ) : null}
+          </View>
+        </ScrollView>
+      </WideFrame>
       <ScrollFade visible={fade.visible} />
     </SafeAreaView>
   );

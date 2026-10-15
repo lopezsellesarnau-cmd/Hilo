@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { Bot } from '@/components/bot';
+import { Bot, type BotMood } from '@/components/bot';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { spacing } from '@/theme';
 
@@ -26,7 +26,7 @@ export function WideSplit({ side, children }: Props) {
  * For screens that are one scrolling column: on a wide screen the column moves to the right half
  * and the bot (or `side`) stays still on the left. On a phone it changes nothing.
  */
-export function WideFrame({ side, children }: { side?: ReactNode; children: ReactNode }) {
+export function WideFrame({ side, mood, children }: { side?: ReactNode; mood?: BotMood; children: ReactNode }) {
   const { width, height } = useWindowDimensions();
   const wide = useWide();
   if (!wide) return children;
@@ -36,7 +36,7 @@ export function WideFrame({ side, children }: { side?: ReactNode; children: Reac
         side={
           side ?? (
             <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <Bot size={wideBotSize(width, height)} />
+              <Bot size={wideBotSize(width, height)} mood={mood} />
             </View>
           )
         }>

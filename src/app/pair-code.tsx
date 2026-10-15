@@ -7,10 +7,14 @@ import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextField } from '@/components/text-field';
+import { WideFrame } from '@/components/wide-split';
+import { useWide } from '@/lib/layout';
 import { pair, PAIR_MESSAGES } from '@/lib/pairing';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
 export default function PairCodeScreen() {
+  // iPad on its side: the bot on the left, the code on the right
+  const wide = useWide();
   const [code, setCode] = useState('');
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,42 +38,46 @@ export default function PairCodeScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-          <View style={styles.bot}>
-            <Bot size={110} mood={checking ? 'thinking' : 'idle'} />
-          </View>
-          <ScreenHeader
-            title="Escribe el código"
-            subtitle="Te lo da tu familia. Son 6 números, o un código QR."
-            backLabel="Atrás"
-          />
-
-          <View style={styles.body}>
-            <TextField
-              label="Código"
-              code
-              value={code}
-              onChangeText={(v) => {
-                const digits = v.replace(/\D/g, '').slice(0, 6);
-                setCode(digits);
-                setError(null);
-                if (digits.length === 6) submit(digits);
-              }}
-              placeholder="······"
-              keyboardType="number-pad"
-              maxLength={6}
+        <WideFrame mood={checking ? 'thinking' : 'idle'}>
+          <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
+            {wide ? null : (
+              <View style={styles.bot}>
+                <Bot size={110} mood={checking ? 'thinking' : 'idle'} />
+              </View>
+            )}
+            <ScreenHeader
+              title="Escribe el código"
+              subtitle="Te lo da tu familia. Son 6 números, o un código QR."
+              backLabel="Atrás"
             />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-          </View>
 
-          <View style={styles.footer}>
-            <BigButton variant="outline" label="Escanear el código QR" onPress={() => router.push('/pair-scan')} />
-            <BigButton
-              label={checking ? 'Conectando…' : 'Conectar'}
-              onPress={code.length === 6 && !checking ? () => submit(code) : undefined}
-            />
-          </View>
-        </ScrollView>
+            <View style={styles.body}>
+              <TextField
+                label="Código"
+                code
+                value={code}
+                onChangeText={(v) => {
+                  const digits = v.replace(/\D/g, '').slice(0, 6);
+                  setCode(digits);
+                  setError(null);
+                  if (digits.length === 6) submit(digits);
+                }}
+                placeholder="······"
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+              {error ? <Text style={styles.error}>{error}</Text> : null}
+            </View>
+
+            <View style={styles.footer}>
+              <BigButton variant="outline" label="Escanear el código QR" onPress={() => router.push('/pair-scan')} />
+              <BigButton
+                label={checking ? 'Conectando…' : 'Conectar'}
+                onPress={code.length === 6 && !checking ? () => submit(code) : undefined}
+              />
+            </View>
+          </ScrollView>
+        </WideFrame>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

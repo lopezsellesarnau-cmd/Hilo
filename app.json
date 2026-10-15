@@ -23,7 +23,7 @@
         "NSPhotoLibraryUsageDescription": "Hilo no usa tus fotos. Si algún día lo necesita, te lo preguntará antes."
       },
       "requireFullScreen": true,
-      "buildNumber": "3"
+      "buildNumber": "4"
     },
     "android": {
       "package": "com.arnolop.hilo",

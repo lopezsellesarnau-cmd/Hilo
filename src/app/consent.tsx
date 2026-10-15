@@ -6,6 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
+import { WideFrame } from '@/components/wide-split';
+import { useWide } from '@/lib/layout';
 import { askForReminders } from '@/lib/reminders';
 import { supabase } from '@/lib/supabase';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
@@ -26,6 +28,8 @@ const POINTS = [
  * A family member cannot consent for another adult (GDPR).
  */
 export default function ConsentScreen() {
+  // iPad on its side: the bot on the left, the text and buttons on the right
+  const wide = useWide();
   const { personId = '' } = useLocalSearchParams<{ personId: string }>();
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -53,56 +57,64 @@ export default function ConsentScreen() {
   if (done) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.screen}>
-          <View style={styles.center}>
-            <View style={styles.doneBot}>
-              <Bot size={200} mood="speaking" />
+        <WideFrame mood="speaking">
+          <View style={styles.screen}>
+            <View style={styles.center}>
+              {wide ? null : (
+                <View style={styles.doneBot}>
+                  <Bot size={200} mood="speaking" />
+                </View>
+              )}
+              <Text style={styles.doneTitle} accessibilityRole="header">
+                ¡Todo listo!
+              </Text>
+              <Text style={styles.doneText}>Cada día, Hilo te avisará para charlar un rato.</Text>
             </View>
-            <Text style={styles.doneTitle} accessibilityRole="header">
-              ¡Todo listo!
-            </Text>
-            <Text style={styles.doneText}>Cada día, Hilo te avisará para charlar un rato.</Text>
+            <BigButton
+              label="Empezar"
+              onPress={async () => {
+                // The screen just promised "Hilo te avisará": ask for notifications now, when it makes sense
+                await askForReminders();
+                router.replace('/home');
+              }}
+            />
           </View>
-          <BigButton
-            label="Empezar"
-            onPress={async () => {
-              // The screen just promised "Hilo te avisará": ask for notifications now, when it makes sense
-              await askForReminders();
-              router.replace('/home');
-            }}
-          />
-        </View>
+        </WideFrame>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.screen}>
-        <View style={styles.bot}>
-          <Bot size={96} mood={saving ? 'thinking' : 'idle'} />
-        </View>
-        <ScreenHeader title="Antes de empezar" subtitle="Esto es lo que hace Hilo con lo que le cuentas." />
-
-        <View style={styles.points}>
-          {POINTS.map((p) => (
-            <View key={p} style={styles.point}>
-              <View style={styles.dot} />
-              <Text style={styles.pointText}>{p}</Text>
+      <WideFrame mood={saving ? 'thinking' : 'idle'}>
+        <ScrollView contentContainerStyle={styles.screen}>
+          {wide ? null : (
+            <View style={styles.bot}>
+              <Bot size={96} mood={saving ? 'thinking' : 'idle'} />
             </View>
-          ))}
-        </View>
+          )}
+          <ScreenHeader title="Antes de empezar" subtitle="Esto es lo que hace Hilo con lo que le cuentas." />
 
-        {declined ? (
-          <Text style={styles.note}>Sin tu permiso, Hilo no puede funcionar. Puedes hablarlo con tu familia y volver aquí.</Text>
-        ) : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+          <View style={styles.points}>
+            {POINTS.map((p) => (
+              <View key={p} style={styles.point}>
+                <View style={styles.dot} />
+                <Text style={styles.pointText}>{p}</Text>
+              </View>
+            ))}
+          </View>
 
-        <View style={styles.footer}>
-          <BigButton label={saving ? 'Guardando…' : 'Estoy de acuerdo'} onPress={saving ? undefined : accept} />
-          <BigButton variant="outline" label="Ahora no" onPress={() => setDeclined(true)} />
-        </View>
-      </ScrollView>
+          {declined ? (
+            <Text style={styles.note}>Sin tu permiso, Hilo no puede funcionar. Puedes hablarlo con tu familia y volver aquí.</Text>
+          ) : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <View style={styles.footer}>
+            <BigButton label={saving ? 'Guardando…' : 'Estoy de acuerdo'} onPress={saving ? undefined : accept} />
+            <BigButton variant="outline" label="Ahora no" onPress={() => setDeclined(true)} />
+          </View>
+        </ScrollView>
+      </WideFrame>
     </SafeAreaView>
   );
 }

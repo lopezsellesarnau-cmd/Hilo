@@ -8,9 +8,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
+import { WideFrame } from '@/components/wide-split';
 import { supabase } from '@/lib/supabase';
 import { remindLater } from '@/lib/reminders';
 import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
+import { useWide } from '@/lib/layout';
 import { localNow, showTime, type Dose } from '@/lib/time';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
@@ -43,6 +45,8 @@ export default function PillsScreen() {
   const [pills, setPills] = useState<DayPill[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { width, height } = useWindowDimensions();
+  // iPad on its side: the bot on the left, the pills on the right (so no second bot in the column)
+  const wide = useWide();
   // Same size as the bot on the home
   const botSize = Math.min(size.bot, width * 0.7, height * 0.28);
   // The pill circle is smaller: with the day list below, the screen must fit without scrolling
@@ -135,108 +139,114 @@ export default function PillsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.screen} bounces={false}>
-        <ScreenHeader backLabel="Inicio" title="Mis pastillas" subtitle={todayLabel()} />
+      <WideFrame>
+        <ScrollView contentContainerStyle={styles.screen} bounces={false}>
+          <ScreenHeader backLabel="Inicio" title="Mis pastillas" subtitle={todayLabel()} />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {/* Fills the space between the header and the day, so nothing is left blank at the bottom */}
-        <View style={styles.stage}>
-          <Animated.View layout={LinearTransition.duration(250)} style={styles.focus}>
-            {!pills ? null : list.length === 0 ? (
-              <>
-                <View style={styles.botWrap}>
-                  <Bot size={botSize} />
-                </View>
-                <Text style={styles.focusName}>Hoy no tienes pastillas</Text>
-                <Text style={styles.focusDetail}>Si tu familia añade alguna, te la recordaré.</Text>
-              </>
-            ) : due ? (
-              <>
-                <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
-                  <Image source={pillLarge} style={styles.icon} contentFit="contain" />
-                </View>
-                <Text style={styles.kicker}>Ahora te toca</Text>
-                <Text style={styles.focusName}>{due.name}</Text>
-                <Text style={styles.focusDetail}>La de las {showTime(due.time)}</Text>
-              </>
-            ) : pending.length === 0 ? (
-              <>
-                <View style={styles.botWrap}>
-                  <Bot size={botSize} />
-                </View>
-                <Text style={styles.focusName}>¡Todo hecho por hoy!</Text>
-                <Text style={styles.focusDetail}>Te has tomado todas las pastillas.</Text>
-              </>
-            ) : (
-              <>
-                <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
-                  <Image source={pillLarge} style={[styles.icon, styles.iconLater]} contentFit="contain" />
-                </View>
-                <Text style={styles.kicker}>Ahora no te toca ninguna</Text>
-                {next ? (
-                  <Text style={styles.focusDetail}>
-                    La siguiente es {next.name.toLowerCase()}, a las {showTime(next.time)}. Te aviso.
-                  </Text>
-                ) : (
-                  <Text style={styles.focusDetail}>Te lo recuerdo en un rato.</Text>
-                )}
-              </>
-            )}
-          </Animated.View>
-
-          <View style={styles.actions}>
-            {undoPill ? (
-              <View style={styles.undoRow}>
-                <Text style={styles.undoText}>Hecho: {undoPill.name.toLowerCase()}.</Text>
-                <Pressable
-                  onPress={() => undo(undoPill)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Deshacer, no la he tomado"
-                  hitSlop={12}>
-                  <Text style={styles.undoLink}>Deshacer</Text>
-                </Pressable>
-              </View>
-            ) : null}
-            {due ? (
-              <>
-                <BigButton label="Ya me la he tomado" onPress={() => markTaken(due)} />
-                <Pressable onPress={() => snooze(due)} accessibilityRole="button" hitSlop={8} style={styles.later}>
-                  <Text style={styles.laterText}>Recuérdamelo en un rato</Text>
-                </Pressable>
-              </>
-            ) : null}
-          </View>
-        </View>
-
-        <Text style={styles.dayLabel}>TU DÍA</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.threadScroll}>
-          <View style={styles.thread}>
-            <View style={styles.threadLine} />
-            {list.map((p) => {
-              const isNow = p.key === due?.key;
-              const done = !!p.takenAt;
-              return (
-                <View
-                  key={p.key}
-                  style={styles.stop}
-                  accessible
-                  accessibilityLabel={`${p.name}, ${done ? `tomada a las ${showTime(p.takenAt!)}` : isNow ? 'ahora' : `a las ${showTime(p.time)}`}`}>
-                  <View style={[styles.dot, done && styles.dotDone, isNow && styles.dotNow]}>
-                    {done ? <Text style={styles.tick}>✓</Text> : null}
+          {/* Fills the space between the header and the day, so nothing is left blank at the bottom */}
+          <View style={styles.stage}>
+            <Animated.View layout={LinearTransition.duration(250)} style={styles.focus}>
+              {!pills ? null : list.length === 0 ? (
+                <>
+                  {wide ? null : (
+                    <View style={styles.botWrap}>
+                      <Bot size={botSize} />
+                    </View>
+                  )}
+                  <Text style={styles.focusName}>Hoy no tienes pastillas</Text>
+                  <Text style={styles.focusDetail}>Si tu familia añade alguna, te la recordaré.</Text>
+                </>
+              ) : due ? (
+                <>
+                  <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
+                    <Image source={pillLarge} style={styles.icon} contentFit="contain" />
                   </View>
-                  <Text style={[styles.stopName, isNow && styles.stopNameNow, !done && !isNow && styles.mutedText]} numberOfLines={2}>
-                    {p.name}
-                  </Text>
-                  <Text style={[styles.stopTime, isNow && styles.stopTimeNow]}>
-                    {done ? showTime(p.takenAt!) : isNow ? 'Ahora' : showTime(p.time)}
-                  </Text>
+                  <Text style={styles.kicker}>Ahora te toca</Text>
+                  <Text style={styles.focusName}>{due.name}</Text>
+                  <Text style={styles.focusDetail}>La de las {showTime(due.time)}</Text>
+                </>
+              ) : pending.length === 0 ? (
+                <>
+                  {wide ? null : (
+                    <View style={styles.botWrap}>
+                      <Bot size={botSize} />
+                    </View>
+                  )}
+                  <Text style={styles.focusName}>¡Todo hecho por hoy!</Text>
+                  <Text style={styles.focusDetail}>Te has tomado todas las pastillas.</Text>
+                </>
+              ) : (
+                <>
+                  <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
+                    <Image source={pillLarge} style={[styles.icon, styles.iconLater]} contentFit="contain" />
+                  </View>
+                  <Text style={styles.kicker}>Ahora no te toca ninguna</Text>
+                  {next ? (
+                    <Text style={styles.focusDetail}>
+                      La siguiente es {next.name.toLowerCase()}, a las {showTime(next.time)}. Te aviso.
+                    </Text>
+                  ) : (
+                    <Text style={styles.focusDetail}>Te lo recuerdo en un rato.</Text>
+                  )}
+                </>
+              )}
+            </Animated.View>
+
+            <View style={styles.actions}>
+              {undoPill ? (
+                <View style={styles.undoRow}>
+                  <Text style={styles.undoText}>Hecho: {undoPill.name.toLowerCase()}.</Text>
+                  <Pressable
+                    onPress={() => undo(undoPill)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Deshacer, no la he tomado"
+                    hitSlop={12}>
+                    <Text style={styles.undoLink}>Deshacer</Text>
+                  </Pressable>
                 </View>
-              );
-            })}
+              ) : null}
+              {due ? (
+                <>
+                  <BigButton label="Ya me la he tomado" onPress={() => markTaken(due)} />
+                  <Pressable onPress={() => snooze(due)} accessibilityRole="button" hitSlop={8} style={styles.later}>
+                    <Text style={styles.laterText}>Recuérdamelo en un rato</Text>
+                  </Pressable>
+                </>
+              ) : null}
+            </View>
           </View>
+
+          <Text style={styles.dayLabel}>TU DÍA</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.threadScroll}>
+            <View style={styles.thread}>
+              <View style={styles.threadLine} />
+              {list.map((p) => {
+                const isNow = p.key === due?.key;
+                const done = !!p.takenAt;
+                return (
+                  <View
+                    key={p.key}
+                    style={styles.stop}
+                    accessible
+                    accessibilityLabel={`${p.name}, ${done ? `tomada a las ${showTime(p.takenAt!)}` : isNow ? 'ahora' : `a las ${showTime(p.time)}`}`}>
+                    <View style={[styles.dot, done && styles.dotDone, isNow && styles.dotNow]}>
+                      {done ? <Text style={styles.tick}>✓</Text> : null}
+                    </View>
+                    <Text style={[styles.stopName, isNow && styles.stopNameNow, !done && !isNow && styles.mutedText]} numberOfLines={2}>
+                      {p.name}
+                    </Text>
+                    <Text style={[styles.stopTime, isNow && styles.stopTimeNow]}>
+                      {done ? showTime(p.takenAt!) : isNow ? 'Ahora' : showTime(p.time)}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
         </ScrollView>
-      </ScrollView>
+      </WideFrame>
     </SafeAreaView>
   );
 }
