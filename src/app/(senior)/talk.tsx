@@ -11,6 +11,7 @@ import { BigButton } from '@/components/big-button';
 import { Bot, type BotMood } from '@/components/bot';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
+import { useWide } from '@/lib/layout';
 import { loadSeniorDay } from '@/lib/senior-day';
 import { leaveTalk, sendTurn } from '@/lib/talk';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
@@ -42,8 +43,10 @@ const startRecognition = () =>
 
 export default function TalkScreen() {
   const { width, height } = useWindowDimensions();
+  // iPad on its side: bot on the left, the talk on the right (Figma IPAD MINI / DUO 1)
+  const wide = useWide();
   // Smaller than on Home: this screen has more text (prototype overlap bug)
-  const botSize = Math.min(size.bot, width * 0.7, height * 0.25);
+  const botSize = wide ? Math.min(360, width * 0.3, height * 0.5) : Math.min(size.bot, width * 0.7, height * 0.25);
 
   const [mood, setMood] = useState<BotMood>('thinking');
   // What Hilo says now (from Claude, through the talk Edge Function)
@@ -248,79 +251,101 @@ export default function TalkScreen() {
 
   const yourTurn = !ended && !askPills && (mood === 'idle' || mood === 'listening');
 
+  const header = <ScreenHeader backLabel="Inicio" title={name ? `¡Hola, ${name}!` : '¡Hola!'} subtitle="¿Cómo estás?" />;
+
+  // On a wide screen the bot is on the left of the text, so it looks right, towards it
+  const stage = (
+    <Animated.View layout={LinearTransition.duration(250)} style={styles.stage}>
+      <Bot size={botSize} mood={mood} look={wide ? 'right' : 'left'} />
+    </Animated.View>
+  );
+
+  const talk = (
+    <>
+      <Animated.View layout={LinearTransition.duration(250)} style={styles.talk} accessibilityLiveRegion="polite">
+        <Text style={styles.label}>{labels[mood]}</Text>
+        <View>
+          <ScrollView
+            ref={textBox}
+            style={{ maxHeight: height * (wide ? 0.35 : 0.2) }}
+            contentContainerStyle={styles.text}
+            onContentSizeChange={() => textBox.current?.scrollToEnd({ animated: true })}
+            onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > 2)}
+            scrollEventThrottle={32}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled>
+            <Text style={styles.say}>{say}</Text>
+            {reply || heard ? <Text style={styles.reply}>Tú: «{reply ?? heard}»</Text> : null}
+            {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+          </ScrollView>
+          <LinearGradient
+            pointerEvents="none"
+            colors={[colors.background, `${colors.background}00`]}
+            style={[styles.fade, { opacity: scrolled ? 1 : 0 }]}
+          />
+        </View>
+      </Animated.View>
+
+      <Animated.View layout={LinearTransition.duration(250)} style={styles.controls}>
+        {yourTurn ? (
+          <PressScale
+            animateColor
+            onPress={mood === 'listening' ? finish : listen}
+            accessibilityRole="button"
+            accessibilityLabel={mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
+            accessibilityHint={
+              mood === 'listening' ? 'Toca cuando acabes de hablar' : 'Toca y habla. Cuando te calles un momento, Hilo te contesta'
+            }
+            style={[styles.hold, mood === 'listening' && styles.holdOn]}>
+            <Animated.Text style={[styles.holdText, mood === 'listening' && styles.holdTextOn, styles.smoothText]}>
+              {mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
+            </Animated.Text>
+          </PressScale>
+        ) : null}
+
+        {askPills && mood === 'idle' ? (
+          <View style={styles.yesno}>
+            <View style={styles.half}>
+              <BigButton label="Sí" onPress={() => answerPills('yes')} accessibilityHint="Ya me lo he tomado" />
+            </View>
+            <View style={styles.half}>
+              <BigButton variant="outline" label="No" onPress={() => answerPills('no')} accessibilityHint="Todavía no me lo he tomado" />
+            </View>
+          </View>
+        ) : null}
+
+        {mood === 'idle' && lastAudio ? (
+          <BigButton
+            label="Repetir"
+            variant="outline"
+            onPress={() => speak(say, lastAudio)}
+            accessibilityHint="Hilo vuelve a decir lo último"
+          />
+        ) : null}
+
+        {ended && mood === 'idle' ? <BigButton label="Volver al inicio" onPress={() => router.back()} /> : null}
+      </Animated.View>
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.screen} bounces={false}>
-        <ScreenHeader backLabel="Inicio" title={name ? `¡Hola, ${name}!` : '¡Hola!'} subtitle="¿Cómo estás?" />
-
-        <Animated.View layout={LinearTransition.duration(250)} style={styles.stage}>
-          <Bot size={botSize} mood={mood} look="left" />
-        </Animated.View>
-
-        {/* Sits right above the buttons; while the bot speaks there are none, so it moves down to use the space */}
-        <Animated.View layout={LinearTransition.duration(250)} style={styles.talk} accessibilityLiveRegion="polite">
-          <Text style={styles.label}>{labels[mood]}</Text>
-          <View>
-            <ScrollView
-              ref={textBox}
-              style={{ maxHeight: height * 0.2 }}
-              contentContainerStyle={styles.text}
-              onContentSizeChange={() => textBox.current?.scrollToEnd({ animated: true })}
-              onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > 2)}
-              scrollEventThrottle={32}
-              showsVerticalScrollIndicator
-              nestedScrollEnabled>
-              <Text style={styles.say}>{say}</Text>
-              {reply || heard ? <Text style={styles.reply}>Tú: «{reply ?? heard}»</Text> : null}
-              {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-            </ScrollView>
-            <LinearGradient
-              pointerEvents="none"
-              colors={[colors.background, `${colors.background}00`]}
-              style={[styles.fade, { opacity: scrolled ? 1 : 0 }]}
-            />
-          </View>
-        </Animated.View>
-
-        <Animated.View layout={LinearTransition.duration(250)} style={styles.controls}>
-          {yourTurn ? (
-            <PressScale
-              animateColor
-              onPress={mood === 'listening' ? finish : listen}
-              accessibilityRole="button"
-              accessibilityLabel={mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
-              accessibilityHint={
-                mood === 'listening' ? 'Toca cuando acabes de hablar' : 'Toca y habla. Cuando te calles un momento, Hilo te contesta'
-              }
-              style={[styles.hold, mood === 'listening' && styles.holdOn]}>
-              <Animated.Text style={[styles.holdText, mood === 'listening' && styles.holdTextOn, styles.smoothText]}>
-                {mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
-              </Animated.Text>
-            </PressScale>
-          ) : null}
-
-          {askPills && mood === 'idle' ? (
-            <View style={styles.yesno}>
-              <View style={styles.half}>
-                <BigButton label="Sí" onPress={() => answerPills('yes')} accessibilityHint="Ya me lo he tomado" />
-              </View>
-              <View style={styles.half}>
-                <BigButton variant="outline" label="No" onPress={() => answerPills('no')} accessibilityHint="Todavía no me lo he tomado" />
-              </View>
+      <ScrollView contentContainerStyle={[styles.screen, wide && styles.screenWide]} bounces={false}>
+        {wide ? (
+          <>
+            {stage}
+            <View style={styles.side}>
+              {header}
+              <View style={styles.sideTalk}>{talk}</View>
             </View>
-          ) : null}
-
-          {mood === 'idle' && lastAudio ? (
-            <BigButton
-              label="Repetir"
-              variant="outline"
-              onPress={() => speak(say, lastAudio)}
-              accessibilityHint="Hilo vuelve a decir lo último"
-            />
-          ) : null}
-
-          {ended && mood === 'idle' ? <BigButton label="Volver al inicio" onPress={() => router.back()} /> : null}
-        </Animated.View>
+          </>
+        ) : (
+          <>
+            {header}
+            {stage}
+            {talk}
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -339,6 +364,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: spacing.screenBottom,
+  },
+  screenWide: {
+    maxWidth: spacing.wideMax,
+    flexDirection: 'row',
+    gap: spacing.wideGap,
+  },
+  // Right column on a wide screen: greeting at the top, the talk and its buttons at the bottom
+  side: {
+    flex: 1,
+  },
+  sideTalk: {
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   stage: {
     flexGrow: 1,
