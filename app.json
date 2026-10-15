@@ -3,7 +3,7 @@
     "name": "Hilo",
     "slug": "hilo",
     "version": "1.0.0",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hilo",
     "userInterfaceStyle": "light",
@@ -11,14 +11,15 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.arnolop.hilo",
       "infoPlist": {
-        "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait"
+        ],
         "UISupportedInterfaceOrientations~ipad": [
           "UIInterfaceOrientationPortrait",
-          "UIInterfaceOrientationPortraitUpsideDown",
-          "UIInterfaceOrientationLandscapeLeft",
-          "UIInterfaceOrientationLandscapeRight"
+          "UIInterfaceOrientationPortraitUpsideDown"
         ]
-      }
+      },
+      "requireFullScreen": true
     },
     "android": {
       "package": "com.arnolop.hilo",
@@ -40,7 +41,7 @@
         "expo-camera",
         {
           "cameraPermission": "Hilo usa la cámara para leer el código QR que te da tu familia.",
-          "microphonePermission": "Hilo usa el micrófono para escucharte mientras mantienes pulsado el botón.",
+          "microphonePermission": "Hilo usa el micrófono para escucharte cuando tocas el botón para hablar.",
           "recordAudioAndroid": false
         }
       ],
@@ -55,14 +56,14 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Hilo usa el micrófono para escucharte mientras mantienes pulsado el botón.",
+          "microphonePermission": "Hilo usa el micrófono para escucharte cuando tocas el botón para hablar.",
           "speechRecognitionPermission": "Hilo convierte lo que cuentas en texto para guardarlo en tu libro."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "Hilo usa el micrófono para escucharte mientras mantienes pulsado el botón."
+          "microphonePermission": "Hilo usa el micrófono para escucharte cuando tocas el botón para hablar."
         }
       ]
     ],
