@@ -332,6 +332,30 @@ export const es = {
     deleting: 'Borrando…',
     deleteFailed: 'No hemos podido borrar la cuenta. Comprueba tu conexión y vuelve a probar.',
   },
+
+  paywall: {
+    question: 'Prueba Hilo 14 días gratis',
+    hint: 'Luego eliges si sigues. Puedes cancelar cuando quieras desde los Ajustes del iPhone.',
+    monthly: 'Mensual',
+    annual: 'Anual · 2 meses gratis',
+    periodA11y: 'Cada cuánto pagas',
+    basic: 'Básico',
+    basicPoints: '1 charla al día · Sus pastillas · El libro de su vida',
+    family: 'Familia',
+    familyPoints: 'Hasta 3 charlas al día · Sus pastillas · El libro de su vida',
+    perMonth: (price: string) => `${price} al mes`,
+    perYear: (price: string) => `${price} al año`,
+    startTrial: 'Empezar 14 días gratis',
+    subscribe: 'Suscribirme',
+    buying: 'Un momento…',
+    after: (price: string) =>
+      `Gratis 14 días, luego ${price}. Se renueva solo salvo que lo canceles al menos 24 horas antes de que acabe el periodo.`,
+    afterNoTrial: (price: string) => `${price}. Se renueva solo salvo que lo canceles al menos 24 horas antes de que acabe el periodo.`,
+    restore: 'Restaurar compras',
+    restoreNone: 'No hemos encontrado ninguna suscripción en esta cuenta de Apple.',
+    failed: 'No se ha podido completar. No se te ha cobrado nada. Vuelve a probar.',
+    loadFailed: 'No hemos podido cargar los planes. Comprueba tu conexión.',
+  },
 };
 
 export type Strings = typeof es;

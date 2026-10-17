@@ -15,8 +15,8 @@ const MIN_STORY_CHARS = 200;
 /** A talk is ~6 minutes; this stops a stuck loop from costing money */
 const MAX_TURNS = 40;
 const MAX_TEXT = 4000;
-/** Fair use: talks per day where she actually answered. One number, until the plans split it (Básico 1, Familia 3) */
-const MAX_TALKS_PER_DAY = 3;
+/** Fair use: talks per day where she actually answered, by the family's plan */
+const MAX_TALKS_PER_DAY = { basic: 1, family: 3 };
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
@@ -109,6 +109,7 @@ const SAY = {
     pillsYes: 'Sí, ya me lo he tomado.',
     pillsNo: 'No, todavía no.',
     enough: (name: string) => `Hoy ya hemos charlado mucho, ${name}. Descansa, y mañana seguimos.`,
+    noAccess: (name: string) => `Hola, ${name}. Para que charlemos, tu familia tiene que activar Hilo desde su móvil. En cuanto lo haga, aquí estaré.`,
     refusal: 'Perdona, de eso prefiero no hablar. ¿Me cuentas otra cosa?',
     start: (name: string, now: string) => `[Empieza la charla de hoy. Se llama ${name}. Ahora es ${now}.]`,
     noQuestion: '[Nota: en esta respuesta no hagas ninguna pregunta. Justo después le pregunto por sus pastillas.]',
@@ -122,6 +123,7 @@ const SAY = {
     pillsYes: 'Ja, ik heb hem al genomen.',
     pillsNo: 'Nee, nog niet.',
     enough: (name: string) => `We hebben vandaag al veel gepraat, ${name}. Rust lekker uit, morgen praten we verder.`,
+    noAccess: (name: string) => `Hallo, ${name}. Om samen te praten moet uw familie Hilo eerst aanzetten op hun telefoon. Zodra dat gebeurd is, ben ik er.`,
     refusal: 'Sorry, daar praat ik liever niet over. Vertelt u me iets anders?',
     start: (name: string, now: string) => `[Het gesprek van vandaag begint. De naam is ${name}. Het is nu ${now}.]`,
     noQuestion: '[Let op: stel in dit antwoord geen vraag. Direct daarna vraag ik naar de pillen.]',
@@ -135,6 +137,7 @@ const SAY = {
     pillsYes: "Yes, I've taken it.",
     pillsNo: 'No, not yet.',
     enough: (name: string) => `We've chatted a lot today, ${name}. Have a rest, and we'll carry on tomorrow.`,
+    noAccess: (name: string) => `Hello, ${name}. For us to chat, your family needs to turn Hilo on from their phone. As soon as they do, I'll be here.`,
     refusal: "Sorry, I'd rather not talk about that. Will you tell me something else?",
     start: (name: string, now: string) => `[Today's chat starts. Their name is ${name}. It is now ${now}.]`,
     noQuestion: "[Note: don't ask any question in this reply. Right after it, I ask about their pills.]",
@@ -484,10 +487,20 @@ Deno.serve(async (req) => {
   // Her answer to the pill question comes from the Sí / No buttons, and is said as a sentence in the transcript
   if (pills) text = pills === 'yes' ? say.pillsYes : say.pillsNo;
 
+  // The family pays: without a trial or a subscription, a new talk doesn't start (one in progress is never cut)
+  const { data: sub } = await db.from('subscriptions').select('plan, status, expires_at').eq('family_id', me.family_id).maybeSingle();
+  const paid = Boolean(sub && sub.status !== 'expired' && (!sub.expires_at || Date.parse(sub.expires_at) > Date.now()));
+  const maxTalks = MAX_TALKS_PER_DAY[sub?.plan === 'family' ? 'family' : 'basic'];
+
   // Open today's talk, or continue the one the phone is in
   let sessionId: string;
   if (session_id) sessionId = session_id;
   else {
+    if (!paid) {
+      const reply = say.noAccess(me.display_name);
+      const spoken = reply.replaceAll(`, ${me.display_name}`, ` ${me.display_name}`);
+      return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });
+    }
     // A new talk: after the daily limit, Hilo says goodbye gently instead of starting one
     const { data: recent } = await db
       .from('talk_sessions')
@@ -501,7 +514,7 @@ Deno.serve(async (req) => {
         // More than Hilo's greeting: she answered at least once
         ((t.turns as { count: number }[])[0]?.count ?? 0) > 1,
     ).length;
-    if (talksToday >= MAX_TALKS_PER_DAY) {
+    if (talksToday >= maxTalks) {
       const reply = say.enough(me.display_name);
       const spoken = reply.replaceAll(`, ${me.display_name}`, ` ${me.display_name}`);
       return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });

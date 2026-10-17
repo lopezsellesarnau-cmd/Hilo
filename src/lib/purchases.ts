@@ -1,0 +1,89 @@
+import Purchases, { type PurchasesPackage } from 'react-native-purchases';
+
+import { supabase } from '@/lib/supabase';
+
+/**
+ * Subscriptions through RevenueCat. The family pays, not the person: the RevenueCat user is the family_id,
+ * so any family member's phone sees the same subscription, and the webhook saves it in Supabase for the senior's phone.
+ * Entitlements in RevenueCat: "basic" and "family" (Familia includes everything in Básico).
+ */
+
+const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
+
+export type Plan = 'basic' | 'family';
+export type Period = 'monthly' | 'annual';
+/** Package identifiers in the RevenueCat offering: basic_monthly, basic_annual, family_monthly, family_annual */
+export const packageId = (plan: Plan, period: Period) => `${plan}_${period}`;
+
+/** The signed-in member's family */
+export async function myFamilyId(): Promise<string | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) return null;
+  const { data } = await supabase
+    .from('people')
+    .select('family_id')
+    .eq('user_id', session.user.id)
+    .eq('role', 'member')
+    .limit(1)
+    .maybeSingle();
+  return data?.family_id ?? null;
+}
+
+/** RevenueCat, signed in as the family. Safe to call more than once. */
+async function ready(familyId: string) {
+  if (!IOS_KEY) throw new Error('Missing EXPO_PUBLIC_REVENUECAT_IOS_KEY');
+  if (!(await Purchases.isConfigured())) Purchases.configure({ apiKey: IOS_KEY, appUserID: familyId });
+  else if ((await Purchases.getAppUserID()) !== familyId) await Purchases.logIn(familyId);
+}
+
+const hasEntitlement = (info: Awaited<ReturnType<typeof Purchases.getCustomerInfo>>) =>
+  Boolean(info.entitlements.active.basic || info.entitlements.active.family);
+
+/**
+ * Can this family use Hilo? Yes with a trial or a subscription, in Supabase (also given by hand) or in RevenueCat
+ * (right after buying, before the webhook arrives). Offline counts as yes: never lock a family out for a bad signal.
+ */
+export async function familyHasAccess(familyId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.from('subscriptions').select('status, expires_at').eq('family_id', familyId).maybeSingle();
+    if (error) return true;
+    if (data && data.status !== 'expired' && (!data.expires_at || Date.parse(data.expires_at) > Date.now())) return true;
+    await ready(familyId);
+    return hasEntitlement(await Purchases.getCustomerInfo());
+  } catch (e) {
+    if (__DEV__) console.warn('familyHasAccess', e);
+    return true;
+  }
+}
+
+/** The four packages of the current offering, by identifier */
+export async function loadPackages(familyId: string): Promise<Record<string, PurchasesPackage>> {
+  await ready(familyId);
+  const offerings = await Purchases.getOfferings();
+  return Object.fromEntries((offerings.current?.availablePackages ?? []).map((p) => [p.identifier, p]));
+}
+
+/** Buys a package. 'cancelled' when the person closes Apple's sheet: not an error. */
+export async function buy(familyId: string, pkg: PurchasesPackage): Promise<'ok' | 'cancelled' | 'failed'> {
+  try {
+    await ready(familyId);
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    return hasEntitlement(customerInfo) ? 'ok' : 'failed';
+  } catch (e) {
+    if ((e as { userCancelled?: boolean }).userCancelled) return 'cancelled';
+    if (__DEV__) console.warn('buy', e);
+    return 'failed';
+  }
+}
+
+/** "Restaurar compras": a family that already paid on another phone or after reinstalling */
+export async function restore(familyId: string): Promise<boolean> {
+  try {
+    await ready(familyId);
+    return hasEntitlement(await Purchases.restorePurchases());
+  } catch {
+    return false;
+  }
+}

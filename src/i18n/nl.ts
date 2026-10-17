@@ -330,4 +330,29 @@ export const nl: Strings = {
     deleting: 'Verwijderen…',
     deleteFailed: 'Het account kon niet worden verwijderd. Controleer je verbinding en probeer het opnieuw.',
   },
+
+  paywall: {
+    question: 'Probeer Hilo 14 dagen gratis',
+    hint: 'Daarna kies je of je doorgaat. Opzeggen kan altijd via Instellingen op je iPhone.',
+    monthly: 'Per maand',
+    annual: 'Per jaar · 2 maanden gratis',
+    periodA11y: 'Hoe vaak je betaalt',
+    basic: 'Basis',
+    basicPoints: '1 praatje per dag · De pillen · Het boek van zijn of haar leven',
+    family: 'Familie',
+    familyPoints: 'Tot 3 praatjes per dag · De pillen · Het boek van zijn of haar leven',
+    perMonth: (price: string) => `${price} per maand`,
+    perYear: (price: string) => `${price} per jaar`,
+    startTrial: '14 dagen gratis starten',
+    subscribe: 'Abonneren',
+    buying: 'Een momentje…',
+    after: (price: string) =>
+      `14 dagen gratis, daarna ${price}. Wordt automatisch verlengd, tenzij je minstens 24 uur voor het einde van de periode opzegt.`,
+    afterNoTrial: (price: string) =>
+      `${price}. Wordt automatisch verlengd, tenzij je minstens 24 uur voor het einde van de periode opzegt.`,
+    restore: 'Aankopen herstellen',
+    restoreNone: 'We hebben geen abonnement gevonden op dit Apple-account.',
+    failed: 'Het is niet gelukt. Er is niets afgeschreven. Probeer het opnieuw.',
+    loadFailed: 'De abonnementen konden niet worden geladen. Controleer je verbinding.',
+  },
 };

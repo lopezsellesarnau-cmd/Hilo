@@ -1,8 +1,10 @@
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import type { ColorValue } from 'react-native';
+import { useEffect, useState } from 'react';
+import { type ColorValue, View } from 'react-native';
 
 import { t } from '@/i18n';
+import { familyHasAccess, myFamilyId } from '@/lib/purchases';
 import { colors } from '@/theme';
 
 // SF Symbols for now. TODO: tab icons from Figma (Hoy / Libro / Ajustes)
@@ -14,8 +16,20 @@ const icon = (name: SymbolViewProps['name']) =>
     return <TabIcon name={name} color={color} />;
   };
 
-/** The family app: Hoy, Libro and Ajustes. */
+/** The family app: Hoy, Libro and Ajustes. Only with a trial or a subscription: otherwise, the paywall. */
 export default function FamilyLayout() {
+  const [allowed, setAllowed] = useState(false);
+  useEffect(() => {
+    myFamilyId()
+      .then(async (id) => {
+        if (id && !(await familyHasAccess(id))) return router.replace('/paywall');
+        setAllowed(true);
+      })
+      .catch(() => setAllowed(true));
+  }, []);
+
+  if (!allowed) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+
   return (
     <Tabs
       screenOptions={{

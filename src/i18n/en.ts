@@ -326,4 +326,28 @@ export const en: Strings = {
     deleting: 'Deleting…',
     deleteFailed: "We couldn't delete the account. Check your connection and try again.",
   },
+
+  paywall: {
+    question: 'Try Hilo free for 14 days',
+    hint: 'Then you decide whether to keep it. Cancel anytime in your iPhone Settings.',
+    monthly: 'Monthly',
+    annual: 'Yearly · 2 months free',
+    periodA11y: 'How often you pay',
+    basic: 'Basic',
+    basicPoints: '1 chat a day · Their pills · The book of their life',
+    family: 'Family',
+    familyPoints: 'Up to 3 chats a day · Their pills · The book of their life',
+    perMonth: (price: string) => `${price} a month`,
+    perYear: (price: string) => `${price} a year`,
+    startTrial: 'Start 14 days free',
+    subscribe: 'Subscribe',
+    buying: 'One moment…',
+    after: (price: string) =>
+      `Free for 14 days, then ${price}. Renews automatically unless cancelled at least 24 hours before the end of the period.`,
+    afterNoTrial: (price: string) => `${price}. Renews automatically unless cancelled at least 24 hours before the end of the period.`,
+    restore: 'Restore purchases',
+    restoreNone: "We couldn't find a subscription on this Apple account.",
+    failed: "It couldn't be completed. You haven't been charged. Try again.",
+    loadFailed: "We couldn't load the plans. Check your connection.",
+  },
 };
