@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
@@ -181,7 +181,11 @@ export default function PillsScreen() {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <Animated.View layout={LinearTransition.duration(250)} style={styles.focus} accessibilityLiveRegion="polite">
+          <Animated.View
+            key={undoPill ? `done-${undoPill.key}` : (due?.key ?? (pending.length ? 'later' : 'all'))}
+            entering={FadeIn.duration(350)}
+            style={styles.focus}
+            accessibilityLiveRegion="polite">
             {!pills ? null : doneView ? (
               doneView
             ) : list.length === 0 ? (
@@ -224,7 +228,7 @@ export default function PillsScreen() {
             )}
           </Animated.View>
 
-          <View style={styles.actions}>
+          <Animated.View layout={LinearTransition.duration(250)} entering={FadeInDown.duration(400).delay(150)} style={styles.actions}>
             {undoPill ? (
               <>
                 <BigButton variant="outline" label={t.pills.undoA11y} onPress={() => undo(undoPill)} />
@@ -236,7 +240,7 @@ export default function PillsScreen() {
                 <BigButton variant="outline" label={t.pills.later} onPress={() => snooze(due)} />
               </>
             ) : null}
-          </View>
+          </Animated.View>
         </ScrollView>
       </WideFrame>
     </SafeAreaView>

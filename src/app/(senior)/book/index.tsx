@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/book-cover';
@@ -10,7 +11,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
-import { loadBook } from '@/lib/book';
+import { cachedBook, loadBook } from '@/lib/book';
 import { useWide } from '@/lib/layout';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
@@ -21,7 +22,8 @@ export default function BookScreen() {
   const { width, height } = useWindowDimensions();
   // iPad on its side: her book big on the left instead of the bot, the chapters on the right
   const wide = useWide();
-  const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(null);
+  // The book Home already loaded: no empty page while the screen comes in
+  const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(cachedBook);
 
   // Again each time she comes back: the family may have approved a new story
   useFocusEffect(
@@ -31,6 +33,7 @@ export default function BookScreen() {
   );
 
   const chapters = book && 'chapters' in book ? book.chapters : [];
+  const coverWidth = Math.min(164, width * 0.42, height * 0.2);
   // The book is 282 tall for 230 wide (Figma)
   const bigCover =
     book && 'name' in book ? (
@@ -46,11 +49,12 @@ export default function BookScreen() {
           <ScreenHeader backLabel={text.back} />
 
           {/* Her book first, then the title: the picture says what this screen is */}
-          {book && 'name' in book && !wide ? (
-            <View style={styles.cover}>
-              <BookCover width={Math.min(164, width * 0.42, height * 0.2)} title={text.cover(book.name)} />
+          {/* The cover's space is kept while loading, so the title never jumps down */}
+          {wide ? null : (
+            <View style={[styles.cover, { height: (coverWidth * 250) / 200 }]}>
+              {book && 'name' in book ? <BookCover width={coverWidth} title={text.cover(book.name)} /> : null}
             </View>
-          ) : null}
+          )}
           <View accessibilityRole="header" style={styles.titles}>
             <Text style={styles.title}>{text.title}</Text>
             {book && 'chapters' in book ? <Text style={styles.subtitle}>{text.count(chapters.length)}</Text> : null}
@@ -60,19 +64,25 @@ export default function BookScreen() {
           {book && 'chapters' in book && !chapters.length ? <Text style={styles.note}>{text.empty}</Text> : null}
 
           <View style={styles.list}>
-            {chapters.map((chapter) => (
-              <PressScale
-                key={chapter.id}
-                onPress={() => router.push({ pathname: '/book/[chapter]', params: { chapter: chapter.id } })}
-                accessibilityRole="button"
-                accessibilityLabel={text.chapterA11y(chapter.number, chapter.title)}
-                style={styles.chapter}>
-                <View style={styles.chapterText}>
-                  <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
-                  <Text style={styles.chapterTitle}>{chapter.title}</Text>
-                </View>
-                <ChevronCircle />
-              </PressScale>
+            {chapters.map((chapter, i) => (
+              <Animated.View key={chapter.id} entering={FadeInDown.duration(400).delay(120 + Math.min(i, 6) * 70)}>
+                <PressScale
+                  onPress={() =>
+                    router.push({
+                      pathname: '/book/[chapter]',
+                      params: { chapter: chapter.id },
+                    })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={text.chapterA11y(chapter.number, chapter.title)}
+                  style={styles.chapter}>
+                  <View style={styles.chapterText}>
+                    <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
+                    <Text style={styles.chapterTitle}>{chapter.title}</Text>
+                  </View>
+                  <ChevronCircle />
+                </PressScale>
+              </Animated.View>
             ))}
           </View>
         </ScrollView>

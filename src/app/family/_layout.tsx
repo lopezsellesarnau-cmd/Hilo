@@ -38,6 +38,8 @@ export default function FamilyLayout() {
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
         sceneStyle: { backgroundColor: colors.background },
+        // Switching tabs cross-fades instead of jumping
+        animation: 'fade',
       }}>
       <Tabs.Screen name="today" options={{ title: t.today.title, tabBarIcon: icon('sun.max') }} />
       <Tabs.Screen name="book" options={{ title: t.familyBook.tab, tabBarIcon: icon('book.closed') }} />

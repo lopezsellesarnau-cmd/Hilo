@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Animated, { LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
@@ -286,7 +286,9 @@ export default function TalkScreen() {
             scrollEventThrottle={32}
             showsVerticalScrollIndicator
             nestedScrollEnabled>
-            <Text style={styles.say}>{say}</Text>
+            <Animated.Text key={say} entering={FadeIn.duration(350)} style={styles.say}>
+              {say}
+            </Animated.Text>
             {reply || heard ? <Text style={styles.reply}>{t.talk.you(reply ?? heard ?? '')}</Text> : null}
             {hint ? <Text style={styles.hint}>{hint}</Text> : null}
           </ScrollView>

@@ -1,10 +1,7 @@
-import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { colors, serif } from '@/theme';
-
-const whiteBot = require('../../assets/icons/bot-white.svg');
 
 // 18 oct prototype: a black hardcover with the pages showing on the right. Drawn on 200 × 250.
 const W = 200;
@@ -27,7 +24,7 @@ export function BookCover({ width, title, caption }: Props) {
         <Rect x={10} y={6} width={168} height={226} rx={10} fill={colors.accent} />
         <Rect x={10} y={6} width={18} height={226} rx={9} fill="#2a2a2a" />
       </Svg>
-      {/* The cover's text and the small Hilo sit on the black part, right of the spine */}
+      {/* Only the title on the black part, right of the spine */}
       <View style={[styles.front, { left: 30 * k, top: 30 * k, width: 146 * k, height: 190 * k }]}>
         {title ? (
           <Text style={[styles.title, { fontSize: 25 * k, lineHeight: 30 * k }]} numberOfLines={3} adjustsFontSizeToFit>
@@ -35,9 +32,7 @@ export function BookCover({ width, title, caption }: Props) {
           </Text>
         ) : null}
         <View style={[styles.rule, { width: 34 * k, marginTop: 14 * k }]} />
-        <View style={styles.grow} />
         {caption ? <Text style={[styles.caption, { fontSize: 13 * k }]}>{caption}</Text> : null}
-        <Image source={whiteBot} style={{ width: 50 * k, height: 50 * k }} contentFit="contain" />
       </View>
     </View>
   );
@@ -47,6 +42,7 @@ const styles = StyleSheet.create({
   front: {
     position: 'absolute',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontFamily: serif,
@@ -57,11 +53,8 @@ const styles = StyleSheet.create({
     height: 1.5,
     backgroundColor: colors.onAccent,
   },
-  grow: {
-    flex: 1,
-  },
   caption: {
-    marginBottom: 6,
+    marginTop: 10,
     color: colors.onAccent,
     textAlign: 'center',
   },

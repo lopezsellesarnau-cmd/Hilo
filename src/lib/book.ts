@@ -11,11 +11,17 @@ export type Chapter = {
   paragraphs: string[];
 };
 
+type Book = { name: string; chapters: Chapter[] } | { error: string };
+
+/** The last book loaded on this phone: Mi libro and the chapter open with it at once, then refresh */
+let lastBook: { name: string; chapters: Chapter[] } | null = null;
+export const cachedBook = () => lastBook;
+
 /**
  * The senior's book on this phone: only the chapters the family approved, oldest first.
  * RLS already hides the drafts from the senior; the filter says it here too.
  */
-export async function loadBook(): Promise<{ name: string; chapters: Chapter[] } | { error: string }> {
+export async function loadBook(): Promise<Book> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -35,7 +41,8 @@ export async function loadBook(): Promise<{ name: string; chapters: Chapter[] } 
     .order('created_at');
   if (error) return { error: t.common.offline };
 
-  return { name: me.display_name, chapters: data.map((c, i) => ({ ...c, number: i + 1 })) };
+  lastBook = { name: me.display_name, chapters: data.map((c, i) => ({ ...c, number: i + 1 })) };
+  return lastBook;
 }
 
 export type Draft = Omit<Chapter, 'number'> & {

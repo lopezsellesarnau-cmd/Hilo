@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { StyleSheet } from 'react-native';
-import Animated, { useReducedMotion, type CSSAnimationKeyframes } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, useReducedMotion, type CSSAnimationKeyframes } from 'react-native-reanimated';
 
 import { t } from '@/i18n';
 import { colors } from '@/theme';
@@ -85,6 +85,8 @@ export function Bot({ size, mood = 'idle', look = 'right' }: Props) {
     <Animated.View style={[{ width: size, height: size }, anim({ animationName: float, animationDuration: floatDuration, ...loop })]}>
       {mood === 'listening' && !reduceMotion ? (
         <Animated.View
+          entering={FadeIn.duration(300)}
+          exiting={FadeOut.duration(300)}
           pointerEvents="none"
           style={[
             styles.ring,
@@ -92,9 +94,16 @@ export function Bot({ size, mood = 'idle', look = 'right' }: Props) {
           ]}
         />
       ) : null}
-      <Animated.View style={[styles.fill, mood === 'listening' && styles.listening, anim(scaleAnim ?? {})]}>
+      <Animated.View style={[styles.fill, styles.ease, mood === 'listening' && styles.listening, anim(scaleAnim ?? {})]}>
         <Animated.View style={[styles.fill, anim(rotateAnim ?? {})]}>
-          <Image source={sources[pose]} style={styles.fill} contentFit="contain" accessibilityLabel={t.common.assistant} />
+          {/* Listening → speaking → thinking: the eyes cross-fade to the new pose instead of jumping */}
+          <Image
+            source={sources[pose]}
+            style={styles.fill}
+            contentFit="contain"
+            transition={reduceMotion ? 0 : { duration: 350, effect: 'cross-dissolve' }}
+            accessibilityLabel={t.common.assistant}
+          />
         </Animated.View>
       </Animated.View>
     </Animated.View>
@@ -108,6 +117,12 @@ const styles = StyleSheet.create({
   },
   listening: {
     transform: [{ scale: 1.04 }],
+  },
+  // Growing a little to listen, and back, eases instead of snapping
+  ease: {
+    transitionProperty: 'transform',
+    transitionDuration: '350ms',
+    transitionTimingFunction: 'ease-in-out',
   },
   ring: {
     position: 'absolute',

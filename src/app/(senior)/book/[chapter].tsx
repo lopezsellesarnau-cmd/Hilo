@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,7 +7,7 @@ import { BookCover } from '@/components/book-cover';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
-import { loadBook } from '@/lib/book';
+import { cachedBook, loadBook } from '@/lib/book';
 import { colors, fontSize, fontWeight, serif, spacing } from '@/theme';
 
 const text = t.chapter;
@@ -16,7 +16,8 @@ export default function ChapterScreen() {
   const { chapter: id } = useLocalSearchParams<{ chapter: string }>();
   const fade = useScrollFade();
   const { width, height } = useWindowDimensions();
-  const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(null);
+  // Opens with the book Mi libro already has, so the page is never blank while it slides in
+  const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(cachedBook);
   // "Aa": bigger letters for this reading, on top of the system text size
   const [big, setBig] = useState(false);
 
@@ -24,16 +25,19 @@ export default function ChapterScreen() {
     loadBook().then(setBook);
   }, []);
 
+  const paper = <Stack.Screen options={{ contentStyle: { backgroundColor: colors.paper } }} />;
+
   if (!book || 'error' in book) {
     return (
       <SafeAreaView style={styles.safe}>
+        {paper}
         {book ? <Text style={[styles.paragraph, styles.screen]}>{book.error}</Text> : null}
       </SafeAreaView>
     );
   }
   const index = book.chapters.findIndex((c) => c.id === id);
   const chapter = book.chapters[index];
-  if (!chapter) return <SafeAreaView style={styles.safe} />;
+  if (!chapter) return <SafeAreaView style={styles.safe}>{paper}</SafeAreaView>;
   const next = book.chapters[index + 1];
 
   // iPad on its side: her book on the left, like in Mi libro (282 tall for 230 wide)
@@ -52,6 +56,7 @@ export default function ChapterScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {paper}
       <WideFrame side={cover}>
         <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
           <View style={styles.top}>
@@ -102,7 +107,12 @@ export default function ChapterScreen() {
               <>
                 <Text style={styles.nextLabel}>{text.next}</Text>
                 <Pressable
-                  onPress={() => router.replace({ pathname: '/book/[chapter]', params: { chapter: next.id } })}
+                  onPress={() =>
+                    router.replace({
+                      pathname: '/book/[chapter]',
+                      params: { chapter: next.id },
+                    })
+                  }
                   accessibilityRole="button"
                   hitSlop={8}>
                   <Text style={styles.nextLink}>{next.title} ›</Text>

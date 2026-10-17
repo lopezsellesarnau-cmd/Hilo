@@ -11,6 +11,7 @@ import { WideSplit } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
+import { loadBook } from '@/lib/book';
 import { loadSeniorDay } from '@/lib/senior-day';
 import { colors, fontSize, fontWeight, lineHeight, spacing } from '@/theme';
 
@@ -30,6 +31,8 @@ export default function HomeScreen() {
   const [pills, setPills] = useState<{ taken: number; total: number } | null>(null);
   useFocusEffect(
     useCallback(() => {
+      // Ready before she taps Mi libro
+      loadBook();
       loadSeniorDay().then((day) => {
         if (!day.me) return;
         setName(day.me.display_name);

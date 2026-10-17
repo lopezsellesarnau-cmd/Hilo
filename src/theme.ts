@@ -29,7 +29,7 @@ export const colors = {
 export const fontSize = {
   title: 36,
   subtitle: 24,
-  button: 26,
+  button: 23,
   holdButton: 24,
   pillName: 26,
   talk: 20,
@@ -59,9 +59,9 @@ export const lineHeight = {
 export const size = {
   /** Bot on iPhone; scale it down with the screen height (see the HTML prototype trap) */
   bot: 265,
-  /** Pill buttons of the 18 oct prototype: tall, fully round, thin black outline */
-  buttonHeight: 80,
-  buttonRadius: 40,
+  /** Pill buttons of the 18 oct prototype: fully round, thin black outline */
+  buttonHeight: 66,
+  buttonRadius: 33,
   buttonBorder: 3,
   pillIconSmall: 32,
   pillIconLarge: 69,

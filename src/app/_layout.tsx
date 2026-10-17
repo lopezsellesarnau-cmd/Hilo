@@ -23,10 +23,10 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
-          // Calm page change for older users: a soft fade instead of a fast slide.
+          // Calm page change for older users: the new page fades in while rising a little, no fast slide.
           // The iOS swipe-back gesture still works.
-          animation: 'fade',
-          animationDuration: 320,
+          animation: 'fade_from_bottom',
+          animationDuration: 350,
         }}
       />
     </>

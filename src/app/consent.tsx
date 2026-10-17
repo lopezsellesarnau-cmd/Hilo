@@ -86,7 +86,7 @@ export default function ConsentScreen() {
         <ScrollView contentContainerStyle={styles.screen}>
           {wide ? null : (
             <View style={styles.bot}>
-              <Bot size={96} mood={saving ? 'thinking' : 'idle'} />
+              <Bot size={72} mood={saving ? 'thinking' : 'idle'} />
             </View>
           )}
           <ScreenHeader title={t.consent.title} subtitle={t.consent.subtitle} />
@@ -140,8 +140,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   points: {
-    marginTop: 24,
-    gap: 18,
+    marginTop: 20,
+    gap: 14,
   },
   point: {
     flexDirection: 'row',
@@ -153,12 +153,12 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: colors.accent,
-    marginTop: 9,
+    marginTop: 8,
   },
   pointText: {
     flex: 1,
     fontSize: fontSize.talk,
-    lineHeight: 30,
+    lineHeight: 27,
     fontWeight: fontWeight.semibold,
     color: colors.ink,
   },
@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     marginTop: 'auto',
-    paddingTop: 28,
-    gap: spacing.buttonGap,
+    paddingTop: 24,
+    gap: 10,
   },
   center: {
     flex: 1,
