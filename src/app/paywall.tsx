@@ -140,12 +140,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 20,
     borderWidth: family.size.buttonBorder,
-    borderColor: colors.sageSoft,
+    borderColor: colors.accentSoft,
     backgroundColor: colors.background,
   },
   cardOn: {
-    borderColor: colors.sage,
-    backgroundColor: 'rgba(143, 168, 138, 0.12)',
+    borderColor: colors.accent,
+    backgroundColor: colors.surface,
   },
   cardTop: {
     flexDirection: 'row',

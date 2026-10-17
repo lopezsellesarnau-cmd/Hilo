@@ -1,10 +1,14 @@
+import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
+import Svg, { Path, Rect } from 'react-native-svg';
 
-import { colors, fontWeight } from '@/theme';
+import { colors, serif } from '@/theme';
 
-// Figma book: 230 × 282, left corners 20, right corners 90, spine 20 in #637160
-const FIGMA = { width: 230, height: 282, left: 20, right: 90, spine: 20 };
-const spineColor = '#637160';
+const whiteBot = require('../../assets/icons/bot-white.svg');
+
+// 18 oct prototype: a black hardcover with the pages showing on the right. Drawn on 200 × 250.
+const W = 200;
+const H = 250;
 
 type Props = {
   width: number;
@@ -13,61 +17,52 @@ type Props = {
 };
 
 export function BookCover({ width, title, caption }: Props) {
-  const k = width / FIGMA.width;
-  const height = FIGMA.height * k;
+  const k = width / W;
   return (
-    <View
-      accessible
-      accessibilityLabel={title}
-      style={[
-        styles.cover,
-        {
-          width,
-          height,
-          borderTopLeftRadius: FIGMA.left * k,
-          borderBottomLeftRadius: FIGMA.left * k,
-          borderTopRightRadius: FIGMA.right * k,
-          borderBottomRightRadius: FIGMA.right * k,
-          paddingLeft: FIGMA.spine * k + 14,
-        },
-      ]}>
-      <View
-        style={[
-          styles.spine,
-          { width: FIGMA.spine * k, borderTopLeftRadius: FIGMA.left * k, borderBottomLeftRadius: FIGMA.left * k },
-        ]}
-      />
-      {title ? <Text style={[styles.title, { fontSize: Math.round(22 * k * 1.5) }]}>{title}</Text> : null}
-      {caption ? <Text style={[styles.caption, { fontSize: Math.round(13 * k * 1.5) }]}>{caption}</Text> : null}
+    <View accessible accessibilityLabel={title} style={{ width, height: H * k }}>
+      <Svg width={width} height={H * k} viewBox={`0 0 ${W} ${H}`}>
+        <Rect x={22} y={14} width={168} height={226} rx={10} fill="#e6e6e6" />
+        <Rect x={18} y={10} width={168} height={226} rx={10} fill={colors.background} stroke={colors.ink} strokeWidth={3} />
+        <Path d="M186 22v202M181 18v210" stroke={colors.ink} strokeWidth={2} opacity={0.25} />
+        <Rect x={10} y={6} width={168} height={226} rx={10} fill={colors.accent} />
+        <Rect x={10} y={6} width={18} height={226} rx={9} fill="#2a2a2a" />
+      </Svg>
+      {/* The cover's text and the small Hilo sit on the black part, right of the spine */}
+      <View style={[styles.front, { left: 30 * k, top: 30 * k, width: 146 * k, height: 190 * k }]}>
+        {title ? (
+          <Text style={[styles.title, { fontSize: 25 * k, lineHeight: 30 * k }]} numberOfLines={3} adjustsFontSizeToFit>
+            {title}
+          </Text>
+        ) : null}
+        <View style={[styles.rule, { width: 34 * k, marginTop: 14 * k }]} />
+        <View style={styles.grow} />
+        {caption ? <Text style={[styles.caption, { fontSize: 13 * k }]}>{caption}</Text> : null}
+        <Image source={whiteBot} style={{ width: 50 * k, height: 50 * k }} contentFit="contain" />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  cover: {
-    backgroundColor: colors.sage,
-    justifyContent: 'space-between',
-    paddingTop: 22,
-    paddingBottom: 16,
-    paddingRight: 16,
-    overflow: 'hidden',
-  },
-  spine: {
+  front: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: spineColor,
+    alignItems: 'center',
   },
   title: {
-    fontWeight: '700',
-    color: colors.ink,
-    textAlign: 'left',
+    fontFamily: serif,
+    color: colors.onAccent,
+    textAlign: 'center',
+  },
+  rule: {
+    height: 1.5,
+    backgroundColor: colors.onAccent,
+  },
+  grow: {
+    flex: 1,
   },
   caption: {
-    fontSize: 13,
-    fontWeight: fontWeight.semibold,
-    color: colors.ink,
-    textAlign: 'left',
+    marginBottom: 6,
+    color: colors.onAccent,
+    textAlign: 'center',
   },
 });

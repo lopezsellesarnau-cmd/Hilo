@@ -1,21 +1,18 @@
-import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { MicIcon } from '@/components/icons';
+import { PressScale } from '@/components/press-scale';
 import { WideSplit } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadSeniorDay } from '@/lib/senior-day';
-import { colors, fontSize, fontWeight, lineHeight, size, spacing } from '@/theme';
-
-const pill = require('../../../assets/icons/pill-small.svg');
-const book = require('../../../assets/icons/book.svg');
+import { colors, fontSize, fontWeight, lineHeight, spacing } from '@/theme';
 
 /** When the app opens: greeting, bot and buttons appear one after another, gently.
  * Skipped automatically when "Reduce Motion" is on. */
@@ -26,7 +23,7 @@ export default function HomeScreen() {
   // iPad on its side: bot on the left, greeting and buttons on the right (Figma IPAD MINI / DUO 2)
   const wide = useWide();
   // Never a fixed 265: on short screens a fixed bot overlaps the greeting (prototype bug)
-  const botSize = wide ? wideBotSize(width, height) : Math.min(size.bot, width * 0.7, height * 0.28);
+  const botSize = wide ? wideBotSize(width, height) : Math.min(250, width * 0.64, height * 0.3);
 
   // Name and today's pills, refreshed every time the senior comes back to the home
   const [name, setName] = useState<string | null>(null);
@@ -56,33 +53,47 @@ export default function HomeScreen() {
     </Animated.View>
   );
 
+  const talk = () => router.push('/talk');
+
+  // The bot itself opens the talk too: it's the biggest thing on the screen
   const stage = (
     <Animated.View entering={FadeIn.duration(700).delay(150)} style={styles.stage}>
-      <Bot size={botSize} mood="idle" />
+      <PressScale onPress={talk} accessibilityRole="button" accessibilityLabel={t.home.tapToTalk} accessibilityHint={t.home.talkHint}>
+        <Bot size={botSize} mood="idle" />
+      </PressScale>
     </Animated.View>
   );
 
   const buttons = (
     <View style={styles.buttons}>
-      <Animated.View entering={enter(1)}>
-        <BigButton label={t.home.talk} accessibilityHint={t.home.talkHint} onPress={() => router.push('/talk')} />
+      <Animated.View entering={enter(1)} style={styles.talkWrap}>
+        <PressScale onPress={talk} accessibilityRole="button" accessibilityHint={t.home.talkHint} style={styles.talk}>
+          <MicIcon />
+          <Text style={styles.talkText}>{t.home.tapToTalk}</Text>
+        </PressScale>
       </Animated.View>
-      <Animated.View entering={enter(2)}>
-        <BigButton
-          variant="outline"
-          label={t.home.pills}
-          detail={pills?.total ? t.home.pillsCount(pills.taken, pills.total) : undefined}
+      {/* Pills and book in one black bar: the pills half is white, the one she needs most */}
+      <Animated.View entering={enter(2)} style={styles.bar}>
+        <PressScale
           onPress={() => router.push('/pills')}
-          icon={<Image source={pill} style={styles.icon} contentFit="contain" />}
-        />
-      </Animated.View>
-      <Animated.View entering={enter(3)}>
-        <BigButton
-          variant="outline"
-          label={t.home.book}
-          onPress={() => router.push('/book')}
-          icon={<Image source={book} style={styles.bookIcon} contentFit="contain" />}
-        />
+          accessibilityRole="button"
+          accessibilityLabel={pills?.total ? `${t.home.pills}, ${t.home.pillsCount(pills.taken, pills.total)}` : t.home.pills}
+          containerStyle={styles.barSlot}
+          style={[styles.barItem, styles.barItemOn]}>
+          <Text style={styles.barText} numberOfLines={1}>
+            {t.home.pills}
+          </Text>
+          {pills?.total ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{`${pills.taken}/${pills.total}`}</Text>
+            </View>
+          ) : null}
+        </PressScale>
+        <PressScale onPress={() => router.push('/book')} accessibilityRole="button" containerStyle={styles.barSlot} style={styles.barItem}>
+          <Text style={[styles.barText, styles.barTextOff]} numberOfLines={1}>
+            {t.home.book}
+          </Text>
+        </PressScale>
       </Animated.View>
     </View>
   );
@@ -136,14 +147,16 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.title,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.5,
     color: colors.ink,
     textAlign: 'center',
   },
   subtitle: {
+    marginTop: 4,
     fontSize: fontSize.subtitle,
     lineHeight: lineHeight.subtitle,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.regular,
     color: colors.muted,
     textAlign: 'center',
   },
@@ -154,15 +167,74 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   buttons: {
-    gap: spacing.buttonGap,
+    // Air between "Toca para charlar" and the bar, so one isn't tapped for the other
+    gap: 44,
   },
-  icon: {
-    width: size.pillIconSmall,
-    height: size.pillIconSmall,
+  talkWrap: {
+    alignItems: 'center',
   },
-  bookIcon: {
-    // Figma book is 230 × 282; keep its proportion at button size
-    width: 26,
-    height: 32,
+  talk: {
+    minWidth: 287,
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+  },
+  talkText: {
+    flexShrink: 1,
+    fontSize: 25,
+    fontWeight: fontWeight.bold,
+    color: colors.onAccent,
+    textAlign: 'center',
+  },
+  bar: {
+    flexDirection: 'row',
+    gap: 6,
+    padding: 6,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+  },
+  // Both halves the same width whatever the text
+  barSlot: {
+    flex: 1,
+    flexBasis: 0,
+  },
+  barItem: {
+    flexGrow: 1,
+    minHeight: 74,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+  barItemOn: {
+    backgroundColor: colors.background,
+  },
+  barText: {
+    flexShrink: 1,
+    fontSize: 22,
+    fontWeight: fontWeight.bold,
+    color: colors.ink,
+  },
+  barTextOff: {
+    color: colors.onAccent,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
+  },
+  badgeText: {
+    fontSize: 16,
+    fontWeight: fontWeight.bold,
+    color: colors.onAccent,
   },
 });

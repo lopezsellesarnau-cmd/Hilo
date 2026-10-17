@@ -158,11 +158,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#e6e8e4',
+    backgroundColor: '#e4e4e4',
   },
   dotOn: {
     width: 22,
-    backgroundColor: colors.sage,
+    backgroundColor: colors.accent,
   },
   bot: {
     flexShrink: 0,

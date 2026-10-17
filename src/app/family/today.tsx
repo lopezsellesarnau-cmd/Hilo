@@ -188,13 +188,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     padding: 18,
-    borderRadius: 22,
-    backgroundColor: '#f2f5f1',
+    borderRadius: 28,
+    backgroundColor: colors.surface,
   },
   cardTodo: {
     backgroundColor: colors.background,
     borderWidth: 3,
-    borderColor: colors.sage,
+    borderColor: colors.accent,
   },
   cardBot: {
     flexShrink: 0,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 20,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
     color: colors.ink,
   },
   cardBody: {

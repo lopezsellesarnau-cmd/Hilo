@@ -126,12 +126,12 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: '#e6e8e4',
+    borderColor: '#e4e4e4',
   },
   // The only filled block: what is waiting for them
   storyDraft: {
-    borderColor: '#f2f5f1',
-    backgroundColor: '#f2f5f1',
+    borderColor: colors.surface,
+    backgroundColor: colors.surface,
   },
   pressed: {
     opacity: 0.6,

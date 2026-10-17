@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#e6e8e4',
+    borderColor: '#e4e4e4',
   },
   confirmTitle: {
     fontSize: family.fontSize.subtitle,

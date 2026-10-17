@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 22,
     borderRadius: 20,
-    backgroundColor: colors.sageSoft,
+    backgroundColor: colors.accentSoft,
     marginTop: 8,
   },
   code: {

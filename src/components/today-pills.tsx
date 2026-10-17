@@ -149,10 +149,10 @@ const styles = StyleSheet.create({
     width: 30,
     height: 9,
     borderRadius: 5,
-    backgroundColor: 'rgba(143, 168, 138, 0.3)',
+    backgroundColor: colors.accentSoft,
   },
   barOn: {
-    backgroundColor: colors.sage,
+    backgroundColor: colors.accent,
   },
   moment: {
     gap: 10,
@@ -170,12 +170,12 @@ const styles = StyleSheet.create({
     gap: 14,
     padding: 16,
     borderRadius: 22,
-    backgroundColor: '#f2f5f1',
+    backgroundColor: colors.surface,
   },
   cardTodo: {
     backgroundColor: colors.background,
     borderWidth: 3,
-    borderColor: colors.sage,
+    borderColor: colors.accent,
   },
   cardLater: {
     backgroundColor: colors.background,
@@ -192,14 +192,14 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: colors.sage,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tickText: {
     fontSize: 18,
     fontWeight: fontWeight.heavy,
-    color: colors.ink,
+    color: colors.onAccent,
   },
   icon: {
     flexShrink: 0,

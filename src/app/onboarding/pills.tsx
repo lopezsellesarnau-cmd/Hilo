@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 16,
-    backgroundColor: colors.sageSoft,
+    backgroundColor: colors.accentSoft,
   },
   pillText: {
     flex: 1,

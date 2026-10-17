@@ -5,8 +5,10 @@ import Animated, { useReducedMotion } from 'react-native-reanimated';
 
 type Props = Omit<PressableProps, 'style' | 'children'> & {
   style?: StyleProp<ViewStyle>;
+  /** Style of the outer touch area, e.g. flex: 1 to share a row */
+  containerStyle?: StyleProp<ViewStyle>;
   children: ReactNode;
-  /** Also fade the background colour when the style changes (e.g. sage → black) */
+  /** Also fade the background colour when the style changes (e.g. white → black) */
   animateColor?: boolean;
 };
 
@@ -14,10 +16,10 @@ type Props = Omit<PressableProps, 'style' | 'children'> & {
  * Pressable that shrinks a little while pressed and springs back.
  * One feel for every button in the app. Respects "Reduce Motion".
  */
-export function PressScale({ style, children, animateColor = false, ...props }: Props) {
+export function PressScale({ style, containerStyle, children, animateColor = false, ...props }: Props) {
   const reduceMotion = useReducedMotion();
   return (
-    <Pressable {...props}>
+    <Pressable {...props} style={containerStyle}>
       {({ pressed }) => (
         <Animated.View
           style={[

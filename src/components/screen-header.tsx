@@ -5,7 +5,8 @@ import { t } from '@/i18n';
 import { colors, fontSize, fontWeight, lineHeight } from '@/theme';
 
 type Props = {
-  title: string;
+  /** Without a title only the back button shows (the talk) */
+  title?: string;
   subtitle?: string;
   /** Text of the back link, e.g. "Inicio". Hidden when not given. */
   backLabel?: string;
@@ -19,44 +20,58 @@ export function ScreenHeader({ title, subtitle, backLabel }: Props) {
           onPress={() => router.back()}
           accessibilityRole="button"
           accessibilityLabel={t.common.backTo(backLabel)}
-          hitSlop={12}
+          hitSlop={8}
           style={styles.back}>
-          <Text style={styles.backText}>‹ {backLabel}</Text>
+          <Text style={styles.backText}>
+            <Text style={styles.backArrow}>‹ </Text>
+            {backLabel}
+          </Text>
         </Pressable>
       ) : null}
-      <View accessibilityRole="header" style={styles.titles}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      </View>
+      {title ? (
+        <View accessibilityRole="header" style={styles.titles}>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Pill with a black outline, like every button of the 18 oct prototype
   back: {
     alignSelf: 'flex-start',
-    paddingVertical: 8,
-    marginTop: -8,
-    marginBottom: 14,
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingLeft: 14,
+    paddingRight: 20,
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    marginBottom: 22,
   },
   backText: {
-    fontSize: fontSize.label,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
+    fontSize: 19,
+    fontWeight: fontWeight.bold,
+    color: colors.ink,
+  },
+  backArrow: {
+    fontSize: 24,
   },
   titles: {
     alignItems: 'center',
   },
   title: {
     fontSize: fontSize.title,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
     color: colors.ink,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: fontSize.subtitle,
     lineHeight: lineHeight.subtitle,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.regular,
     color: colors.muted,
     textAlign: 'center',
   },

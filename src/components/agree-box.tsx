@@ -50,18 +50,18 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: colors.sage,
+    borderColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
   boxOn: {
-    backgroundColor: colors.sage,
+    backgroundColor: colors.accent,
   },
   tick: {
     fontSize: 18,
     fontWeight: fontWeight.heavy,
-    color: colors.ink,
+    color: colors.onAccent,
   },
   text: {
     flex: 1,

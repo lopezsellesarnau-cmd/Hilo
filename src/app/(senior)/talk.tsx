@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot, type BotMood } from '@/components/bot';
+import { RepeatIcon } from '@/components/icons';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideSplit } from '@/components/wide-split';
@@ -46,7 +47,7 @@ export default function TalkScreen() {
   // iPad on its side: bot on the left, the talk on the right (Figma IPAD MINI / DUO 1)
   const wide = useWide();
   // Smaller than on Home: this screen has more text (prototype overlap bug)
-  const botSize = wide ? wideBotSize(width, height) : Math.min(size.bot, width * 0.7, height * 0.25);
+  const botSize = wide ? wideBotSize(width, height) : Math.min(size.bot, width * 0.66, height * 0.28);
 
   const [mood, setMood] = useState<BotMood>('thinking');
   // What Hilo says now (from Claude, through the talk Edge Function)
@@ -154,7 +155,6 @@ export default function TalkScreen() {
 
   // Hilo starts the talk when the screen opens
   const started = useRef(false);
-  const [name, setName] = useState<string | null>(null);
   // Leaving the screen: stop everything, and close the talk if Hilo didn't say goodbye
   useEffect(() => {
     alive.current = true;
@@ -175,9 +175,7 @@ export default function TalkScreen() {
     started.current = true;
     sendTurn(null).then(handle);
     loadSeniorDay().then((day) => {
-      if (!day.me) return;
-      setName(day.me.display_name);
-      locale.current = day.me.locale;
+      if (day.me) locale.current = day.me.locale;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -259,7 +257,8 @@ export default function TalkScreen() {
 
   const yourTurn = !ended && !askPills && (mood === 'idle' || mood === 'listening');
 
-  const header = <ScreenHeader backLabel={t.home.title} title={t.home.hello(name)} subtitle={t.home.howAreYou} />;
+  // Only the way back: the bot and what Hilo says are the screen
+  const header = <ScreenHeader backLabel={t.home.title} />;
 
   // On a wide screen the bot is on the left of the text, so it looks right, towards it
   const stage = (
@@ -270,8 +269,13 @@ export default function TalkScreen() {
 
   const talk = (
     <>
-      <Animated.View layout={LinearTransition.duration(250)} style={styles.talk} accessibilityLiveRegion="polite">
-        <Text style={styles.label}>{labels[mood]}</Text>
+      {/* The bot's pose says the state; the label stays for VoiceOver */}
+      <Animated.View
+        layout={LinearTransition.duration(250)}
+        style={styles.talk}
+        accessible
+        accessibilityLabel={`${labels[mood]} ${say}`}
+        accessibilityLiveRegion="polite">
         <View>
           <ScrollView
             ref={textBox}
@@ -288,7 +292,7 @@ export default function TalkScreen() {
           </ScrollView>
           <LinearGradient
             pointerEvents="none"
-            colors={[colors.background, `${colors.background}00`]}
+            colors={[colors.surface, `${colors.surface}00`]}
             style={[styles.fade, { opacity: scrolled ? 1 : 0 }]}
           />
         </View>
@@ -296,19 +300,31 @@ export default function TalkScreen() {
 
       <Animated.View layout={LinearTransition.duration(250)} style={styles.controls}>
         {yourTurn ? (
-          <PressScale
-            animateColor
-            onPress={mood === 'listening' ? finish : listen}
-            accessibilityRole="button"
-            accessibilityLabel={mood === 'listening' ? t.talk.done : t.talk.tap}
-            accessibilityHint={
-              mood === 'listening' ? t.talk.doneHint : t.talk.tapHint
-            }
-            style={[styles.hold, mood === 'listening' && styles.holdOn]}>
-            <Animated.Text style={[styles.holdText, mood === 'listening' && styles.holdTextOn, styles.smoothText]}>
-              {mood === 'listening' ? t.talk.done : t.talk.tap}
-            </Animated.Text>
-          </PressScale>
+          <View style={styles.turnRow}>
+            <PressScale
+              animateColor
+              onPress={mood === 'listening' ? finish : listen}
+              accessibilityRole="button"
+              accessibilityLabel={mood === 'listening' ? t.talk.done : t.talk.tap}
+              accessibilityHint={mood === 'listening' ? t.talk.doneHint : t.talk.tapHint}
+              containerStyle={styles.holdSlot}
+              style={[styles.hold, mood === 'listening' && styles.holdOn]}>
+              <Animated.Text style={[styles.holdText, mood === 'listening' && styles.holdTextOn, styles.smoothText]}>
+                {mood === 'listening' ? t.talk.done : t.talk.tap}
+              </Animated.Text>
+            </PressScale>
+            {mood === 'idle' && lastAudio ? (
+              <PressScale
+                onPress={() => speak(say, lastAudio)}
+                accessibilityRole="button"
+                accessibilityLabel={t.talk.repeat}
+                accessibilityHint={t.talk.repeatHint}
+                style={styles.repeat}>
+                <RepeatIcon />
+                <Text style={styles.repeatText}>{t.talk.repeat}</Text>
+              </PressScale>
+            ) : null}
+          </View>
         ) : null}
 
         {askPills && mood === 'idle' ? (
@@ -322,7 +338,7 @@ export default function TalkScreen() {
           </View>
         ) : null}
 
-        {mood === 'idle' && lastAudio ? (
+        {mood === 'idle' && lastAudio && !yourTurn ? (
           <BigButton
             label={t.talk.repeat}
             variant="outline"
@@ -389,8 +405,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 20,
   },
+  // Hilo's sentence in a grey card, like the prototype
   talk: {
-    gap: 14,
+    paddingHorizontal: 22,
+    paddingVertical: 20,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
   },
   text: {
     gap: 14,
@@ -402,16 +422,10 @@ const styles = StyleSheet.create({
     right: 0,
     height: 30,
   },
-  label: {
-    fontSize: fontSize.label,
-    fontWeight: fontWeight.heavy,
-    letterSpacing: 0.4,
-    color: colors.ink,
-  },
   say: {
-    fontSize: fontSize.talk,
-    lineHeight: 27,
-    fontWeight: fontWeight.semibold,
+    fontSize: 25,
+    lineHeight: 31,
+    fontWeight: fontWeight.bold,
     color: colors.ink,
   },
   reply: {
@@ -419,6 +433,29 @@ const styles = StyleSheet.create({
     lineHeight: 27,
     fontWeight: fontWeight.semibold,
     color: colors.muted,
+  },
+  turnRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  holdSlot: {
+    flex: 1,
+  },
+  repeat: {
+    width: 104,
+    minHeight: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    borderRadius: 999,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    backgroundColor: colors.background,
+  },
+  repeatText: {
+    fontSize: 16,
+    fontWeight: fontWeight.bold,
+    color: colors.ink,
   },
   hint: {
     fontSize: fontSize.label,
@@ -438,25 +475,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hold: {
-    minHeight: size.buttonHeight,
-    borderRadius: size.buttonRadius,
-    backgroundColor: colors.sage,
+    minHeight: 88,
+    borderRadius: 999,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
     paddingVertical: 8,
   },
+  // While she talks the button turns white: easy to see that Hilo is listening
   holdOn: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.background,
+    borderWidth: 3,
+    borderColor: colors.ink,
   },
   holdText: {
-    fontSize: fontSize.holdButton,
-    fontWeight: fontWeight.semibold,
-    color: colors.ink,
+    fontSize: 22,
+    fontWeight: fontWeight.bold,
+    color: colors.onAccent,
     textAlign: 'center',
   },
   holdTextOn: {
-    color: colors.background,
+    color: colors.ink,
   },
   smoothText: {
     transitionProperty: 'color',

@@ -154,6 +154,7 @@ export const en: Strings = {
     howAreYou: 'How are you?',
     talk: 'Talk',
     talkHint: "Starts today's chat",
+    tapToTalk: 'Tap to chat',
     pills: 'My pills',
     pillsCount: (taken: number, total: number) => `${taken} of ${total}`,
     book: 'My book',
@@ -186,6 +187,7 @@ export const en: Strings = {
 
   pills: {
     noneToday: 'No pills today',
+    countToday: (taken: number, total: number) => `${taken} of ${total} today`,
     noneTodayDetail: "If your family adds one, I'll remind you.",
     dueNow: "It's time for",
     theOneAt: (time: string) => `The one at ${time}`,
@@ -200,6 +202,8 @@ export const en: Strings = {
     undoFailed: "We couldn't undo it. Try again.",
     taken: "I've taken it",
     later: 'Remind me in a while',
+    takenShort: 'Taken',
+    laterShort: 'Later',
     yourDay: 'YOUR DAY',
     now: 'Now',
     takenAt: (time: string) => `taken at ${time}`,
@@ -227,6 +231,8 @@ export const en: Strings = {
     backLabel: 'Back to My book',
     kicker: (n: number) => `CHAPTER ${n}`,
     by: (name: string) => `Told by ${name}`,
+    bigger: 'Bigger text',
+    normal: 'Normal text',
     next: 'Next',
     cover: (name: string) => `The life of ${name}`,
   },

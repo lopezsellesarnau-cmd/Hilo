@@ -8,7 +8,7 @@ import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { loadBook } from '@/lib/book';
-import { colors, fontSize, fontWeight, spacing } from '@/theme';
+import { colors, fontSize, fontWeight, serif, spacing } from '@/theme';
 
 const text = t.chapter;
 
@@ -17,6 +17,8 @@ export default function ChapterScreen() {
   const fade = useScrollFade();
   const { width, height } = useWindowDimensions();
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(null);
+  // "Aa": bigger letters for this reading, on top of the system text size
+  const [big, setBig] = useState(false);
 
   useEffect(() => {
     loadBook().then(setBook);
@@ -52,18 +54,29 @@ export default function ChapterScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <WideFrame side={cover}>
         <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel={text.backLabel}
-            hitSlop={12}
-            style={styles.back}>
-            <Text style={styles.backText}>{text.back}</Text>
-          </Pressable>
+          <View style={styles.top}>
+            <Pressable
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel={text.backLabel}
+              hitSlop={8}
+              style={styles.back}>
+              <Text style={styles.backText}>{text.back}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setBig((b) => !b)}
+              accessibilityRole="button"
+              accessibilityLabel={big ? text.normal : text.bigger}
+              hitSlop={8}
+              style={[styles.aa, big && styles.aaOn]}>
+              <Text style={[styles.aaText, big && styles.aaTextOn]}>Aa</Text>
+            </Pressable>
+          </View>
 
           <View accessibilityRole="header" style={styles.header}>
             <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
             <Text style={styles.title}>{chapter.title}</Text>
+            <View style={styles.rule} />
             <Text style={styles.by}>{text.by(book.name)}</Text>
           </View>
 
@@ -72,13 +85,13 @@ export default function ChapterScreen() {
             // so the large letter sits on the left and the paragraph runs beside it
             <View style={styles.firstRow} accessible accessibilityLabel={first}>
               <Text style={styles.initial}>{first.charAt(0)}</Text>
-              <Text style={[styles.paragraph, styles.firstText]}>{first.slice(1)}</Text>
+              <Text style={[styles.paragraph, big && styles.paragraphBig, styles.firstText]}>{first.slice(1)}</Text>
             </View>
           ) : null}
           {rest.map((p, i) => (
             <View key={i}>
               {i === quoteAt ? quote : null}
-              <Text style={styles.paragraph}>{p}</Text>
+              <Text style={[styles.paragraph, big && styles.paragraphBig]}>{p}</Text>
             </View>
           ))}
           {rest.length === 0 ? quote : null}
@@ -99,99 +112,141 @@ export default function ChapterScreen() {
           </View>
         </ScrollView>
       </WideFrame>
-      <ScrollFade visible={fade.visible} />
+      <ScrollFade visible={fade.visible} color={colors.paper} />
     </SafeAreaView>
   );
 }
 
+// Book typography (serif on paper) only here: reading a chapter should feel like reading a book
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.paper,
   },
   screen: {
     width: '100%',
     maxWidth: spacing.contentMax,
     alignSelf: 'center',
-    paddingHorizontal: spacing.screenX,
+    paddingHorizontal: spacing.screenX + 6,
     paddingTop: spacing.screenTop,
     paddingBottom: 72,
   },
+  top: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 28,
+  },
   back: {
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    marginTop: -8,
-    marginBottom: 14,
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: colors.ink,
   },
   backText: {
-    fontSize: fontSize.label,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
+    fontSize: 19,
+    fontWeight: fontWeight.bold,
+    color: colors.ink,
+  },
+  aa: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aaOn: {
+    backgroundColor: colors.accent,
+  },
+  aaText: {
+    fontFamily: serif,
+    fontSize: 22,
+    color: colors.ink,
+  },
+  aaTextOn: {
+    color: colors.onAccent,
   },
   header: {
     alignItems: 'center',
   },
   kicker: {
     fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 1.1,
-    color: colors.muted,
-    marginBottom: 6,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 2,
+    color: '#6b6457',
+    marginBottom: 10,
   },
   title: {
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.semibold,
+    fontFamily: serif,
+    fontSize: 36,
+    lineHeight: 40,
     color: colors.ink,
     textAlign: 'center',
   },
+  rule: {
+    width: 40,
+    height: 1,
+    marginTop: 18,
+    backgroundColor: colors.ink,
+  },
   by: {
-    fontSize: 22,
-    lineHeight: 30,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
-    marginTop: 6,
+    fontFamily: serif,
+    fontStyle: 'italic',
+    fontSize: 20,
+    lineHeight: 28,
+    color: '#4a453c',
+    marginTop: 14,
   },
   paragraph: {
-    fontSize: 24,
-    lineHeight: 37,
-    fontWeight: '500',
-    color: colors.ink,
-    marginTop: 22,
+    fontFamily: serif,
+    fontSize: 22,
+    lineHeight: 34,
+    color: '#1a1a1a',
+    marginTop: 18,
+  },
+  paragraphBig: {
+    fontSize: 27,
+    lineHeight: 41,
   },
   firstRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-    marginTop: 22,
+    gap: 8,
+    marginTop: 26,
   },
   initial: {
-    fontSize: 78,
-    lineHeight: 82,
-    fontWeight: '700',
-    color: colors.sage,
-    marginTop: -2,
+    fontFamily: serif,
+    fontSize: 66,
+    lineHeight: 70,
+    color: colors.ink,
+    marginTop: -4,
   },
   firstText: {
     flex: 1,
     marginTop: 0,
   },
   quote: {
-    marginTop: 38,
-    marginBottom: 14,
+    marginTop: 34,
+    marginBottom: 12,
     paddingHorizontal: 8,
     alignItems: 'center',
   },
   quoteMark: {
-    fontSize: 72,
-    lineHeight: 64,
-    height: 40,
-    fontWeight: '700',
-    color: colors.sage,
+    fontFamily: serif,
+    fontSize: 64,
+    lineHeight: 60,
+    height: 36,
+    color: colors.ink,
   },
   quoteText: {
-    fontSize: 28,
-    lineHeight: 36,
-    fontWeight: fontWeight.semibold,
+    fontFamily: serif,
+    fontStyle: 'italic',
+    fontSize: 27,
+    lineHeight: 35,
     color: colors.ink,
     textAlign: 'center',
   },
@@ -201,10 +256,9 @@ const styles = StyleSheet.create({
     marginTop: 44,
   },
   dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.sage,
+    width: 40,
+    height: 1,
+    backgroundColor: colors.ink,
   },
   nextLabel: {
     fontSize: fontSize.talk,
@@ -213,10 +267,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   nextLink: {
-    fontSize: 22,
-    fontWeight: fontWeight.semibold,
+    fontFamily: serif,
+    fontSize: 24,
     color: colors.ink,
     textDecorationLine: 'underline',
-    textDecorationColor: colors.sage,
+    textDecorationColor: colors.ink,
   },
 });

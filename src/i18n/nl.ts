@@ -158,6 +158,7 @@ export const nl: Strings = {
     howAreYou: 'Hoe gaat het met u?',
     talk: 'Praten',
     talkHint: 'Begint het praatje van vandaag',
+    tapToTalk: 'Tik om te praten',
     pills: 'Mijn pillen',
     pillsCount: (taken: number, total: number) => `${taken} van ${total}`,
     book: 'Mijn boek',
@@ -190,6 +191,7 @@ export const nl: Strings = {
 
   pills: {
     noneToday: 'Vandaag geen pillen',
+    countToday: (taken: number, total: number) => `${taken} van ${total} vandaag`,
     noneTodayDetail: 'Als uw familie er een toevoegt, herinner ik u eraan.',
     dueNow: 'Nu is het tijd voor',
     theOneAt: (time: string) => `Die van ${time}`,
@@ -204,6 +206,8 @@ export const nl: Strings = {
     undoFailed: 'Ongedaan maken is niet gelukt. Probeer het opnieuw.',
     taken: 'Ik heb hem genomen',
     later: 'Herinner me straks',
+    takenShort: 'Genomen',
+    laterShort: 'Straks',
     yourDay: 'UW DAG',
     now: 'Nu',
     takenAt: (time: string) => `genomen om ${time}`,
@@ -231,6 +235,8 @@ export const nl: Strings = {
     backLabel: 'Terug naar Mijn boek',
     kicker: (n: number) => `HOOFDSTUK ${n}`,
     by: (name: string) => `Verteld door ${name}`,
+    bigger: 'Grotere letters',
+    normal: 'Normale letters',
     next: 'Volgende',
     cover: (name: string) => `Het leven van ${name}`,
   },

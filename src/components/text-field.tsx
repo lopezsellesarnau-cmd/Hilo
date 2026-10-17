@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#e6e8e4',
+    borderColor: '#e4e4e4',
     backgroundColor: colors.background,
   },
   code: {
@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   focused: {
-    borderColor: colors.sage,
+    borderColor: colors.accent,
   },
 });

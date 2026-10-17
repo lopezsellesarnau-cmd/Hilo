@@ -1,7 +1,6 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="773" height="773" viewBox="0 0 773 773" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="Group 59">
-<circle id="Ellipse 1128" cx="386.5" cy="386.5" r="386.5" fill="#8FA88A"/>
-<rect id="Rectangle 31" x="145" y="113.6" width="101.848" height="242.868" rx="50.924" fill="white"/>
-<rect id="Rectangle 32" x="308.218" y="113.6" width="103.154" height="242.868" rx="51.5769" fill="white"/>
-</g>
+<svg width="351" height="351" viewBox="0 0 351 351" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="175.5" cy="175.5" r="175.5" fill="#000000"/>
+<path d="M140 168 Q 215 194 292 150" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round"/>
+<circle cx="135" cy="164.5" r="38" fill="#FFFFFF"/>
+<ellipse cx="296" cy="146" rx="29" ry="37" fill="#FFFFFF"/>
 </svg>

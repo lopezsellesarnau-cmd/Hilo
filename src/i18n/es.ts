@@ -159,6 +159,7 @@ export const es = {
     howAreYou: '¿Cómo estás?',
     talk: 'Hablar',
     talkHint: 'Empieza la charla de hoy',
+    tapToTalk: 'Toca para charlar',
     pills: 'Mis pastillas',
     pillsCount: (taken: number, total: number) => `${taken} de ${total}`,
     book: 'Mi libro',
@@ -191,6 +192,7 @@ export const es = {
 
   pills: {
     noneToday: 'Hoy no tienes pastillas',
+    countToday: (taken: number, total: number) => `${taken} de ${total} hoy`,
     noneTodayDetail: 'Si tu familia añade alguna, te la recordaré.',
     dueNow: 'Ahora te toca',
     theOneAt: (time: string) => `La de las ${time}`,
@@ -205,6 +207,8 @@ export const es = {
     undoFailed: 'No se ha podido deshacer. Prueba otra vez.',
     taken: 'Ya me la he tomado',
     later: 'Recuérdamelo en un rato',
+    takenShort: 'Tomada',
+    laterShort: 'Luego',
     yourDay: 'TU DÍA',
     now: 'Ahora',
     takenAt: (time: string) => `tomada a las ${time}`,
@@ -232,6 +236,8 @@ export const es = {
     backLabel: 'Volver a Mi libro',
     kicker: (n: number) => `CAPÍTULO ${n}`,
     by: (name: string) => `Contado por ${name}`,
+    bigger: 'Letra más grande',
+    normal: 'Letra normal',
     next: 'Siguiente',
     cover: (name: string) => `La vida de ${name}`,
   },

@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   checkBox: {
     padding: 14,
     borderRadius: 16,
-    backgroundColor: '#f2f5f1',
+    backgroundColor: colors.surface,
   },
   checkText: {
     fontSize: family.fontSize.note,
@@ -187,12 +187,12 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     color: colors.ink,
   },
-  // A word she never said: sage underline, easy to spot without shouting
+  // A word she never said: black underline, easy to spot without shouting
   unheard: {
     fontWeight: '700',
     textDecorationLine: 'underline',
-    textDecorationColor: colors.sage,
-    backgroundColor: 'rgba(143, 168, 138, 0.2)',
+    textDecorationColor: colors.accent,
+    backgroundColor: 'rgba(17, 17, 17, 0.1)',
   },
   quote: {
     fontSize: 20,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#e6e8e4',
+    borderColor: '#e4e4e4',
   },
   confirmTitle: {
     fontSize: family.fontSize.subtitle,

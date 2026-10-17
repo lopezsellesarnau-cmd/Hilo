@@ -44,7 +44,7 @@ function Chips<T extends string>({
             accessibilityLabel={o.label}
             animateColor
             style={[styles.chip, on && styles.chipOn]}>
-            <Text style={styles.text}>{o.label}</Text>
+            <Text style={[styles.text, on && styles.textOn]}>{o.label}</Text>
           </PressScale>
         );
       })}
@@ -76,15 +76,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.sage,
+    borderColor: colors.accent,
     backgroundColor: colors.background,
   },
   chipOn: {
-    backgroundColor: colors.sage,
+    backgroundColor: colors.accent,
   },
   text: {
     fontSize: family.fontSize.body,
     fontWeight: fontWeight.semibold,
     color: colors.ink,
+  },
+  textOn: {
+    color: colors.onAccent,
   },
 });

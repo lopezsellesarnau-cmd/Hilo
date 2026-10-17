@@ -1,36 +1,27 @@
-import { Image } from 'expo-image';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { CheckIcon, PillIllustration } from '@/components/icons';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideFrame } from '@/components/wide-split';
-import { dateLocale, t } from '@/i18n';
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { remindLater } from '@/lib/reminders';
 import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
 import { useWide } from '@/lib/layout';
 import { localNow, showTime, type Dose } from '@/lib/time';
-import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
+import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
-const pillLarge = require('../../../assets/icons/pill-large.svg');
+/** How long "Hecho" and "Deshacer" stay after marking, in case of a wrong tap */
+const UNDO_MS = 10_000;
 
 /** How long "Recuérdamelo en un rato" waits */
 const SNOOZE_MINUTES = 30;
-
-/** "Domingo 11 de octubre" / "Zondag 11 oktober": the month stays in lower case */
-function todayLabel() {
-  const text = new Date().toLocaleDateString(dateLocale, {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
-  return (text.charAt(0).toUpperCase() + text.slice(1)).replace(',', '');
-}
 
 type DayPill = Dose & { snoozedUntil?: string };
 
@@ -38,8 +29,8 @@ type DayPill = Dose & { snoozedUntil?: string };
 const inMinutes = (timeZone: string, minutes: number) => localNow(timeZone, new Date(Date.now() + minutes * 60_000)).time;
 
 /**
- * One thing at a time: the pill that is due now, a big button,
- * and the whole day below as a thread.
+ * One thing at a time (18 oct prototype): the day as three big dots at the top,
+ * the pill that is due now in the middle, two big buttons at the bottom.
  */
 export default function PillsScreen() {
   const [me, setMe] = useState<SeniorMe | null>(null);
@@ -48,10 +39,9 @@ export default function PillsScreen() {
   const { width, height } = useWindowDimensions();
   // iPad on its side: the bot on the left, the pills on the right (so no second bot in the column)
   const wide = useWide();
-  // Same size as the bot on the home
-  const botSize = Math.min(size.bot, width * 0.7, height * 0.28);
-  // The pill circle is smaller: with the day list below, the screen must fit without scrolling
-  const circleSize = Math.min(size.bot, width * 0.5, height * 0.2);
+  const doneBotSize = Math.min(170, width * 0.45, height * 0.2);
+  // The screen must fit without scrolling with the dots above and the buttons below
+  const pillSize = Math.min(150, width * 0.38, height * 0.18);
   const timezone = me?.timezone ?? 'Europe/Madrid';
   const now = localNow(timezone).time;
 
@@ -68,7 +58,7 @@ export default function PillsScreen() {
     }, []),
   );
 
-  // After marking, "Deshacer" stays for 5 seconds in case of a wrong tap
+  // After marking, "Hecho" and "Deshacer" stay for a while in case of a wrong tap
   const [undoId, setUndoId] = useState<string | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -93,7 +83,7 @@ export default function PillsScreen() {
     update(dose.key, { takenAt: now, snoozedUntil: undefined });
     setUndoId(dose.key);
     if (undoTimer.current) clearTimeout(undoTimer.current);
-    undoTimer.current = setTimeout(() => setUndoId(null), 5000);
+    undoTimer.current = setTimeout(() => setUndoId(null), UNDO_MS);
 
     const { data, error: e } = await supabase
       .from('medication_events')
@@ -138,120 +128,122 @@ export default function PillsScreen() {
     }
   };
 
+  const taken = list.filter((p) => p.takenAt).length;
+  const doneView = undoPill ? (
+    <>
+      {wide ? null : (
+        <View style={styles.botWrap}>
+          <Bot size={doneBotSize} />
+        </View>
+      )}
+      <Text style={styles.doneTitle}>{t.pills.doneName(undoPill.name)}</Text>
+      <Text style={styles.focusDetail}>
+        {next ? t.pills.nextOne(next.name, showTime(next.time)) : pending.length === 0 ? t.pills.allDoneDetail : t.pills.remindSoon}
+      </Text>
+    </>
+  ) : null;
+
   return (
     <SafeAreaView style={styles.safe}>
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen} bounces={false}>
-          <ScreenHeader backLabel={t.home.title} title={t.home.pills} subtitle={todayLabel()} />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          {/* Fills the space between the header and the day, so nothing is left blank at the bottom */}
-          <View style={styles.stage}>
-            <Animated.View layout={LinearTransition.duration(250)} style={styles.focus}>
-              {!pills ? null : list.length === 0 ? (
-                <>
-                  {wide ? null : (
-                    <View style={styles.botWrap}>
-                      <Bot size={botSize} />
-                    </View>
-                  )}
-                  <Text style={styles.focusName}>{t.pills.noneToday}</Text>
-                  <Text style={styles.focusDetail}>{t.pills.noneTodayDetail}</Text>
-                </>
-              ) : due ? (
-                <>
-                  <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
-                    <Image source={pillLarge} style={styles.icon} contentFit="contain" />
-                  </View>
-                  <Text style={styles.kicker}>{t.pills.dueNow}</Text>
-                  <Text style={styles.focusName}>{due.name}</Text>
-                  <Text style={styles.focusDetail}>{t.pills.theOneAt(showTime(due.time))}</Text>
-                </>
-              ) : pending.length === 0 ? (
-                <>
-                  {wide ? null : (
-                    <View style={styles.botWrap}>
-                      <Bot size={botSize} />
-                    </View>
-                  )}
-                  <Text style={styles.focusName}>{t.pills.allDone}</Text>
-                  <Text style={styles.focusDetail}>{t.pills.allDoneDetail}</Text>
-                </>
-              ) : (
-                <>
-                  <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
-                    <Image source={pillLarge} style={[styles.icon, styles.iconLater]} contentFit="contain" />
-                  </View>
-                  <Text style={styles.kicker}>{t.pills.noneNow}</Text>
-                  {next ? (
-                    <Text style={styles.focusDetail}>{t.pills.nextOne(next.name, showTime(next.time))}</Text>
-                  ) : (
-                    <Text style={styles.focusDetail}>{t.pills.remindSoon}</Text>
-                  )}
-                </>
-              )}
-            </Animated.View>
-
-            <View style={styles.actions}>
-              {undoPill ? (
-                <View style={styles.undoRow}>
-                  <Text style={styles.undoText}>{t.pills.doneName(undoPill.name)}</Text>
-                  <Pressable
-                    onPress={() => undo(undoPill)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t.pills.undoA11y}
-                    hitSlop={12}>
-                    <Text style={styles.undoLink}>{t.pills.undo}</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-              {due ? (
-                <>
-                  <BigButton label={t.pills.taken} onPress={() => markTaken(due)} />
-                  <Pressable onPress={() => snooze(due)} accessibilityRole="button" hitSlop={8} style={styles.later}>
-                    <Text style={styles.laterText}>{t.pills.later}</Text>
-                  </Pressable>
-                </>
-              ) : null}
-            </View>
+          <View style={styles.top}>
+            <ScreenHeader backLabel={t.home.title} />
+            {list.length ? <Text style={styles.count}>{t.pills.countToday(taken, list.length)}</Text> : null}
           </View>
+          <Text accessibilityRole="header" style={styles.srOnly}>
+            {t.home.pills}
+          </Text>
 
-          <Text style={styles.dayLabel}>{t.pills.yourDay}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.threadScroll}>
-            <View style={styles.thread}>
-              <View style={styles.threadLine} />
+          {/* The day as big dots: done, now, later */}
+          {list.length ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayScroll}>
               {list.map((p) => {
                 const isNow = p.key === due?.key;
                 const done = !!p.takenAt;
                 return (
                   <View
                     key={p.key}
-                    style={styles.stop}
+                    style={[styles.stop, list.length <= 3 && styles.stopFill]}
                     accessible
                     accessibilityLabel={`${p.name}, ${done ? t.pills.takenAt(showTime(p.takenAt!)) : isNow ? t.pills.now.toLowerCase() : t.pills.at(showTime(p.time))}`}>
                     <View style={[styles.dot, done && styles.dotDone, isNow && styles.dotNow]}>
-                      {done ? <Text style={styles.tick}>✓</Text> : null}
+                      {done ? <CheckIcon /> : isNow ? <View style={styles.dotCore} /> : null}
                     </View>
-                    <Text style={[styles.stopName, isNow && styles.stopNameNow, !done && !isNow && styles.mutedText]} numberOfLines={2}>
-                      {p.name}
-                    </Text>
-                    <Text style={[styles.stopTime, isNow && styles.stopTimeNow]}>
-                      {done ? showTime(p.takenAt!) : isNow ? t.pills.now : showTime(p.time)}
+                    <Text style={[styles.stopText, isNow && styles.stopTextNow]} numberOfLines={2}>
+                      {`${showTime(done ? p.takenAt! : p.time)} · ${done ? t.pills.takenShort : isNow ? t.pills.now : t.pills.laterShort}`}
                     </Text>
                   </View>
                 );
               })}
-            </View>
-          </ScrollView>
+            </ScrollView>
+          ) : null}
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Animated.View layout={LinearTransition.duration(250)} style={styles.focus} accessibilityLiveRegion="polite">
+            {!pills ? null : doneView ? (
+              doneView
+            ) : list.length === 0 ? (
+              <>
+                {wide ? null : (
+                  <View style={styles.botWrap}>
+                    <Bot size={doneBotSize} />
+                  </View>
+                )}
+                <Text style={styles.focusName}>{t.pills.noneToday}</Text>
+                <Text style={styles.focusDetail}>{t.pills.noneTodayDetail}</Text>
+              </>
+            ) : due ? (
+              <>
+                <PillIllustration size={pillSize} />
+                <Text style={styles.kicker}>{t.pills.dueNow.toUpperCase()}</Text>
+                <Text style={styles.focusName}>{due.name}</Text>
+                <Text style={styles.focusDetail}>{t.pills.theOneAt(showTime(due.time))}</Text>
+              </>
+            ) : pending.length === 0 ? (
+              <>
+                {wide ? null : (
+                  <View style={styles.botWrap}>
+                    <Bot size={doneBotSize} />
+                  </View>
+                )}
+                <Text style={styles.focusName}>{t.pills.allDone}</Text>
+                <Text style={styles.focusDetail}>{t.pills.allDoneDetail}</Text>
+              </>
+            ) : (
+              <>
+                <View style={styles.later}>
+                  <PillIllustration size={pillSize} />
+                </View>
+                <Text style={styles.kicker}>{t.pills.noneNow.toUpperCase()}</Text>
+                <Text style={styles.focusDetail}>
+                  {next ? t.pills.nextOne(next.name, showTime(next.time)) : t.pills.remindSoon}
+                </Text>
+              </>
+            )}
+          </Animated.View>
+
+          <View style={styles.actions}>
+            {undoPill ? (
+              <>
+                <BigButton variant="outline" label={t.pills.undoA11y} onPress={() => undo(undoPill)} />
+                <BigButton label={t.talk.backHome} onPress={() => router.back()} />
+              </>
+            ) : due ? (
+              <>
+                <BigButton label={t.pills.taken} onPress={() => markTaken(due)} />
+                <BigButton variant="outline" label={t.pills.later} onPress={() => snooze(due)} />
+              </>
+            ) : null}
+          </View>
         </ScrollView>
       </WideFrame>
     </SafeAreaView>
   );
 }
 
-const DOT = 34;
-const STOP_WIDTH = 112;
+const DOT = 64;
 
 const styles = StyleSheet.create({
   safe: {
@@ -267,10 +259,22 @@ const styles = StyleSheet.create({
     paddingTop: spacing.screenTop,
     paddingBottom: spacing.screenBottom,
   },
-  stage: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: 20,
+  // Back button on the left, today's count on the right
+  top: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  count: {
+    marginTop: 12,
+    fontSize: 18,
+    fontWeight: fontWeight.bold,
+    color: colors.ink,
+  },
+  srOnly: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
   error: {
     marginTop: 18,
@@ -280,154 +284,103 @@ const styles = StyleSheet.create({
     color: '#b3261e',
     textAlign: 'center',
   },
-  focus: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  iconCircle: {
-    flexShrink: 0,
-    backgroundColor: 'rgba(143, 168, 138, 0.22)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 22,
-  },
-  // Same gap below the bot as below the pill circle
-  botWrap: {
-    flexShrink: 0,
-    marginBottom: 22,
-  },
-  icon: {
-    width: size.pillIconLarge + 11,
-    height: size.pillIconLarge + 11,
-  },
-  iconLater: {
-    opacity: 0.4,
-  },
-  kicker: {
-    fontSize: 22,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
-    textAlign: 'center',
-  },
-  focusName: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: fontWeight.heavy,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  focusDetail: {
-    fontSize: fontSize.status,
-    lineHeight: 28,
-    color: '#555555',
-    textAlign: 'center',
-  },
-  undoRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  undoText: {
-    fontSize: fontSize.label,
-    fontWeight: fontWeight.semibold,
-    color: colors.ink,
-  },
-  undoLink: {
-    fontSize: fontSize.label,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
-    textDecorationLine: 'underline',
-  },
-  actions: {
-    marginTop: 30,
-    gap: 6,
-  },
-  later: {
-    alignSelf: 'center',
-    paddingVertical: 14,
-  },
-  laterText: {
-    fontSize: fontSize.status,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
-    textDecorationLine: 'underline',
-  },
-  dayLabel: {
-    marginTop: 12,
-    marginBottom: 16,
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 1,
-    color: colors.muted,
-  },
-  threadScroll: {
+  dayScroll: {
     flexGrow: 1,
-  },
-  thread: {
-    flexDirection: 'row',
-    flexGrow: 1,
-  },
-  // The thread runs from the first dot to the last one
-  threadLine: {
-    position: 'absolute',
-    top: DOT / 2 - 1.5,
-    left: STOP_WIDTH / 2,
-    right: STOP_WIDTH / 2,
-    height: 3,
-    backgroundColor: colors.sageSoft,
+    gap: 8,
+    paddingTop: 8,
   },
   stop: {
-    flexGrow: 1,
-    width: STOP_WIDTH,
+    width: 112,
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 4,
+  },
+  // Three or fewer: they share the width, like the prototype
+  stopFill: {
+    flex: 1,
   },
   dot: {
-    flexShrink: 0,
     width: DOT,
     height: DOT,
     borderRadius: DOT / 2,
     borderWidth: 3,
-    borderColor: colors.sageSoft,
-    backgroundColor: colors.background,
+    borderStyle: 'dashed',
+    borderColor: '#a0a0a0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   dotDone: {
-    borderColor: colors.sage,
-    backgroundColor: colors.sage,
+    borderStyle: 'solid',
+    borderColor: colors.accent,
+    backgroundColor: colors.accent,
   },
   dotNow: {
-    borderWidth: 4,
-    borderColor: colors.sage,
+    borderStyle: 'solid',
+    borderWidth: 6,
+    borderColor: colors.accent,
   },
-  tick: {
-    fontSize: 18,
+  dotCore: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.accent,
+  },
+  stopText: {
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: fontWeight.semibold,
+    color: colors.muted,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
+  stopTextNow: {
     fontWeight: fontWeight.heavy,
     color: colors.ink,
   },
-  stopName: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: fontWeight.semibold,
+  focus: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 24,
+  },
+  botWrap: {
+    marginBottom: 14,
+  },
+  later: {
+    opacity: 0.35,
+  },
+  kicker: {
+    marginTop: 14,
+    fontSize: 18,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 1.4,
+    color: colors.muted,
+    textAlign: 'center',
+  },
+  focusName: {
+    fontSize: 44,
+    lineHeight: 48,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -1,
     color: colors.ink,
     textAlign: 'center',
   },
-  stopNameNow: {
-    fontWeight: fontWeight.heavy,
-  },
-  mutedText: {
-    color: colors.muted,
-  },
-  stopTime: {
-    fontSize: 15,
-    color: colors.muted,
-    fontVariant: ['tabular-nums'],
-  },
-  stopTimeNow: {
+  doneTitle: {
+    fontSize: 36,
+    lineHeight: 40,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.5,
     color: colors.ink,
-    fontWeight: fontWeight.semibold,
+    textAlign: 'center',
+  },
+  focusDetail: {
+    marginTop: 4,
+    fontSize: 21,
+    lineHeight: 28,
+    color: '#4a4a4a',
+    textAlign: 'center',
+  },
+  actions: {
+    gap: 10,
   },
 });

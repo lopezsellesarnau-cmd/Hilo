@@ -42,10 +42,10 @@ export function useScrollFade() {
 }
 
 /**
- * Bottom fade: content blurs and fades into white while there is more to scroll.
+ * Bottom fade: content blurs and fades into the background (white, or the book's paper) while there is more to scroll.
  * Hidden at the end so the last item is fully readable.
  */
-export function ScrollFade({ visible }: { visible: boolean }) {
+export function ScrollFade({ visible, color = '#ffffff' }: { visible: boolean; color?: string }) {
   const insets = useSafeAreaInsets();
   return (
     <Animated.View
@@ -63,7 +63,7 @@ export function ScrollFade({ visible }: { visible: boolean }) {
         <BlurView intensity={12} tint="light" blurMethod="dimezisBlurViewSdk31Plus" style={StyleSheet.absoluteFill} />
       </MaskedView>
       <LinearGradient
-        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.75)', '#ffffff']}
+        colors={[`${color}00`, `${color}bf`, color]}
         locations={[0, 0.6, 1]}
         style={StyleSheet.absoluteFill}
       />

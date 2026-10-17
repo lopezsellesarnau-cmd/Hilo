@@ -8,7 +8,7 @@ import { colors, family, fontSize, fontWeight, size } from '@/theme';
 type Props = {
   label: string;
   onPress?: () => void;
-  /** "fill": sage background (main action). "outline": sage border on white. */
+  /** "fill": black background, white text (main action). "outline": black border on white. */
   variant?: 'fill' | 'outline';
   /** Small text on the right, e.g. "0 de 3" */
   detail?: string;
@@ -33,18 +33,18 @@ export function BigButton({ label, onPress, variant = 'fill', detail, icon, acce
       style={[styles.base, outline ? styles.outline : styles.fill, compact && styles.familyBase, compact && outline && styles.familyOutline]}>
       {spread ? (
         <View style={styles.rowSpread}>
-          <Text style={[styles.label, compact && styles.familyLabel]} numberOfLines={2}>
+          <Text style={[styles.label, !outline && styles.labelOnFill, compact && styles.familyLabel]} numberOfLines={2}>
             {label}
           </Text>
           <View style={styles.right}>
-            {detail ? <Text style={styles.detail}>{detail}</Text> : null}
+            {detail ? <Text style={[styles.detail, !outline && styles.labelOnFill]}>{detail}</Text> : null}
             {icon}
           </View>
         </View>
       ) : (
         <View style={styles.rowCenter}>
           {icon}
-          <Text style={[styles.label, compact && styles.familyLabel]} numberOfLines={2}>
+          <Text style={[styles.label, !outline && styles.labelOnFill, compact && styles.familyLabel]} numberOfLines={2}>
             {label}
           </Text>
         </View>
@@ -62,13 +62,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   fill: {
-    backgroundColor: colors.sage,
+    backgroundColor: colors.accent,
     paddingHorizontal: 24,
+  },
+  labelOnFill: {
+    color: colors.onAccent,
   },
   outline: {
     backgroundColor: colors.background,
     borderWidth: size.buttonBorder,
-    borderColor: colors.sage,
+    borderColor: colors.accent,
     paddingLeft: 24,
     paddingRight: 20,
   },
@@ -102,7 +105,7 @@ const styles = StyleSheet.create({
   label: {
     flexShrink: 1,
     fontSize: fontSize.button,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
     color: colors.ink,
     textAlign: 'center',
   },

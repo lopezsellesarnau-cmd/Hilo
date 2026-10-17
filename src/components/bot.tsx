@@ -5,9 +5,11 @@ import Animated, { useReducedMotion, type CSSAnimationKeyframes } from 'react-na
 import { t } from '@/i18n';
 import { colors } from '@/theme';
 
+// The three poses of the 18 oct bot (black circle, two eyes joined by a thread). The front-facing pose is not used.
 const sources = {
   right: require('../../assets/icons/bot.svg'),
   left: require('../../assets/icons/bot-looking-left.svg'),
+  thinking: require('../../assets/icons/bot-thinking.svg'),
 };
 
 export type BotMood = 'idle' | 'listening' | 'thinking' | 'speaking';
@@ -15,7 +17,7 @@ export type BotMood = 'idle' | 'listening' | 'thinking' | 'speaking';
 type Props = {
   size: number;
   mood?: BotMood;
-  /** Which way the eyes look (Figma: Home looks right, Speech looks left) */
+  /** Which way the eyes look while idle. Speaking always looks left (towards the text), thinking tilts the head. */
   look?: 'right' | 'left';
 };
 
@@ -62,6 +64,7 @@ const loop = { animationIterationCount: 'infinite', animationTimingFunction: 'ea
 
 export function Bot({ size, mood = 'idle', look = 'right' }: Props) {
   const reduceMotion = useReducedMotion();
+  const pose = mood === 'thinking' ? 'thinking' : mood === 'speaking' ? 'left' : mood === 'listening' ? 'right' : look;
   const anim = (style: object) => (reduceMotion ? null : style);
 
   const floatDuration = { idle: '5s', listening: '3s', thinking: '6s', speaking: '4s' }[mood];
@@ -91,7 +94,7 @@ export function Bot({ size, mood = 'idle', look = 'right' }: Props) {
       ) : null}
       <Animated.View style={[styles.fill, mood === 'listening' && styles.listening, anim(scaleAnim ?? {})]}>
         <Animated.View style={[styles.fill, anim(rotateAnim ?? {})]}>
-          <Image source={sources[look]} style={styles.fill} contentFit="contain" accessibilityLabel={t.common.assistant} />
+          <Image source={sources[pose]} style={styles.fill} contentFit="contain" accessibilityLabel={t.common.assistant} />
         </Animated.View>
       </Animated.View>
     </Animated.View>
@@ -114,7 +117,7 @@ const styles = StyleSheet.create({
     bottom: '-6%',
     borderRadius: 9999,
     borderWidth: 3,
-    borderColor: colors.sage,
+    borderColor: colors.accent,
     opacity: 0,
   },
 });

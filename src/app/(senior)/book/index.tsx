@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/book-cover';
+import { ChevronCircle } from '@/components/icons';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
@@ -11,7 +12,7 @@ import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { loadBook } from '@/lib/book';
 import { useWide } from '@/lib/layout';
-import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
+import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
 const text = t.book;
 
@@ -42,17 +43,18 @@ export default function BookScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <WideFrame side={bigCover}>
         <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
-          <ScreenHeader
-            backLabel={text.back}
-            title={text.title}
-            subtitle={book && 'chapters' in book ? text.count(chapters.length) : undefined}
-          />
+          <ScreenHeader backLabel={text.back} />
 
+          {/* Her book first, then the title: the picture says what this screen is */}
           {book && 'name' in book && !wide ? (
             <View style={styles.cover}>
-              <BookCover width={Math.min(220, width * 0.55)} title={text.cover(book.name)} />
+              <BookCover width={Math.min(164, width * 0.42, height * 0.2)} title={text.cover(book.name)} />
             </View>
           ) : null}
+          <View accessibilityRole="header" style={styles.titles}>
+            <Text style={styles.title}>{text.title}</Text>
+            {book && 'chapters' in book ? <Text style={styles.subtitle}>{text.count(chapters.length)}</Text> : null}
+          </View>
 
           {book && 'error' in book ? <Text style={styles.note}>{book.error}</Text> : null}
           {book && 'chapters' in book && !chapters.length ? <Text style={styles.note}>{text.empty}</Text> : null}
@@ -69,7 +71,7 @@ export default function BookScreen() {
                   <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
                   <Text style={styles.chapterTitle}>{chapter.title}</Text>
                 </View>
-                <Text style={styles.chevron}>›</Text>
+                <ChevronCircle />
               </PressScale>
             ))}
           </View>
@@ -95,44 +97,53 @@ const styles = StyleSheet.create({
   },
   cover: {
     alignItems: 'center',
-    marginTop: 36,
+  },
+  titles: {
+    marginTop: 18,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: fontSize.title,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.5,
+    color: colors.ink,
+  },
+  subtitle: {
+    marginTop: 2,
+    fontSize: 21,
+    fontWeight: fontWeight.regular,
+    color: colors.muted,
   },
   list: {
-    marginTop: 48,
-    gap: spacing.buttonGap,
+    marginTop: 22,
+    gap: 10,
   },
+  // Grey pill per chapter, the round black arrow at the end
   chapter: {
-    minHeight: 84,
-    borderWidth: size.buttonBorder,
-    borderColor: colors.sage,
-    borderRadius: 42,
-    paddingVertical: 12,
-    paddingLeft: 26,
-    paddingRight: 22,
+    minHeight: 78,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingLeft: 24,
+    paddingRight: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
   chapterText: {
     flexShrink: 1,
-    gap: 2,
   },
   kicker: {
     fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 1.1,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 0.8,
     color: colors.muted,
   },
   chapterTitle: {
-    fontSize: fontSize.pillName,
-    fontWeight: fontWeight.semibold,
-    color: colors.ink,
-  },
-  chevron: {
-    fontSize: 30,
-    fontWeight: fontWeight.semibold,
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: fontWeight.bold,
     color: colors.ink,
   },
   note: {
