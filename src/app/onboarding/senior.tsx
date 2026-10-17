@@ -5,6 +5,7 @@ import { StyleSheet, Text } from 'react-native';
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
+import { t } from '@/i18n';
 import { TERMS_VERSION } from '@/lib/legal';
 import { supabase } from '@/lib/supabase';
 import { family } from '@/theme';
@@ -31,7 +32,7 @@ async function saveFamily(memberName: string, seniorName: string) {
   let familyId: string | undefined = me?.family_id;
   if (!familyId) {
     const { data, error } = await supabase.rpc('create_family', {
-      family_name: `Familia de ${seniorName}`,
+      family_name: t.senior.familyName(seniorName),
       member_name: memberName,
     });
     if (error) throw error;
@@ -92,7 +93,7 @@ export default function SeniorStep() {
       if (__DEV__) console.warn('saveFamily failed', e);
       setSaving(false);
       const detail = __DEV__ ? `\n\n[dev] ${e instanceof Error ? e.message : JSON.stringify(e)}` : '';
-      setError(`No hemos podido guardarlo. Comprueba tu conexión y vuelve a probar.${detail}`);
+      setError(`${t.common.saveFailed}${detail}`);
       return;
     }
     setSaving(false);
@@ -103,17 +104,17 @@ export default function SeniorStep() {
     <OnboardingStep
       step={3}
       mood={saving ? 'thinking' : 'idle'}
-      question="¿Para quién es Hilo?"
-      hint="Escribe su nombre como lo decís en casa. Hilo le hablará así cada día."
-      footer={<BigButton scale="family" label={saving ? 'Guardando…' : 'Continuar'} onPress={ready ? next : undefined} />}>
+      question={t.senior.question}
+      hint={t.senior.hint}
+      footer={<BigButton scale="family" label={saving ? t.common.saving : t.common.continue} onPress={ready ? next : undefined} />}>
       <TextField
-        label="Su nombre"
+        label={t.senior.label}
         value={name}
         onChangeText={(v) => {
           setName(v);
           setError(null);
         }}
-        placeholder="Carmen"
+        placeholder={t.senior.placeholder}
         autoCapitalize="words"
         autoCorrect={false}
         maxLength={60}

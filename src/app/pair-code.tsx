@@ -8,6 +8,7 @@ import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextField } from '@/components/text-field';
 import { WideFrame } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { useWide } from '@/lib/layout';
 import { pair, PAIR_MESSAGES } from '@/lib/pairing';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
@@ -46,14 +47,14 @@ export default function PairCodeScreen() {
               </View>
             )}
             <ScreenHeader
-              title="Escribe el código"
-              subtitle="Te lo da tu familia. Son 6 números, o un código QR."
-              backLabel="Atrás"
+              title={t.code.question}
+              subtitle={t.pairCode.subtitle}
+              backLabel={t.common.back}
             />
 
             <View style={styles.body}>
               <TextField
-                label="Código"
+                label={t.code.label}
                 code
                 value={code}
                 onChangeText={(v) => {
@@ -70,9 +71,9 @@ export default function PairCodeScreen() {
             </View>
 
             <View style={styles.footer}>
-              <BigButton variant="outline" label="Escanear el código QR" onPress={() => router.push('/pair-scan')} />
+              <BigButton variant="outline" label={t.pairCode.scan} onPress={() => router.push('/pair-scan')} />
               <BigButton
-                label={checking ? 'Conectando…' : 'Conectar'}
+                label={checking ? t.pairCode.connecting : t.pairCode.connect}
                 onPress={code.length === 6 && !checking ? () => submit(code) : undefined}
               />
             </View>

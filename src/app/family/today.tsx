@@ -7,6 +7,7 @@ import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { TodayPills } from '@/components/today-pills';
 import { WideFrame } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { localNow } from '@/lib/time';
 import { colors, family, fontWeight, spacing } from '@/theme';
@@ -18,18 +19,7 @@ const showTime = (t: string) => t.slice(0, 5).replace(/^0/, '');
 
 type Talk = { started_at: string; ended_at: string | null };
 
-// Texts of the talk card, together for the translation later
-const text = {
-  talked: (time: string, minutes: number | null, count: number) =>
-    `Ha charlado hoy a las ${time}` +
-    (minutes !== null ? ` · ${minutes} min` : '') +
-    (count > 1 ? ` · ${count} charlas` : '') +
-    '.',
-  story: 'Nueva historia',
-  stories: (n: number) => `${n} historias para revisar`,
-  review: 'Revisar',
-  notYet: (time: string | null) => `Aún no ha charlado hoy.${time ? ` Su charla es a las ${time}.` : ''}`,
-};
+const text = t.today;
 
 /** Her talks today, in her time zone. The latest one first */
 const talkedToday = (talks: Talk[], timeZone: string) => {
@@ -59,7 +49,7 @@ export default function TodayScreen() {
         .maybeSingle()
         .then(({ data, error: e }) => {
           if (e) {
-            setError('No hemos podido cargar los datos. Comprueba tu conexión.');
+            setError(t.common.loadFailed);
             return;
           }
           setError(null);
@@ -93,9 +83,9 @@ export default function TodayScreen() {
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
           <Text style={styles.title} accessibilityRole="header">
-            Hoy
+            {text.title}
           </Text>
-          {senior ? <Text style={styles.subtitle}>Con {senior.display_name}</Text> : null}
+          {senior ? <Text style={styles.subtitle}>{text.with(senior.display_name)}</Text> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {senior ? (
@@ -105,7 +95,7 @@ export default function TodayScreen() {
                   <Bot size={56} />
                 </View>
                 <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>La charla</Text>
+                  <Text style={styles.cardTitle}>{text.talk}</Text>
                   <Text style={styles.cardBody}>
                     {talks.length
                       ? text.talked(
@@ -124,7 +114,7 @@ export default function TodayScreen() {
                 <View style={[styles.card, styles.cardTodo]}>
                   <View style={styles.cardText}>
                     <Text style={styles.cardTitle}>{drafts.length === 1 ? text.story : text.stories(drafts.length)}</Text>
-                    <Text style={styles.cardBody}>«{drafts[0].title}»</Text>
+                    <Text style={styles.cardBody}>{text.quoted(drafts[0].title)}</Text>
                   </View>
                   <BigButton
                     scale="family"
@@ -137,17 +127,17 @@ export default function TodayScreen() {
               {senior.user_id ? (
                 <View style={styles.card}>
                   <View style={styles.cardText}>
-                    <Text style={styles.cardTitle}>Su móvil</Text>
-                    <Text style={styles.cardBody}>Conectado. Hilo ya puede avisarle.</Text>
+                    <Text style={styles.cardTitle}>{text.phone}</Text>
+                    <Text style={styles.cardBody}>{text.phoneOk}</Text>
                   </View>
                 </View>
               ) : (
                 <View style={[styles.card, styles.cardTodo]}>
                   <View style={styles.cardText}>
-                    <Text style={styles.cardTitle}>Falta conectar su móvil</Text>
-                    <Text style={styles.cardBody}>Sin esto, Hilo no puede hablar con {senior.display_name}.</Text>
+                    <Text style={styles.cardTitle}>{text.phoneMissing}</Text>
+                    <Text style={styles.cardBody}>{text.phoneMissingBody(senior.display_name)}</Text>
                   </View>
-                  <BigButton scale="family" label="Conectar su móvil" onPress={pair} />
+                  <BigButton scale="family" label={text.connect} onPress={pair} />
                 </View>
               )}
 

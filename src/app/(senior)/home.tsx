@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { WideSplit } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadSeniorDay } from '@/lib/senior-day';
@@ -50,8 +51,8 @@ export default function HomeScreen() {
 
   const header = (
     <Animated.View entering={enter(0)} accessibilityRole="header" style={styles.header}>
-      <Text style={styles.title}>{name ? `¡Hola, ${name}!` : '¡Hola!'}</Text>
-      <Text style={styles.subtitle}>¿Cómo estás?</Text>
+      <Text style={styles.title}>{t.home.hello(name)}</Text>
+      <Text style={styles.subtitle}>{t.home.howAreYou}</Text>
     </Animated.View>
   );
 
@@ -64,13 +65,13 @@ export default function HomeScreen() {
   const buttons = (
     <View style={styles.buttons}>
       <Animated.View entering={enter(1)}>
-        <BigButton label="Hablar" accessibilityHint="Empieza la charla de hoy" onPress={() => router.push('/talk')} />
+        <BigButton label={t.home.talk} accessibilityHint={t.home.talkHint} onPress={() => router.push('/talk')} />
       </Animated.View>
       <Animated.View entering={enter(2)}>
         <BigButton
           variant="outline"
-          label="Mis pastillas"
-          detail={pills?.total ? `${pills.taken} de ${pills.total}` : undefined}
+          label={t.home.pills}
+          detail={pills?.total ? t.home.pillsCount(pills.taken, pills.total) : undefined}
           onPress={() => router.push('/pills')}
           icon={<Image source={pill} style={styles.icon} contentFit="contain" />}
         />
@@ -78,7 +79,7 @@ export default function HomeScreen() {
       <Animated.View entering={enter(3)}>
         <BigButton
           variant="outline"
-          label="Mi libro"
+          label={t.home.book}
           onPress={() => router.push('/book')}
           icon={<Image source={book} style={styles.bookIcon} contentFit="contain" />}
         />

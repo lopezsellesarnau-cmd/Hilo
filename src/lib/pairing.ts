@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 
 /** What the family's QR holds. Any 6 digits in a row are read back as the code. */
@@ -24,7 +25,7 @@ export async function pair(code: string) {
 }
 
 export const PAIR_MESSAGES: Record<string, string> = {
-  code: 'Ese código no sirve. Pide a tu familia uno nuevo.',
-  paired: 'Este móvil ya está conectado.',
-  offline: 'No hay conexión. Prueba otra vez en un momento.',
+  code: t.pairCode.badCode,
+  paired: t.pairCode.alreadyPaired,
+  offline: t.common.offline,
 };

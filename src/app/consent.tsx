@@ -7,6 +7,7 @@ import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideFrame } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { useWide } from '@/lib/layout';
 import { askForReminders } from '@/lib/reminders';
 import { supabase } from '@/lib/supabase';
@@ -16,12 +17,7 @@ import { colors, fontSize, fontWeight, spacing } from '@/theme';
 const CONSENT_VERSION = '2026-10-v1';
 const KINDS = ['terms', 'voice_recording', 'life_story', 'health_data'] as const;
 
-const POINTS = [
-  'Guarda tu voz y lo que cuentas en las charlas, para escribir tu libro.',
-  'Guarda cuándo tomas tus pastillas, para avisar a tu familia si se te olvida.',
-  'Solo lo ve tu familia. No lo vendemos a nadie.',
-  'Puedes pedir que se borre todo cuando quieras.',
-];
+const POINTS = t.consent.points;
 
 /**
  * The senior gives their own consent on their own phone, right after pairing.
@@ -48,7 +44,7 @@ export default function ConsentScreen() {
           .insert(KINDS.map((kind) => ({ family_id: me.family_id, person_id: personId, kind, version: CONSENT_VERSION })));
     setSaving(false);
     if (e) {
-      setError('No se ha podido guardar. Prueba otra vez en un momento.');
+      setError(t.common.saveFailed);
       return;
     }
     setDone(true);
@@ -66,12 +62,12 @@ export default function ConsentScreen() {
                 </View>
               )}
               <Text style={styles.doneTitle} accessibilityRole="header">
-                ¡Todo listo!
+                {t.consent.doneTitle}
               </Text>
-              <Text style={styles.doneText}>Cada día, Hilo te avisará para charlar un rato.</Text>
+              <Text style={styles.doneText}>{t.consent.doneText}</Text>
             </View>
             <BigButton
-              label="Empezar"
+              label={t.consent.start}
               onPress={async () => {
                 // The screen just promised "Hilo te avisará": ask for notifications now, when it makes sense
                 await askForReminders();
@@ -93,7 +89,7 @@ export default function ConsentScreen() {
               <Bot size={96} mood={saving ? 'thinking' : 'idle'} />
             </View>
           )}
-          <ScreenHeader title="Antes de empezar" subtitle="Esto es lo que hace Hilo con lo que le cuentas." />
+          <ScreenHeader title={t.consent.title} subtitle={t.consent.subtitle} />
 
           <View style={styles.points}>
             {POINTS.map((p) => (
@@ -105,13 +101,13 @@ export default function ConsentScreen() {
           </View>
 
           {declined ? (
-            <Text style={styles.note}>Sin tu permiso, Hilo no puede funcionar. Puedes hablarlo con tu familia y volver aquí.</Text>
+            <Text style={styles.note}>{t.consent.declined}</Text>
           ) : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <View style={styles.footer}>
-            <BigButton label={saving ? 'Guardando…' : 'Estoy de acuerdo'} onPress={saving ? undefined : accept} />
-            <BigButton variant="outline" label="Ahora no" onPress={() => setDeclined(true)} />
+            <BigButton label={saving ? t.common.saving : t.consent.agree} onPress={saving ? undefined : accept} />
+            <BigButton variant="outline" label={t.consent.notNow} onPress={() => setDeclined(true)} />
           </View>
         </ScrollView>
       </WideFrame>

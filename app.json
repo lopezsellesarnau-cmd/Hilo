@@ -69,11 +69,28 @@
         {
           "microphonePermission": "Hilo usa el micrófono para escucharte cuando tocas el botón para hablar."
         }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "es",
+              "en",
+              "nl"
+            ]
+          }
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "locales": {
+      "es": "./locales/es.json",
+      "en": "./locales/en.json",
+      "nl": "./locales/nl.json"
     }
   }
 }

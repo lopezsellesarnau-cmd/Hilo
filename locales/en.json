@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSMicrophoneUsageDescription": "Hilo uses the microphone to listen to you when you tap the button to talk.",
+    "NSSpeechRecognitionUsageDescription": "Hilo turns what you say into text to keep it in your book.",
+    "NSCameraUsageDescription": "Hilo uses the camera to read the QR code your family gives you.",
+    "NSPhotoLibraryUsageDescription": "Hilo doesn't use your photos. If it ever needs them, it will ask you first."
+  }
+}

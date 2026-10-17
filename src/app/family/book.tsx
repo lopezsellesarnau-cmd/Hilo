@@ -5,22 +5,16 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WideFrame } from '@/components/wide-split';
+import { dateLocale, t } from '@/i18n';
 import { loadFamilyBook, type Draft } from '@/lib/book';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
 const bookIcon = require('../../../assets/icons/book.svg');
 
-const text = {
-  title: 'Libro',
-  toReview: 'PARA REVISAR',
-  inBook: 'EN SU LIBRO',
-  emptyTitle: 'Aún no hay historias',
-  emptyText: 'Cuando empiece a charlar con Hilo, aquí aparecerán sus historias para que las revises.',
-  check: (n: number) => (n === 1 ? '1 palabra para revisar' : `${n} palabras para revisar`),
-};
+const text = t.familyBook;
 
 /** '2026-10-14T…' → '14 oct' */
-const day = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+const day = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
 
 function StoryRow({ chapter }: { chapter: Draft }) {
   const draft = chapter.status === 'draft';

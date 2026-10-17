@@ -6,6 +6,7 @@ import { AgreeBox } from '@/components/agree-box';
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { family } from '@/theme';
 
@@ -19,11 +20,11 @@ export default function EmailStep() {
 
   const send = async () => {
     if (!agreed) {
-      setError('Para seguir, marca que aceptas los Términos.');
+      setError(t.email.mustAgree);
       return;
     }
     if (!looksLikeEmail(email)) {
-      setError('Revisa el email: parece que falta algo.');
+      setError(t.email.invalid);
       return;
     }
     setSending(true);
@@ -36,8 +37,8 @@ export default function EmailStep() {
     if (e) {
       setError(
         e.status === 429
-          ? 'Hemos enviado demasiados códigos seguidos. Espera unos minutos y vuelve a probar.'
-          : 'No hemos podido enviar el código. Comprueba tu conexión y vuelve a probar.',
+          ? t.email.tooMany
+          : t.email.sendFailed,
       );
       return;
     }
@@ -48,19 +49,19 @@ export default function EmailStep() {
     <OnboardingStep
       step={1}
       mood={sending ? 'thinking' : 'idle'}
-      question="¿Cuál es tu email?"
-      hint="Te enviamos un código de 6 cifras. Sin contraseñas."
+      question={t.email.question}
+      hint={t.email.hint}
       footer={
-        <BigButton scale="family" label={sending ? 'Enviando…' : 'Enviar código'} onPress={sending ? undefined : send} />
+        <BigButton scale="family" label={sending ? t.email.sending : t.email.send} onPress={sending ? undefined : send} />
       }>
       <TextField
-        label="Email"
+        label={t.settings.email}
         value={email}
         onChangeText={(v) => {
           setEmail(v);
           setError(null);
         }}
-        placeholder="laura@email.com"
+        placeholder={t.email.placeholder}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}

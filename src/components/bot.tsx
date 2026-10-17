@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet } from 'react-native';
 import Animated, { useReducedMotion, type CSSAnimationKeyframes } from 'react-native-reanimated';
 
+import { t } from '@/i18n';
 import { colors } from '@/theme';
 
 const sources = {
@@ -90,7 +91,7 @@ export function Bot({ size, mood = 'idle', look = 'right' }: Props) {
       ) : null}
       <Animated.View style={[styles.fill, mood === 'listening' && styles.listening, anim(scaleAnim ?? {})]}>
         <Animated.View style={[styles.fill, anim(rotateAnim ?? {})]}>
-          <Image source={sources[look]} style={styles.fill} contentFit="contain" accessibilityLabel="Tu asistente" />
+          <Image source={sources[look]} style={styles.fill} contentFit="contain" accessibilityLabel={t.common.assistant} />
         </Animated.View>
       </Animated.View>
     </Animated.View>

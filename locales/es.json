@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "NSMicrophoneUsageDescription": "Hilo usa el micrófono para escucharte cuando tocas el botón para hablar.",
+    "NSSpeechRecognitionUsageDescription": "Hilo convierte lo que cuentas en texto para guardarlo en tu libro.",
+    "NSCameraUsageDescription": "Hilo usa la cámara para leer el código QR que te da tu familia.",
+    "NSPhotoLibraryUsageDescription": "Hilo no usa tus fotos. Si algún día lo necesita, te lo preguntará antes."
+  }
+}

@@ -1,0 +1,333 @@
+import type { Strings } from './es';
+
+/**
+ * Dutch. The senior's screens say "u" (what older Dutch people expect from an app),
+ * the family's screens say "je". To be checked by a native speaker before launch.
+ */
+export const nl: Strings = {
+  common: {
+    back: 'Terug',
+    backTo: (label: string) => `Terug naar ${label}`,
+    continue: 'Verder',
+    save: 'Opslaan',
+    saving: 'Opslaan…',
+    done: 'Klaar',
+    later: 'Doe ik later',
+    yes: 'Ja',
+    no: 'Nee',
+    assistant: 'Uw assistent',
+    saveFailed: 'Het opslaan is niet gelukt. Controleer de verbinding en probeer het opnieuw.',
+    loadFailed: 'De gegevens konden niet worden geladen. Controleer de verbinding.',
+    offline: 'Geen verbinding. Probeer het zo nog eens.',
+    notPaired: 'Deze telefoon is nog niet verbonden met uw familie.',
+  },
+
+  welcome: {
+    tagline: 'Elke dag een praatje voor wie je het liefst hebt.',
+    family: 'Ik ben familie',
+    haveCode: 'Ik heb een code',
+    codeNote: '"Ik heb een code" is voor de telefoon van je moeder, vader of opa of oma.',
+  },
+
+  agree: {
+    before: 'Ik ga akkoord met de ',
+    terms: 'Voorwaarden',
+    middle: ' en het ',
+    privacy: 'Privacybeleid',
+  },
+
+  onboarding: {
+    stepOf: (step: number, total: number) => `Stap ${step} van ${total}`,
+  },
+
+  email: {
+    question: 'Wat is je e-mailadres?',
+    hint: 'We sturen je een code van 6 cijfers. Geen wachtwoorden.',
+    placeholder: 'laura@email.nl',
+    send: 'Code sturen',
+    sending: 'Versturen…',
+    mustAgree: 'Vink aan dat je akkoord gaat met de Voorwaarden om verder te gaan.',
+    invalid: 'Controleer het e-mailadres: er lijkt iets te ontbreken.',
+    tooMany: 'We hebben te veel codes achter elkaar gestuurd. Wacht een paar minuten en probeer het opnieuw.',
+    sendFailed: 'De code kon niet worden verstuurd. Controleer je verbinding en probeer het opnieuw.',
+  },
+
+  code: {
+    question: 'Vul de code in',
+    label: 'Code',
+    sentTo: 'We hebben hem gestuurd naar ',
+    checkSpam: '. Kijk ook in je spam.',
+    checking: 'Controleren…',
+    wrong: 'Die code klopt niet of is verlopen. Controleer hem of vraag een nieuwe aan.',
+    wait: 'Wacht een paar minuten voordat je een nieuwe code aanvraagt.',
+    resent: 'We hebben je een nieuwe code gestuurd.',
+    resend: 'Nieuwe code sturen',
+  },
+
+  name: {
+    question: 'Hoe heet je?',
+    hint: 'Zo ziet de rest van de familie je in Hilo.',
+    label: 'Je naam',
+    placeholder: 'Laura',
+  },
+
+  senior: {
+    question: 'Voor wie is Hilo?',
+    hint: 'Schrijf de naam zoals jullie die thuis zeggen. Zo spreekt Hilo hem of haar elke dag aan.',
+    label: 'Naam',
+    placeholder: 'Carmen',
+    familyName: (name: string) => `Familie van ${name}`,
+  },
+
+  talkStep: {
+    question: (name: string) => (name ? `Hoe laat praat ${name} met Hilo?` : 'Hoe laat is het praatje met Hilo?'),
+    hint: 'Elke dag op dat tijdstip nodigt Hilo hem of haar uit voor een praatje.',
+    timeLabel: 'TIJD',
+    timeA11y: 'Tijd van het praatje',
+    timezone: (zone: string) => `Tijdzone: ${zone}`,
+    langLabel: 'TAAL VAN HET PRAATJE',
+    langA11y: 'Taal van het praatje',
+  },
+
+  pillsStep: {
+    question: (name: string) => (name ? `Welke pillen neemt ${name}?` : 'Welke pillen neemt hij of zij elke dag?'),
+    hint: 'Hilo herinnert er op tijd aan en laat het je weten als een pil vergeten wordt.',
+    nameLabel: 'Naam van de pil',
+    namePlaceholder: 'Die voor de bloeddruk',
+    timeLabel: 'HOE LAAT',
+    timesA11y: 'Tijden van de pil',
+    everyDay: 'Elke dag.',
+    everyDayLater: 'Elke dag. Je kunt het later wijzigen in Instellingen.',
+    add: 'Pil toevoegen',
+    remove: 'Verwijderen',
+    removeA11y: (name: string) => `${name} verwijderen`,
+    removeFailed: 'Verwijderen is niet gelukt. Probeer het opnieuw.',
+  },
+
+  pair: {
+    question: (name: string) => (name ? `Verbind de telefoon van ${name}` : 'Verbind de telefoon'),
+    hint: 'Houd de telefoon bij de hand. Het duurt maar even.',
+    step1: '1. Installeer Hilo op die telefoon via de App Store.',
+    step2: '2. Open Hilo en tik op "Ik heb een code".',
+    step3: '3. Tik op "QR-code scannen" en richt op dit scherm, of typ de cijfers.',
+    codeA11y: (spelled: string) => `Code ${spelled}`,
+    creating: 'Code maken',
+    expires: 'Hij verloopt na 30 minuten en werkt maar één keer.',
+    again: 'Nieuwe code maken',
+    done: 'Gelukt',
+    createFailed: 'De code kon niet worden gemaakt. Controleer je verbinding en probeer het opnieuw.',
+  },
+
+  pairCode: {
+    subtitle: 'U krijgt hem van uw familie. Het zijn 6 cijfers, of een QR-code.',
+    scan: 'QR-code scannen',
+    connect: 'Verbinden',
+    connecting: 'Verbinden…',
+    badCode: 'Die code werkt niet. Vraag uw familie om een nieuwe.',
+    alreadyPaired: 'Deze telefoon is al verbonden.',
+  },
+
+  pairScan: {
+    title: 'Scan de code',
+    subtitle: 'Richt op het vierkantje op de telefoon van uw familie.',
+    needCamera: 'Hilo heeft de camera nodig om de code te lezen.',
+    useCamera: 'Camera gebruiken',
+    denied: 'Zet hem aan in Instellingen, of ga terug en typ de cijfers.',
+  },
+
+  consent: {
+    title: 'Voordat we beginnen',
+    subtitle: 'Dit doet Hilo met wat u vertelt.',
+    points: [
+      'Hilo bewaart uw stem en wat u vertelt in de gesprekken, om uw boek te schrijven.',
+      'Hilo bewaart wanneer u uw pillen neemt, om uw familie te laten weten als u er een vergeet.',
+      'Alleen uw familie ziet het. We verkopen het aan niemand.',
+      'U kunt altijd vragen om alles te wissen.',
+    ],
+    agree: 'Ik ga akkoord',
+    notNow: 'Nu niet',
+    declined: 'Zonder uw toestemming kan Hilo niet werken. U kunt het met uw familie bespreken en hier terugkomen.',
+    doneTitle: 'Alles klaar!',
+    doneText: 'Elke dag nodigt Hilo u uit voor een praatje.',
+    start: 'Beginnen',
+  },
+
+  home: {
+    title: 'Begin',
+    hello: (name: string | null) => (name ? `Hallo, ${name}!` : 'Hallo!'),
+    howAreYou: 'Hoe gaat het met u?',
+    talk: 'Praten',
+    talkHint: 'Begint het praatje van vandaag',
+    pills: 'Mijn pillen',
+    pillsCount: (taken: number, total: number) => `${taken} van ${total}`,
+    book: 'Mijn boek',
+  },
+
+  talk: {
+    moods: {
+      speaking: 'HILO PRAAT…',
+      idle: 'UW BEURT:',
+      listening: 'IK LUISTER…',
+      thinking: 'EEN MOMENTJE…',
+    },
+    you: (said: string) => `U: "${said}"`,
+    tap: 'Tik om te praten',
+    tapHint: 'Tik en praat. Als u even stil bent, antwoordt Hilo',
+    done: 'Ik ben klaar',
+    doneHint: 'Tik als u klaar bent met praten',
+    repeat: 'Herhalen',
+    repeatHint: 'Hilo zegt het laatste nog een keer',
+    backHome: 'Terug naar het begin',
+    pillsYesReply: 'Ja, ik heb hem al genomen.',
+    pillsNoReply: 'Nee, nog niet.',
+    pillsYesHint: 'Ik heb hem al genomen',
+    pillsNoHint: 'Ik heb hem nog niet genomen',
+    tooLong: 'We hebben vandaag al veel gepraat. Ik bewaar het in uw boek. Tot morgen!',
+    failed: 'Er ging iets mis. Tik op de knop en probeer het opnieuw.',
+    notHeard: 'Ik heb u niet goed gehoord. Tik op de knop en praat nog een keer.',
+    noMic: 'Hilo kan de microfoon niet gebruiken. Zet hem aan in Instellingen > Hilo.',
+  },
+
+  pills: {
+    noneToday: 'Vandaag geen pillen',
+    noneTodayDetail: 'Als uw familie er een toevoegt, herinner ik u eraan.',
+    dueNow: 'Nu is het tijd voor',
+    theOneAt: (time: string) => `Die van ${time}`,
+    allDone: 'Alles gedaan voor vandaag!',
+    allDoneDetail: 'U heeft al uw pillen genomen.',
+    noneNow: 'Nu hoeft u niets te nemen',
+    nextOne: (name: string, time: string) => `De volgende is ${name}, om ${time}. Ik laat het u weten.`,
+    remindSoon: 'Ik herinner u er straks aan.',
+    doneName: (name: string) => `Gedaan: ${name}.`,
+    undo: 'Ongedaan maken',
+    undoA11y: 'Ongedaan maken, ik heb hem niet genomen',
+    undoFailed: 'Ongedaan maken is niet gelukt. Probeer het opnieuw.',
+    taken: 'Ik heb hem genomen',
+    later: 'Herinner me straks',
+    yourDay: 'UW DAG',
+    now: 'Nu',
+    takenAt: (time: string) => `genomen om ${time}`,
+    at: (time: string) => `om ${time}`,
+  },
+
+  reminders: {
+    talk: 'Zullen we even praten?',
+    pill: (name: string) => `Tijd voor: ${name}.`,
+    later: (name: string) => `Niet vergeten: ${name}.`,
+  },
+
+  book: {
+    title: 'Mijn boek',
+    back: 'Begin',
+    cover: (name: string) => `Het leven van ${name}`,
+    count: (n: number) => (n === 1 ? '1 verhaal bewaard' : `${n} verhalen bewaard`),
+    kicker: (n: number) => `HOOFDSTUK ${n}`,
+    chapterA11y: (n: number, title: string) => `Hoofdstuk ${n}, ${title}`,
+    empty: 'Nog geen verhalen. Als u met Hilo praat, bekijkt uw familie ze en verschijnen ze hier.',
+  },
+
+  chapter: {
+    back: '‹ Mijn boek',
+    backLabel: 'Terug naar Mijn boek',
+    kicker: (n: number) => `HOOFDSTUK ${n}`,
+    by: (name: string) => `Verteld door ${name}`,
+    next: 'Volgende',
+    cover: (name: string) => `Het leven van ${name}`,
+  },
+
+  today: {
+    title: 'Vandaag',
+    with: (name: string) => `Met ${name}`,
+    talk: 'Het praatje',
+    talked: (time: string, minutes: number | null, count: number) =>
+      `Vandaag gepraat om ${time}` +
+      (minutes !== null ? ` · ${minutes} min` : '') +
+      (count > 1 ? ` · ${count} praatjes` : '') +
+      '.',
+    notYet: (time: string | null) => `Vandaag nog niet gepraat.${time ? ` Het praatje is om ${time}.` : ''}`,
+    story: 'Nieuw verhaal',
+    stories: (n: number) => `${n} verhalen om na te kijken`,
+    quoted: (title: string) => `"${title}"`,
+    review: 'Nakijken',
+    phone: 'Zijn of haar telefoon',
+    phoneOk: 'Verbonden. Hilo kan nu herinneringen sturen.',
+    phoneMissing: 'Telefoon nog niet verbonden',
+    phoneMissingBody: (name: string) => `Zonder dit kan Hilo niet met ${name} praten.`,
+    connect: 'Telefoon verbinden',
+  },
+
+  todayPills: {
+    title: 'Pillen',
+    summary: (taken: number, total: number) => `Pillen: ${taken} van ${total} genomen`,
+    morning: "'S OCHTENDS",
+    midday: "'S MIDDAGS",
+    afternoon: 'IN DE NAMIDDAG',
+    night: "'S AVONDS",
+    takenAt: (time: string) => `Genomen om ${time}.`,
+    missed: (time: string) => `Was om ${time}. Nog niet aangevinkt.`,
+    at: (time: string) => `Om ${time}.`,
+    none: 'Vandaag geen pillen. Neemt hij of zij er een, voeg die toe en Hilo herinnert eraan.',
+    add: 'Pillen toevoegen',
+    loadFailed: 'De pillen konden niet worden geladen. Controleer je verbinding.',
+  },
+
+  familyBook: {
+    tab: 'Boek',
+    title: 'Boek',
+    toReview: 'NAKIJKEN',
+    inBook: 'IN HET BOEK',
+    emptyTitle: 'Nog geen verhalen',
+    emptyText: 'Zodra hij of zij met Hilo gaat praten, verschijnen de verhalen hier zodat je ze kunt nakijken.',
+    check: (n: number) => (n === 1 ? '1 woord om na te kijken' : `${n} woorden om na te kijken`),
+  },
+
+  review: {
+    back: '‹ Boek',
+    backLabel: 'Terug naar Boek',
+    draft: 'NAKIJKEN',
+    approved: 'IN HET BOEK',
+    promise: (name: string) => `Alles zijn woorden van ${name}. We verzinnen niets.`,
+    check: (name: string) => `Kijk de gemarkeerde woorden na: ${name} heeft ze niet gezegd. Kloppen ze niet, gooi het verhaal dan weg.`,
+    approve: 'Goedkeuren',
+    approveHint: (name: string) => `${name} ziet het in Mijn boek`,
+    unapprove: 'Uit het boek halen',
+    share: 'Delen met de familie',
+    shareMessage: (name: string, title: string, paragraphs: string[]) =>
+      `${name} vertelde: "${title}"\n\n${paragraphs.join('\n\n')}\n\nBewaard in het Hilo-boek: hilo-web.vercel.app`,
+    discard: 'Weggooien',
+    discardTitle: 'Dit verhaal weggooien?',
+    discardText: 'Het wordt voorgoed gewist. De gesprekken blijven bewaard.',
+    discardYes: 'Ja, weggooien',
+    cancel: 'Annuleren',
+    error: 'Het opslaan is niet gelukt. Controleer je verbinding en probeer het opnieuw.',
+  },
+
+  settings: {
+    title: 'Instellingen',
+    talk: 'Het praatje',
+    noTime: 'Geen tijd',
+    pills: 'Pillen',
+    pillsValue: (n: number) => (n ? String(n) : 'Geen'),
+    phone: 'Telefoon',
+    phoneValue: (connected: boolean) => (connected ? 'Verbonden' : 'Niet verbonden'),
+    relinkTitle: 'Een andere telefoon verbinden?',
+    relinkText: (name: string) =>
+      `De telefoon die ${name} nu heeft, werkt dan niet meer met Hilo. Daarna scan je de nieuwe code met de andere telefoon.`,
+    relinkYes: 'Ja, andere verbinden',
+    relinkError: 'Loskoppelen is niet gelukt. Controleer je verbinding en probeer het opnieuw.',
+    cancel: 'Annuleren',
+    account: 'JE ACCOUNT',
+    email: 'E-mail',
+    subscription: 'Abonnement beheren',
+    signOut: 'Uitloggen',
+    helpLegal: 'HULP EN JURIDISCH',
+    help: 'Hulp',
+    deleteAccount: 'Mijn account verwijderen',
+    deleteTitle: 'Je account verwijderen?',
+    deleteText:
+      'Ben je het enige familielid in Hilo, dan wordt ook alles van je familie gewist: de pillen, de gesprekken en het boek. Dit kan niet ongedaan worden gemaakt.',
+    deleteYes: 'Ja, alles verwijderen',
+    deleting: 'Verwijderen…',
+    deleteFailed: 'Het account kon niet worden verwijderd. Controleer je verbinding en probeer het opnieuw.',
+  },
+};

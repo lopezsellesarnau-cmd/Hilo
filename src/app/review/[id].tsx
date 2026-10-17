@@ -5,31 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { WideFrame } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { deleteChapter, loadFamilyBook, setChapterStatus, type Draft } from '@/lib/book';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
-const text = {
-  back: '‹ Libro',
-  backLabel: 'Volver a Libro',
-  draft: 'PARA REVISAR',
-  approved: 'EN SU LIBRO',
-  promise: (name: string) => `Todo son palabras de ${name}. No inventamos nada.`,
-  check: (name: string) =>
-    `Revisa lo marcado: no aparece en lo que dijo ${name}. Si no es suyo, descarta la historia.`,
-  approve: 'Aprobar',
-  approveHint: (name: string) => `${name} la verá en Mi libro`,
-  unapprove: 'Quitar de su libro',
-  share: 'Compartir con la familia',
-  // The story as plain text for WhatsApp; the link brings the rest of the family to Hilo
-  shareMessage: (name: string, title: string, paragraphs: string[]) =>
-    `${name} ha contado: «${title}»\n\n${paragraphs.join('\n\n')}\n\nGuardado en su libro de Hilo: hilo-web.vercel.app`,
-  discard: 'Descartar',
-  discardTitle: '¿Descartar esta historia?',
-  discardText: 'Se borra para siempre. Sus charlas no se borran.',
-  discardYes: 'Sí, descartar',
-  cancel: 'Cancelar',
-  error: 'No se ha podido guardar. Comprueba tu conexión y vuelve a probar.',
-};
+const text = t.review;
 
 /** Lowercase letters only, the same way the talk function compares her words */
 const bare = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
@@ -116,7 +96,7 @@ export default function ReviewScreen() {
               <>
                 <BigButton
                   scale="family"
-                  label={saving ? 'Guardando…' : text.approve}
+                  label={saving ? t.common.saving : text.approve}
                   onPress={() => save(() => setChapterStatus(chapter.id, 'approved'))}
                   accessibilityHint={text.approveHint(name)}
                 />
@@ -132,7 +112,7 @@ export default function ReviewScreen() {
                 <BigButton
                   scale="family"
                   variant="outline"
-                  label={saving ? 'Guardando…' : text.unapprove}
+                  label={saving ? t.common.saving : text.unapprove}
                   onPress={() => save(() => setChapterStatus(chapter.id, 'draft'))}
                 />
               </>

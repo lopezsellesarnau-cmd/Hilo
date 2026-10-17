@@ -9,6 +9,7 @@ import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideFrame } from '@/components/wide-split';
+import { dateLocale, t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { remindLater } from '@/lib/reminders';
 import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
@@ -21,9 +22,9 @@ const pillLarge = require('../../../assets/icons/pill-large.svg');
 /** How long "Recuérdamelo en un rato" waits */
 const SNOOZE_MINUTES = 30;
 
-/** "Domingo 11 de octubre": Spanish writes the month in lower case */
+/** "Domingo 11 de octubre" / "Zondag 11 oktober": the month stays in lower case */
 function todayLabel() {
-  const text = new Date().toLocaleDateString('es-ES', {
+  const text = new Date().toLocaleDateString(dateLocale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -114,7 +115,7 @@ export default function PillsScreen() {
     if (e || !data) {
       update(dose.key, { takenAt: null });
       setUndoId(null);
-      setError('No se ha guardado. Prueba otra vez en un momento.');
+      setError(t.common.saveFailed);
       return;
     }
     update(dose.key, { eventId: data.id });
@@ -133,7 +134,7 @@ export default function PillsScreen() {
     const { error: e } = await supabase.from('medication_events').delete().eq('id', dose.eventId);
     if (e) {
       update(dose.key, { takenAt: dose.takenAt, eventId: dose.eventId });
-      setError('No se ha podido deshacer. Prueba otra vez.');
+      setError(t.pills.undoFailed);
     }
   };
 
@@ -141,7 +142,7 @@ export default function PillsScreen() {
     <SafeAreaView style={styles.safe}>
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen} bounces={false}>
-          <ScreenHeader backLabel="Inicio" title="Mis pastillas" subtitle={todayLabel()} />
+          <ScreenHeader backLabel={t.home.title} title={t.home.pills} subtitle={todayLabel()} />
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -155,17 +156,17 @@ export default function PillsScreen() {
                       <Bot size={botSize} />
                     </View>
                   )}
-                  <Text style={styles.focusName}>Hoy no tienes pastillas</Text>
-                  <Text style={styles.focusDetail}>Si tu familia añade alguna, te la recordaré.</Text>
+                  <Text style={styles.focusName}>{t.pills.noneToday}</Text>
+                  <Text style={styles.focusDetail}>{t.pills.noneTodayDetail}</Text>
                 </>
               ) : due ? (
                 <>
                   <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
                     <Image source={pillLarge} style={styles.icon} contentFit="contain" />
                   </View>
-                  <Text style={styles.kicker}>Ahora te toca</Text>
+                  <Text style={styles.kicker}>{t.pills.dueNow}</Text>
                   <Text style={styles.focusName}>{due.name}</Text>
-                  <Text style={styles.focusDetail}>La de las {showTime(due.time)}</Text>
+                  <Text style={styles.focusDetail}>{t.pills.theOneAt(showTime(due.time))}</Text>
                 </>
               ) : pending.length === 0 ? (
                 <>
@@ -174,21 +175,19 @@ export default function PillsScreen() {
                       <Bot size={botSize} />
                     </View>
                   )}
-                  <Text style={styles.focusName}>¡Todo hecho por hoy!</Text>
-                  <Text style={styles.focusDetail}>Te has tomado todas las pastillas.</Text>
+                  <Text style={styles.focusName}>{t.pills.allDone}</Text>
+                  <Text style={styles.focusDetail}>{t.pills.allDoneDetail}</Text>
                 </>
               ) : (
                 <>
                   <View style={[styles.iconCircle, { width: circleSize, height: circleSize, borderRadius: circleSize / 2 }]}>
                     <Image source={pillLarge} style={[styles.icon, styles.iconLater]} contentFit="contain" />
                   </View>
-                  <Text style={styles.kicker}>Ahora no te toca ninguna</Text>
+                  <Text style={styles.kicker}>{t.pills.noneNow}</Text>
                   {next ? (
-                    <Text style={styles.focusDetail}>
-                      La siguiente es {next.name.toLowerCase()}, a las {showTime(next.time)}. Te aviso.
-                    </Text>
+                    <Text style={styles.focusDetail}>{t.pills.nextOne(next.name, showTime(next.time))}</Text>
                   ) : (
-                    <Text style={styles.focusDetail}>Te lo recuerdo en un rato.</Text>
+                    <Text style={styles.focusDetail}>{t.pills.remindSoon}</Text>
                   )}
                 </>
               )}
@@ -197,28 +196,28 @@ export default function PillsScreen() {
             <View style={styles.actions}>
               {undoPill ? (
                 <View style={styles.undoRow}>
-                  <Text style={styles.undoText}>Hecho: {undoPill.name.toLowerCase()}.</Text>
+                  <Text style={styles.undoText}>{t.pills.doneName(undoPill.name)}</Text>
                   <Pressable
                     onPress={() => undo(undoPill)}
                     accessibilityRole="button"
-                    accessibilityLabel="Deshacer, no la he tomado"
+                    accessibilityLabel={t.pills.undoA11y}
                     hitSlop={12}>
-                    <Text style={styles.undoLink}>Deshacer</Text>
+                    <Text style={styles.undoLink}>{t.pills.undo}</Text>
                   </Pressable>
                 </View>
               ) : null}
               {due ? (
                 <>
-                  <BigButton label="Ya me la he tomado" onPress={() => markTaken(due)} />
+                  <BigButton label={t.pills.taken} onPress={() => markTaken(due)} />
                   <Pressable onPress={() => snooze(due)} accessibilityRole="button" hitSlop={8} style={styles.later}>
-                    <Text style={styles.laterText}>Recuérdamelo en un rato</Text>
+                    <Text style={styles.laterText}>{t.pills.later}</Text>
                   </Pressable>
                 </>
               ) : null}
             </View>
           </View>
 
-          <Text style={styles.dayLabel}>TU DÍA</Text>
+          <Text style={styles.dayLabel}>{t.pills.yourDay}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.threadScroll}>
             <View style={styles.thread}>
               <View style={styles.threadLine} />
@@ -230,7 +229,7 @@ export default function PillsScreen() {
                     key={p.key}
                     style={styles.stop}
                     accessible
-                    accessibilityLabel={`${p.name}, ${done ? `tomada a las ${showTime(p.takenAt!)}` : isNow ? 'ahora' : `a las ${showTime(p.time)}`}`}>
+                    accessibilityLabel={`${p.name}, ${done ? t.pills.takenAt(showTime(p.takenAt!)) : isNow ? t.pills.now.toLowerCase() : t.pills.at(showTime(p.time))}`}>
                     <View style={[styles.dot, done && styles.dotDone, isNow && styles.dotNow]}>
                       {done ? <Text style={styles.tick}>✓</Text> : null}
                     </View>
@@ -238,7 +237,7 @@ export default function PillsScreen() {
                       {p.name}
                     </Text>
                     <Text style={[styles.stopTime, isNow && styles.stopTimeNow]}>
-                      {done ? showTime(p.takenAt!) : isNow ? 'Ahora' : showTime(p.time)}
+                      {done ? showTime(p.takenAt!) : isNow ? t.pills.now : showTime(p.time)}
                     </Text>
                   </View>
                 );

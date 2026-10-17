@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { buildDoses, localNow, type Dose } from '@/lib/time';
 
@@ -31,7 +32,7 @@ export async function loadSeniorDay(): Promise<
   if (!me)
     return {
       me: null,
-      error: 'Este móvil aún no está conectado con tu familia.',
+      error: t.common.notPaired,
     };
   const today = localNow(me.timezone);
   const { data: meds } = await supabase
@@ -50,7 +51,7 @@ export async function loadSeniorDay(): Promise<
   if (!meds || !events)
     return {
       me: null,
-      error: 'No hay conexión. Prueba otra vez en un momento.',
+      error: t.common.offline,
     };
   return { me, meds, doses: buildDoses(meds, events, me.timezone, today.weekday) };
 }

@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import type { ColorValue } from 'react-native';
 
+import { t } from '@/i18n';
 import { colors } from '@/theme';
 
 // SF Symbols for now. TODO: tab icons from Figma (Hoy / Libro / Ajustes)
@@ -24,9 +25,9 @@ export default function FamilyLayout() {
         tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
         sceneStyle: { backgroundColor: colors.background },
       }}>
-      <Tabs.Screen name="today" options={{ title: 'Hoy', tabBarIcon: icon('sun.max') }} />
-      <Tabs.Screen name="book" options={{ title: 'Libro', tabBarIcon: icon('book.closed') }} />
-      <Tabs.Screen name="settings" options={{ title: 'Ajustes', tabBarIcon: icon('gearshape') }} />
+      <Tabs.Screen name="today" options={{ title: t.today.title, tabBarIcon: icon('sun.max') }} />
+      <Tabs.Screen name="book" options={{ title: t.familyBook.tab, tabBarIcon: icon('book.closed') }} />
+      <Tabs.Screen name="settings" options={{ title: t.settings.title, tabBarIcon: icon('gearshape') }} />
     </Tabs>
   );
 }

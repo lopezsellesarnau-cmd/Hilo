@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
+import { t } from '@/i18n';
 
 export default function NameStep() {
   const [name, setName] = useState('');
@@ -17,14 +18,14 @@ export default function NameStep() {
   return (
     <OnboardingStep
       step={2}
-      question="¿Cómo te llamas?"
-      hint="Así aparecerás en Hilo para el resto de la familia."
-      footer={<BigButton scale="family" label="Continuar" onPress={ready ? next : undefined} />}>
+      question={t.name.question}
+      hint={t.name.hint}
+      footer={<BigButton scale="family" label={t.common.continue} onPress={ready ? next : undefined} />}>
       <TextField
-        label="Tu nombre"
+        label={t.name.label}
         value={name}
         onChangeText={setName}
-        placeholder="Laura"
+        placeholder={t.name.placeholder}
         autoCapitalize="words"
         autoComplete="given-name"
         textContentType="givenName"

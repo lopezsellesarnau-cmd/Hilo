@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { buildDoses, localNow, showTime, type Dose } from '@/lib/time';
 import { colors, family, fontWeight } from '@/theme';
@@ -13,10 +14,10 @@ const pillIcon = require('../../assets/icons/pill-small.svg');
 type Props = { seniorId: string; seniorName: string; timezone: string };
 
 const MOMENTS = [
-  { label: 'POR LA MAÑANA', until: '12:00' },
-  { label: 'A MEDIODÍA', until: '17:00' },
-  { label: 'POR LA TARDE', until: '20:00' },
-  { label: 'POR LA NOCHE', until: '24:00' },
+  { label: t.todayPills.morning, until: '12:00' },
+  { label: t.todayPills.midday, until: '17:00' },
+  { label: t.todayPills.afternoon, until: '20:00' },
+  { label: t.todayPills.night, until: '24:00' },
 ];
 
 /** Hoy: today's pills for the family, grouped by moment of the day (design V1). */
@@ -53,20 +54,20 @@ export function TodayPills({ seniorId, seniorName, timezone }: Props) {
     }, [seniorId, timezone]),
   );
 
-  if (error) return <Text style={styles.error}>No hemos podido cargar las pastillas. Comprueba tu conexión.</Text>;
+  if (error) return <Text style={styles.error}>{t.todayPills.loadFailed}</Text>;
   if (!doses) return null;
 
   if (doses.length === 0) {
     return (
       <View style={[styles.card, styles.cardTodo]}>
         <View style={styles.cardText}>
-          <Text style={styles.name}>Pastillas</Text>
-          <Text style={styles.detail}>Hoy no tiene ninguna. Si toma alguna, añádela y Hilo se la recordará.</Text>
+          <Text style={styles.name}>{t.todayPills.title}</Text>
+          <Text style={styles.detail}>{t.todayPills.none}</Text>
         </View>
         <BigButton
           scale="family"
           variant="outline"
-          label="Añadir pastillas"
+          label={t.todayPills.add}
           onPress={() => router.push({ pathname: '/onboarding/pills', params: { seniorId, seniorName, from: 'today' } })}
         />
       </View>
@@ -79,7 +80,7 @@ export function TodayPills({ seniorId, seniorName, timezone }: Props) {
     <View style={styles.wrap}>
       <View style={styles.summary}>
         <Text style={styles.summaryText}>
-          Pastillas: {taken} de {doses.length} tomadas
+          {t.todayPills.summary(taken, doses.length)}
         </Text>
         <View style={styles.bars} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {doses.map((d) => (
@@ -110,10 +111,10 @@ export function TodayPills({ seniorId, seniorName, timezone }: Props) {
                     <Text style={styles.name}>{d.name}</Text>
                     <Text style={[styles.detail, !d.takenAt && !late && styles.muted]}>
                       {d.takenAt
-                        ? `Tomada a las ${showTime(d.takenAt)}.`
+                        ? t.todayPills.takenAt(showTime(d.takenAt))
                         : late
-                          ? `Era a las ${showTime(d.time)}. Aún no la ha marcado.`
-                          : `A las ${showTime(d.time)}.`}
+                          ? t.todayPills.missed(showTime(d.time))
+                          : t.todayPills.at(showTime(d.time))}
                     </Text>
                   </View>
                 </View>

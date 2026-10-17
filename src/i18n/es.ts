@@ -1,0 +1,337 @@
+/**
+ * Spanish, the source language. en.ts and nl.ts must have the same shape (`Strings`).
+ * Grouped by screen. Texts with a name or number inside are functions.
+ */
+export const es = {
+  common: {
+    back: 'Atrás',
+    backTo: (label: string) => `Volver a ${label}`,
+    continue: 'Continuar',
+    save: 'Guardar',
+    saving: 'Guardando…',
+    done: 'Listo',
+    later: 'Lo haré luego',
+    yes: 'Sí',
+    no: 'No',
+    assistant: 'Tu asistente',
+    saveFailed: 'No hemos podido guardarlo. Comprueba tu conexión y vuelve a probar.',
+    loadFailed: 'No hemos podido cargar los datos. Comprueba tu conexión.',
+    offline: 'No hay conexión. Prueba otra vez en un momento.',
+    notPaired: 'Este móvil aún no está conectado con tu familia.',
+  },
+
+  welcome: {
+    tagline: 'Una charla al día para quien más quieres.',
+    family: 'Soy familiar',
+    haveCode: 'Tengo un código',
+    codeNote: '«Tengo un código» es para el móvil de tu madre, padre o abuelo.',
+  },
+
+  // "Acepto los Términos y la Política de privacidad.": the two names are links
+  agree: {
+    before: 'Acepto los ',
+    terms: 'Términos',
+    middle: ' y la ',
+    privacy: 'Política de privacidad',
+  },
+
+  onboarding: {
+    stepOf: (step: number, total: number) => `Paso ${step} de ${total}`,
+  },
+
+  email: {
+    question: '¿Cuál es tu email?',
+    hint: 'Te enviamos un código de 6 cifras. Sin contraseñas.',
+    placeholder: 'laura@email.com',
+    send: 'Enviar código',
+    sending: 'Enviando…',
+    mustAgree: 'Para seguir, marca que aceptas los Términos.',
+    invalid: 'Revisa el email: parece que falta algo.',
+    tooMany: 'Hemos enviado demasiados códigos seguidos. Espera unos minutos y vuelve a probar.',
+    sendFailed: 'No hemos podido enviar el código. Comprueba tu conexión y vuelve a probar.',
+  },
+
+  code: {
+    question: 'Escribe el código',
+    label: 'Código',
+    // "Lo hemos enviado a {email}. Mira también en correo no deseado."
+    sentTo: 'Lo hemos enviado a ',
+    checkSpam: '. Mira también en correo no deseado.',
+    checking: 'Comprobando…',
+    wrong: 'Ese código no es correcto o ha caducado. Revísalo o pide otro.',
+    wait: 'Espera unos minutos antes de pedir otro código.',
+    resent: 'Te hemos enviado un código nuevo.',
+    resend: 'Enviar otro código',
+  },
+
+  name: {
+    question: '¿Cómo te llamas?',
+    hint: 'Así aparecerás en Hilo para el resto de la familia.',
+    label: 'Tu nombre',
+    placeholder: 'Laura',
+  },
+
+  senior: {
+    question: '¿Para quién es Hilo?',
+    hint: 'Escribe su nombre como lo decís en casa. Hilo le hablará así cada día.',
+    label: 'Su nombre',
+    placeholder: 'Carmen',
+    familyName: (name: string) => `Familia de ${name}`,
+  },
+
+  talkStep: {
+    question: (name: string) => `¿A qué hora charla ${name || 'con Hilo'}?`,
+    hint: 'Cada día a esa hora, Hilo le avisará para charlar un rato.',
+    timeLabel: 'HORA',
+    timeA11y: 'Hora de la charla',
+    timezone: (zone: string) => `Zona horaria: ${zone}`,
+    langLabel: 'IDIOMA DE LA CHARLA',
+    langA11y: 'Idioma de la charla',
+  },
+
+  pillsStep: {
+    question: (name: string) => `¿Qué pastillas toma ${name || 'cada día'}?`,
+    hint: 'Hilo se lo recordará a su hora y te avisará si se le olvida.',
+    nameLabel: 'Nombre de la pastilla',
+    namePlaceholder: 'La de la tensión',
+    timeLabel: 'A QUÉ HORA',
+    timesA11y: 'Horas de la pastilla',
+    everyDay: 'Todos los días.',
+    everyDayLater: 'Todos los días. Puedes cambiarlo luego en Ajustes.',
+    add: 'Añadir pastilla',
+    remove: 'Quitar',
+    removeA11y: (name: string) => `Quitar ${name}`,
+    removeFailed: 'No hemos podido quitarla. Vuelve a probar.',
+  },
+
+  pair: {
+    question: (name: string) => (name ? `Conecta el móvil de ${name}` : 'Conecta su móvil'),
+    hint: 'Ten su móvil a mano. Es un momento.',
+    step1: '1. En su móvil, instala Hilo desde la App Store.',
+    step2: '2. Abre Hilo y toca «Tengo un código».',
+    step3: '3. Toca «Escanear el código QR» y apunta aquí, o escribe los números.',
+    codeA11y: (spelled: string) => `Código ${spelled}`,
+    creating: 'Creando código',
+    expires: 'Caduca en 30 minutos y solo sirve una vez.',
+    again: 'Crear otro código',
+    done: 'Ya está',
+    createFailed: 'No hemos podido crear el código. Comprueba tu conexión y vuelve a probar.',
+  },
+
+  pairCode: {
+    subtitle: 'Te lo da tu familia. Son 6 números, o un código QR.',
+    scan: 'Escanear el código QR',
+    connect: 'Conectar',
+    connecting: 'Conectando…',
+    badCode: 'Ese código no sirve. Pide a tu familia uno nuevo.',
+    alreadyPaired: 'Este móvil ya está conectado.',
+  },
+
+  pairScan: {
+    title: 'Escanea el código',
+    subtitle: 'Apunta al cuadrado del móvil de tu familia.',
+    needCamera: 'Hilo necesita la cámara para leer el código.',
+    useCamera: 'Usar la cámara',
+    denied: 'Actívala en Ajustes, o vuelve atrás y escribe los números.',
+  },
+
+  // What the senior agrees to on their own phone (GDPR): change CONSENT_VERSION if the meaning changes
+  consent: {
+    title: 'Antes de empezar',
+    subtitle: 'Esto es lo que hace Hilo con lo que le cuentas.',
+    points: [
+      'Guarda tu voz y lo que cuentas en las charlas, para escribir tu libro.',
+      'Guarda cuándo tomas tus pastillas, para avisar a tu familia si se te olvida.',
+      'Solo lo ve tu familia. No lo vendemos a nadie.',
+      'Puedes pedir que se borre todo cuando quieras.',
+    ],
+    agree: 'Estoy de acuerdo',
+    notNow: 'Ahora no',
+    declined: 'Sin tu permiso, Hilo no puede funcionar. Puedes hablarlo con tu familia y volver aquí.',
+    doneTitle: '¡Todo listo!',
+    doneText: 'Cada día, Hilo te avisará para charlar un rato.',
+    start: 'Empezar',
+  },
+
+  home: {
+    title: 'Inicio',
+    hello: (name: string | null) => (name ? `¡Hola, ${name}!` : '¡Hola!'),
+    howAreYou: '¿Cómo estás?',
+    talk: 'Hablar',
+    talkHint: 'Empieza la charla de hoy',
+    pills: 'Mis pastillas',
+    pillsCount: (taken: number, total: number) => `${taken} de ${total}`,
+    book: 'Mi libro',
+  },
+
+  talk: {
+    moods: {
+      speaking: 'HABLANDO…',
+      idle: 'TU TURNO:',
+      listening: 'TE ESCUCHO…',
+      thinking: 'UN MOMENTO…',
+    },
+    you: (said: string) => `Tú: «${said}»`,
+    tap: 'Toca para hablar',
+    tapHint: 'Toca y habla. Cuando te calles un momento, Hilo te contesta',
+    done: 'He terminado',
+    doneHint: 'Toca cuando acabes de hablar',
+    repeat: 'Repetir',
+    repeatHint: 'Hilo vuelve a decir lo último',
+    backHome: 'Volver al inicio',
+    pillsYesReply: 'Sí, ya me lo he tomado.',
+    pillsNoReply: 'No, todavía no.',
+    pillsYesHint: 'Ya me lo he tomado',
+    pillsNoHint: 'Todavía no me lo he tomado',
+    tooLong: 'Hoy ya hemos charlado mucho. Lo guardo en tu libro. ¡Hasta mañana!',
+    failed: 'Algo ha fallado. Toca el botón y prueba otra vez.',
+    notHeard: 'No te he oído bien. Toca el botón y habla otra vez.',
+    noMic: 'Hilo no puede usar el micrófono. Actívalo en Ajustes > Hilo.',
+  },
+
+  pills: {
+    noneToday: 'Hoy no tienes pastillas',
+    noneTodayDetail: 'Si tu familia añade alguna, te la recordaré.',
+    dueNow: 'Ahora te toca',
+    theOneAt: (time: string) => `La de las ${time}`,
+    allDone: '¡Todo hecho por hoy!',
+    allDoneDetail: 'Te has tomado todas las pastillas.',
+    noneNow: 'Ahora no te toca ninguna',
+    nextOne: (name: string, time: string) => `La siguiente es ${name.toLowerCase()}, a las ${time}. Te aviso.`,
+    remindSoon: 'Te lo recuerdo en un rato.',
+    doneName: (name: string) => `Hecho: ${name.toLowerCase()}.`,
+    undo: 'Deshacer',
+    undoA11y: 'Deshacer, no la he tomado',
+    undoFailed: 'No se ha podido deshacer. Prueba otra vez.',
+    taken: 'Ya me la he tomado',
+    later: 'Recuérdamelo en un rato',
+    yourDay: 'TU DÍA',
+    now: 'Ahora',
+    takenAt: (time: string) => `tomada a las ${time}`,
+    at: (time: string) => `a las ${time}`,
+  },
+
+  reminders: {
+    talk: '¿Charlamos un rato?',
+    pill: (name: string) => `Te toca: ${name.toLowerCase()}.`,
+    later: (name: string) => `Te lo recuerdo: ${name.toLowerCase()}.`,
+  },
+
+  book: {
+    title: 'Mi libro',
+    back: 'Inicio',
+    cover: (name: string) => `La vida de ${name}`,
+    count: (n: number) => (n === 1 ? '1 historia guardada' : `${n} historias guardadas`),
+    kicker: (n: number) => `CAPÍTULO ${n}`,
+    chapterA11y: (n: number, title: string) => `Capítulo ${n}, ${title}`,
+    empty: 'Aún no hay historias. Cuando charles con Hilo, tu familia las revisará y aparecerán aquí.',
+  },
+
+  chapter: {
+    back: '‹ Mi libro',
+    backLabel: 'Volver a Mi libro',
+    kicker: (n: number) => `CAPÍTULO ${n}`,
+    by: (name: string) => `Contado por ${name}`,
+    next: 'Siguiente',
+    cover: (name: string) => `La vida de ${name}`,
+  },
+
+  today: {
+    title: 'Hoy',
+    with: (name: string) => `Con ${name}`,
+    talk: 'La charla',
+    talked: (time: string, minutes: number | null, count: number) =>
+      `Ha charlado hoy a las ${time}` +
+      (minutes !== null ? ` · ${minutes} min` : '') +
+      (count > 1 ? ` · ${count} charlas` : '') +
+      '.',
+    notYet: (time: string | null) => `Aún no ha charlado hoy.${time ? ` Su charla es a las ${time}.` : ''}`,
+    story: 'Nueva historia',
+    stories: (n: number) => `${n} historias para revisar`,
+    quoted: (title: string) => `«${title}»`,
+    review: 'Revisar',
+    phone: 'Su móvil',
+    phoneOk: 'Conectado. Hilo ya puede avisarle.',
+    phoneMissing: 'Falta conectar su móvil',
+    phoneMissingBody: (name: string) => `Sin esto, Hilo no puede hablar con ${name}.`,
+    connect: 'Conectar su móvil',
+  },
+
+  todayPills: {
+    title: 'Pastillas',
+    summary: (taken: number, total: number) => `Pastillas: ${taken} de ${total} tomadas`,
+    morning: 'POR LA MAÑANA',
+    midday: 'A MEDIODÍA',
+    afternoon: 'POR LA TARDE',
+    night: 'POR LA NOCHE',
+    takenAt: (time: string) => `Tomada a las ${time}.`,
+    missed: (time: string) => `Era a las ${time}. Aún no la ha marcado.`,
+    at: (time: string) => `A las ${time}.`,
+    none: 'Hoy no tiene ninguna. Si toma alguna, añádela y Hilo se la recordará.',
+    add: 'Añadir pastillas',
+    loadFailed: 'No hemos podido cargar las pastillas. Comprueba tu conexión.',
+  },
+
+  familyBook: {
+    tab: 'Libro',
+    title: 'Libro',
+    toReview: 'PARA REVISAR',
+    inBook: 'EN SU LIBRO',
+    emptyTitle: 'Aún no hay historias',
+    emptyText: 'Cuando empiece a charlar con Hilo, aquí aparecerán sus historias para que las revises.',
+    check: (n: number) => (n === 1 ? '1 palabra para revisar' : `${n} palabras para revisar`),
+  },
+
+  review: {
+    back: '‹ Libro',
+    backLabel: 'Volver a Libro',
+    draft: 'PARA REVISAR',
+    approved: 'EN SU LIBRO',
+    promise: (name: string) => `Todo son palabras de ${name}. No inventamos nada.`,
+    check: (name: string) => `Revisa lo marcado: no aparece en lo que dijo ${name}. Si no es suyo, descarta la historia.`,
+    approve: 'Aprobar',
+    approveHint: (name: string) => `${name} la verá en Mi libro`,
+    unapprove: 'Quitar de su libro',
+    share: 'Compartir con la familia',
+    // The story as plain text for WhatsApp; the link brings the rest of the family to Hilo
+    shareMessage: (name: string, title: string, paragraphs: string[]) =>
+      `${name} ha contado: «${title}»\n\n${paragraphs.join('\n\n')}\n\nGuardado en su libro de Hilo: hilo-web.vercel.app`,
+    discard: 'Descartar',
+    discardTitle: '¿Descartar esta historia?',
+    discardText: 'Se borra para siempre. Sus charlas no se borran.',
+    discardYes: 'Sí, descartar',
+    cancel: 'Cancelar',
+    error: 'No se ha podido guardar. Comprueba tu conexión y vuelve a probar.',
+  },
+
+  settings: {
+    title: 'Ajustes',
+    talk: 'La charla',
+    noTime: 'Sin hora',
+    pills: 'Sus pastillas',
+    pillsValue: (n: number) => (n ? String(n) : 'Ninguna'),
+    phone: 'Su móvil',
+    phoneValue: (connected: boolean): string => (connected ? 'Conectado' : 'Sin conectar'),
+    relinkTitle: '¿Conectar otro móvil?',
+    relinkText: (name: string) =>
+      `El móvil que tiene ahora ${name} dejará de funcionar con Hilo. Luego escaneas el código nuevo con el otro móvil.`,
+    relinkYes: 'Sí, conectar otro',
+    relinkError: 'No hemos podido desconectarlo. Comprueba tu conexión y vuelve a probar.',
+    cancel: 'Cancelar',
+    account: 'TU CUENTA',
+    email: 'Email',
+    subscription: 'Gestionar suscripción',
+    signOut: 'Cerrar sesión',
+    helpLegal: 'AYUDA Y LEGAL',
+    help: 'Ayuda',
+    deleteAccount: 'Borrar mi cuenta',
+    deleteTitle: '¿Borrar tu cuenta?',
+    deleteText:
+      'Si eres el único familiar en Hilo, también se borra todo lo de tu familia: sus pastillas, sus charlas y su libro. No se puede deshacer.',
+    deleteYes: 'Sí, borrar todo',
+    deleting: 'Borrando…',
+    deleteFailed: 'No hemos podido borrar la cuenta. Comprueba tu conexión y vuelve a probar.',
+  },
+};
+
+export type Strings = typeof es;

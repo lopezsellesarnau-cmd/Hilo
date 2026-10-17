@@ -5,6 +5,7 @@ import { StyleSheet, Text } from 'react-native';
 import { BigButton } from '@/components/big-button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { OnboardingStep } from '@/components/onboarding-step';
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
 
@@ -21,6 +22,7 @@ const TIMES = [
 const LANGUAGES = [
   { value: 'es', label: 'Español' },
   { value: 'en', label: 'English' },
+  // Nederlands comes with the Dutch voice and prompt (the screens are already in Dutch)
 ] as const;
 
 type Time = (typeof TIMES)[number]['value'];
@@ -51,7 +53,8 @@ export default function TalkStep() {
       .then(({ data }) => {
         const saved = TIMES.find((t) => t.value === data?.talk_time?.slice(0, 5));
         if (saved) setTime(saved.value);
-        if (data?.locale === 'es' || data?.locale === 'en') setLanguage(data.locale);
+        const savedLang = LANGUAGES.find((l) => l.value === data?.locale);
+        if (savedLang) setLanguage(savedLang.value);
       });
   }, [editing, seniorId]);
   const [saving, setSaving] = useState(false);
@@ -68,7 +71,7 @@ export default function TalkStep() {
       .eq('id', seniorId);
     setSaving(false);
     if (e) {
-      setError('No hemos podido guardarlo. Comprueba tu conexión y vuelve a probar.');
+      setError(t.common.saveFailed);
       return;
     }
     if (editing) return router.back();
@@ -79,21 +82,21 @@ export default function TalkStep() {
     <OnboardingStep
       step={editing ? undefined : 4}
       mood={saving ? 'thinking' : 'idle'}
-      question={`¿A qué hora charla ${seniorName || 'con Hilo'}?`}
-      hint="Cada día a esa hora, Hilo le avisará para charlar un rato."
+      question={t.talkStep.question(seniorName)}
+      hint={t.talkStep.hint}
       footer={
         <BigButton
           scale="family"
-          label={saving ? 'Guardando…' : editing ? 'Guardar' : 'Continuar'}
+          label={saving ? t.common.saving : editing ? t.common.save : t.common.continue}
           onPress={saving ? undefined : next}
         />
       }>
-      <Text style={styles.label}>HORA</Text>
-      <ChoiceChips label="Hora de la charla" options={TIMES} value={time} onChange={setTime} />
-      {editing ? null : <Text style={styles.note}>Zona horaria: {deviceTimezone}</Text>}
+      <Text style={styles.label}>{t.talkStep.timeLabel}</Text>
+      <ChoiceChips label={t.talkStep.timeA11y} options={TIMES} value={time} onChange={setTime} />
+      {editing ? null : <Text style={styles.note}>{t.talkStep.timezone(deviceTimezone)}</Text>}
 
-      <Text style={[styles.label, styles.spaced]}>IDIOMA DE LA CHARLA</Text>
-      <ChoiceChips label="Idioma de la charla" options={LANGUAGES} value={language} onChange={setLanguage} />
+      <Text style={[styles.label, styles.spaced]}>{t.talkStep.langLabel}</Text>
+      <ChoiceChips label={t.talkStep.langA11y} options={LANGUAGES} value={language} onChange={setLanguage} />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </OnboardingStep>

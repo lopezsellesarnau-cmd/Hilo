@@ -6,17 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BookCover } from '@/components/book-cover';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { loadBook } from '@/lib/book';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
-const text = {
-  back: '‹ Mi libro',
-  backLabel: 'Volver a Mi libro',
-  kicker: (n: number) => `CAPÍTULO ${n}`,
-  by: (name: string) => `Contado por ${name}`,
-  next: 'Siguiente',
-  cover: (name: string) => `La vida de ${name}`,
-};
+const text = t.chapter;
 
 export default function ChapterScreen() {
   const { chapter: id } = useLocalSearchParams<{ chapter: string }>();

@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
+import { t } from '@/i18n';
 import { nextFamilyRoute } from '@/lib/onboarding';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
@@ -21,7 +22,7 @@ export default function CodeStep() {
     const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
     if (error || !data.user) {
       setChecking(false);
-      setMessage({ text: 'Ese código no es correcto o ha caducado. Revísalo o pide otro.', error: true });
+      setMessage({ text: t.code.wrong, error: true });
       return;
     }
     // Someone coming back continues where they left off
@@ -37,8 +38,8 @@ export default function CodeStep() {
     const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
     setMessage(
       error
-        ? { text: 'Espera unos minutos antes de pedir otro código.', error: true }
-        : { text: 'Te hemos enviado un código nuevo.', error: false },
+        ? { text: t.code.wait, error: true }
+        : { text: t.code.resent, error: false },
     );
   };
 
@@ -46,21 +47,23 @@ export default function CodeStep() {
     <OnboardingStep
       step={1}
       mood={checking ? 'thinking' : 'idle'}
-      question="Escribe el código"
+      question={t.code.question}
       hint={
         <>
-          Lo hemos enviado a <Text style={styles.strong}>{email}</Text>. Mira también en correo no deseado.
+          {t.code.sentTo}
+          <Text style={styles.strong}>{email}</Text>
+          {t.code.checkSpam}
         </>
       }
       footer={
         <BigButton
           scale="family"
-          label={checking ? 'Comprobando…' : 'Continuar'}
+          label={checking ? t.code.checking : t.common.continue}
           onPress={code.length === 6 && !checking ? () => verify(code) : undefined}
         />
       }>
       <TextField
-        label="Código"
+        label={t.code.label}
         code
         value={code}
         onChangeText={(v) => {
@@ -78,7 +81,7 @@ export default function CodeStep() {
       />
       {message ? <Text style={[styles.message, message.error && styles.error]}>{message.text}</Text> : null}
       <Pressable onPress={resend} accessibilityRole="button" hitSlop={8} style={styles.resend}>
-        <Text style={styles.resendText}>Enviar otro código</Text>
+        <Text style={styles.resendText}>{t.code.resend}</Text>
       </Pressable>
     </OnboardingStep>
   );

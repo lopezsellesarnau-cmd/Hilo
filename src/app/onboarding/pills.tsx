@@ -6,6 +6,7 @@ import { BigButton } from '@/components/big-button';
 import { MultiChoiceChips } from '@/components/choice-chips';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
 
@@ -49,7 +50,7 @@ export default function PillsStep() {
       .single()
       .then(({ data, error: e }) => {
         if (e || !data) {
-          setError('No hemos podido cargar los datos. Comprueba tu conexión.');
+          setError(t.common.loadFailed);
           return;
         }
         setFamilyId(data.family_id);
@@ -68,7 +69,7 @@ export default function PillsStep() {
       .single();
     setSaving(false);
     if (e || !data) {
-      setError('No hemos podido guardarla. Comprueba tu conexión y vuelve a probar.');
+      setError(t.common.saveFailed);
       return;
     }
     setPills((p) => [...p, data as Medication]);
@@ -80,7 +81,7 @@ export default function PillsStep() {
     setError(null);
     const { error: e } = await supabase.from('medications').delete().eq('id', id);
     if (e) {
-      setError('No hemos podido quitarla. Vuelve a probar.');
+      setError(t.pillsStep.removeFailed);
       return;
     }
     setPills((p) => p.filter((x) => x.id !== id));
@@ -95,13 +96,13 @@ export default function PillsStep() {
     <OnboardingStep
       step={from === 'settings' ? undefined : 5}
       mood={saving ? 'thinking' : 'idle'}
-      question={`¿Qué pastillas toma ${seniorName || 'cada día'}?`}
-      hint="Hilo se lo recordará a su hora y te avisará si se le olvida."
+      question={t.pillsStep.question(seniorName)}
+      hint={t.pillsStep.hint}
       footer={
         <BigButton
           scale="family"
           variant={pills.length ? 'fill' : 'outline'}
-          label={from === 'settings' ? 'Listo' : pills.length ? 'Continuar' : 'Lo haré luego'}
+          label={from === 'settings' ? t.common.done : pills.length ? t.common.continue : t.common.later}
           onPress={next}
         />
       }>
@@ -114,33 +115,33 @@ export default function PillsStep() {
           <Pressable
             onPress={() => remove(p.id)}
             accessibilityRole="button"
-            accessibilityLabel={`Quitar ${p.name}`}
+            accessibilityLabel={t.pillsStep.removeA11y(p.name)}
             hitSlop={10}>
-            <Text style={styles.remove}>Quitar</Text>
+            <Text style={styles.remove}>{t.pillsStep.remove}</Text>
           </Pressable>
         </View>
       ))}
 
       <TextField
-        label="Nombre de la pastilla"
+        label={t.pillsStep.nameLabel}
         value={name}
         onChangeText={(v) => {
           setName(v);
           setError(null);
         }}
-        placeholder="La de la tensión"
+        placeholder={t.pillsStep.namePlaceholder}
         autoCapitalize="sentences"
         maxLength={80}
         returnKeyType="done"
       />
-      <Text style={styles.label}>A QUÉ HORA</Text>
-      <MultiChoiceChips label="Horas de la pastilla" options={TIMES} value={times} onChange={setTimes} />
-      <Text style={styles.note}>{from === 'settings' ? 'Todos los días.' : 'Todos los días. Puedes cambiarlo luego en Ajustes.'}</Text>
+      <Text style={styles.label}>{t.pillsStep.timeLabel}</Text>
+      <MultiChoiceChips label={t.pillsStep.timesA11y} options={TIMES} value={times} onChange={setTimes} />
+      <Text style={styles.note}>{from === 'settings' ? t.pillsStep.everyDay : t.pillsStep.everyDayLater}</Text>
 
       <BigButton
         scale="family"
         variant="outline"
-        label={saving ? 'Guardando…' : 'Añadir pastilla'}
+        label={saving ? t.common.saving : t.pillsStep.add}
         onPress={canAdd ? add : undefined}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}

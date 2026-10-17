@@ -8,18 +8,12 @@ import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { loadBook } from '@/lib/book';
 import { useWide } from '@/lib/layout';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
-const text = {
-  title: 'Mi libro',
-  back: 'Inicio',
-  cover: (name: string) => `La vida de ${name}`,
-  count: (n: number) => (n === 1 ? '1 historia guardada' : `${n} historias guardadas`),
-  kicker: (n: number) => `CAPÍTULO ${n}`,
-  empty: 'Aún no hay historias. Cuando charles con Hilo, tu familia las revisará y aparecerán aquí.',
-};
+const text = t.book;
 
 export default function BookScreen() {
   const fade = useScrollFade();
@@ -69,7 +63,7 @@ export default function BookScreen() {
                 key={chapter.id}
                 onPress={() => router.push({ pathname: '/book/[chapter]', params: { chapter: chapter.id } })}
                 accessibilityRole="button"
-                accessibilityLabel={`Capítulo ${chapter.number}, ${chapter.title}`}
+                accessibilityLabel={text.chapterA11y(chapter.number, chapter.title)}
                 style={styles.chapter}>
                 <View style={styles.chapterText}>
                   <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>

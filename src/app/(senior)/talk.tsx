@@ -12,17 +12,13 @@ import { Bot, type BotMood } from '@/components/bot';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideSplit } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { loadSeniorDay } from '@/lib/senior-day';
 import { leaveTalk, sendTurn } from '@/lib/talk';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
-const labels: Record<BotMood, string> = {
-  speaking: 'HABLANDO…',
-  idle: 'TU TURNO:',
-  listening: 'TE ESCUCHO…',
-  thinking: 'UN MOMENTO…',
-};
+const labels: Record<BotMood, string> = t.talk.moods;
 
 // She taps once to talk. Her turn ends after a pause, when she taps "He terminado", or at the limit
 const PAUSE_MS = 3500;
@@ -30,7 +26,7 @@ const PAUSE_MS = 3500;
 const FIRST_WORDS_MS = 8000;
 const MAX_TURN_MS = 2 * 60 * 1000;
 
-// Spanish, live text while she speaks
+// Spanish, live text while she speaks (the talk is Spanish only for now, whatever the phone's language)
 const startRecognition = () =>
   ExpoSpeechRecognitionModule.start({
     lang: 'es-ES',
@@ -118,14 +114,14 @@ export default function TalkScreen() {
       if (result.error === 'too_long') {
         closed.current = true;
         setEnded(true);
-        show('Hoy ya hemos charlado mucho. Lo guardo en tu libro. ¡Hasta mañana!', null);
+        show(t.talk.tooLong, null);
         return;
       }
       setMood('idle');
       setHint(
         result.error === 'offline'
-          ? 'No hay conexión. Prueba otra vez en un momento.'
-          : 'Algo ha fallado. Toca el botón y prueba otra vez.',
+          ? t.common.offline
+          : t.talk.failed,
       );
       return;
     }
@@ -146,7 +142,7 @@ export default function TalkScreen() {
 
   const answerPills = (answer: 'yes' | 'no') => {
     setAskPills(false);
-    setReply(answer === 'yes' ? 'Sí, ya me lo he tomado.' : 'No, todavía no.');
+    setReply(answer === 'yes' ? t.talk.pillsYesReply : t.talk.pillsNoReply);
     setMood('thinking');
     setHint(null);
     sendTurn(session.current, undefined, answer).then(handle);
@@ -222,7 +218,7 @@ export default function TalkScreen() {
     const text = heardRef.current.trim();
     if (!text) {
       setMood('idle');
-      setHint('No te he oído bien. Toca el botón y habla otra vez.');
+      setHint(t.talk.notHeard);
       return;
     }
     setReply(text);
@@ -235,8 +231,8 @@ export default function TalkScreen() {
     setMood('idle');
     setHint(
       e.error === 'not-allowed'
-        ? 'Hilo no puede usar el micrófono. Actívalo en Ajustes > Hilo.'
-        : 'No te he oído bien. Toca el botón y habla otra vez.',
+        ? t.talk.noMic
+        : t.talk.notHeard,
     );
   });
 
@@ -255,7 +251,7 @@ export default function TalkScreen() {
 
   const yourTurn = !ended && !askPills && (mood === 'idle' || mood === 'listening');
 
-  const header = <ScreenHeader backLabel="Inicio" title={name ? `¡Hola, ${name}!` : '¡Hola!'} subtitle="¿Cómo estás?" />;
+  const header = <ScreenHeader backLabel={t.home.title} title={t.home.hello(name)} subtitle={t.home.howAreYou} />;
 
   // On a wide screen the bot is on the left of the text, so it looks right, towards it
   const stage = (
@@ -279,7 +275,7 @@ export default function TalkScreen() {
             showsVerticalScrollIndicator
             nestedScrollEnabled>
             <Text style={styles.say}>{say}</Text>
-            {reply || heard ? <Text style={styles.reply}>Tú: «{reply ?? heard}»</Text> : null}
+            {reply || heard ? <Text style={styles.reply}>{t.talk.you(reply ?? heard ?? '')}</Text> : null}
             {hint ? <Text style={styles.hint}>{hint}</Text> : null}
           </ScrollView>
           <LinearGradient
@@ -296,13 +292,13 @@ export default function TalkScreen() {
             animateColor
             onPress={mood === 'listening' ? finish : listen}
             accessibilityRole="button"
-            accessibilityLabel={mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
+            accessibilityLabel={mood === 'listening' ? t.talk.done : t.talk.tap}
             accessibilityHint={
-              mood === 'listening' ? 'Toca cuando acabes de hablar' : 'Toca y habla. Cuando te calles un momento, Hilo te contesta'
+              mood === 'listening' ? t.talk.doneHint : t.talk.tapHint
             }
             style={[styles.hold, mood === 'listening' && styles.holdOn]}>
             <Animated.Text style={[styles.holdText, mood === 'listening' && styles.holdTextOn, styles.smoothText]}>
-              {mood === 'listening' ? 'He terminado' : 'Toca para hablar'}
+              {mood === 'listening' ? t.talk.done : t.talk.tap}
             </Animated.Text>
           </PressScale>
         ) : null}
@@ -310,24 +306,24 @@ export default function TalkScreen() {
         {askPills && mood === 'idle' ? (
           <View style={styles.yesno}>
             <View style={styles.half}>
-              <BigButton label="Sí" onPress={() => answerPills('yes')} accessibilityHint="Ya me lo he tomado" />
+              <BigButton label={t.common.yes} onPress={() => answerPills('yes')} accessibilityHint={t.talk.pillsYesHint} />
             </View>
             <View style={styles.half}>
-              <BigButton variant="outline" label="No" onPress={() => answerPills('no')} accessibilityHint="Todavía no me lo he tomado" />
+              <BigButton variant="outline" label={t.common.no} onPress={() => answerPills('no')} accessibilityHint={t.talk.pillsNoHint} />
             </View>
           </View>
         ) : null}
 
         {mood === 'idle' && lastAudio ? (
           <BigButton
-            label="Repetir"
+            label={t.talk.repeat}
             variant="outline"
             onPress={() => speak(say, lastAudio)}
-            accessibilityHint="Hilo vuelve a decir lo último"
+            accessibilityHint={t.talk.repeatHint}
           />
         ) : null}
 
-        {ended && mood === 'idle' ? <BigButton label="Volver al inicio" onPress={() => router.back()} /> : null}
+        {ended && mood === 'idle' ? <BigButton label={t.talk.backHome} onPress={() => router.back()} /> : null}
       </Animated.View>
     </>
   );

@@ -1,6 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { t } from '@/i18n';
 import { PRIVACY_URL, TERMS_URL } from '@/lib/legal';
 import { colors, family, fontWeight } from '@/theme';
 
@@ -17,19 +18,19 @@ export function AgreeBox({ checked, onChange }: Props) {
         onPress={() => onChange(!checked)}
         accessibilityRole="checkbox"
         accessibilityState={{ checked }}
-        accessibilityLabel="Acepto los Términos y la Política de privacidad"
+        accessibilityLabel={`${t.agree.before}${t.agree.terms}${t.agree.middle}${t.agree.privacy}`}
         hitSlop={10}
         style={[styles.box, checked && styles.boxOn]}>
         {checked ? <Text style={styles.tick}>✓</Text> : null}
       </Pressable>
       <Text style={styles.text}>
-        Acepto los{' '}
+        {t.agree.before}
         <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} accessibilityRole="link">
-          Términos
-        </Text>{' '}
-        y la{' '}
+          {t.agree.terms}
+        </Text>
+        {t.agree.middle}
         <Text style={styles.link} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} accessibilityRole="link">
-          Política de privacidad
+          {t.agree.privacy}
         </Text>
         .
       </Text>

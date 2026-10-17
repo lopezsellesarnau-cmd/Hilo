@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { WideSplit } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { startRoute } from '@/lib/onboarding';
 import { reminderUrl } from '@/lib/reminders';
@@ -51,16 +52,16 @@ export default function WelcomeScreen() {
         Hilo
       </Animated.Text>
       <Animated.Text entering={FadeInDown.duration(500).delay(250)} style={styles.tagline}>
-        Una charla al día para quien más quieres.
+        {t.welcome.tagline}
       </Animated.Text>
     </>
   );
 
   const buttons = (
     <Animated.View entering={FadeInDown.duration(500).delay(400)} style={styles.buttons}>
-      <BigButton scale="family" label="Soy familiar" onPress={() => router.push('/onboarding/email')} />
-      <BigButton scale="family" variant="outline" label="Tengo un código" onPress={() => router.push('/pair-code')} />
-      <Text style={styles.note}>«Tengo un código» es para el móvil de tu madre, padre o abuelo.</Text>
+      <BigButton scale="family" label={t.welcome.family} onPress={() => router.push('/onboarding/email')} />
+      <BigButton scale="family" variant="outline" label={t.welcome.haveCode} onPress={() => router.push('/pair-code')} />
+      <Text style={styles.note}>{t.welcome.codeNote}</Text>
     </Animated.View>
   );
 

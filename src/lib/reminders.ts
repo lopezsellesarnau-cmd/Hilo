@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { t } from '@/i18n';
 
 /**
  * Local reminders on the senior's phone: the daily talk and each pill.
@@ -43,13 +44,13 @@ export async function scheduleReminders(talkTime: string | null, meds: Medicatio
 
   if (talkTime) {
     await Notifications.scheduleNotificationAsync({
-      content: { title: 'Hilo', body: '¿Charlamos un rato?', data: { url: '/talk' } },
+      content: { title: 'Hilo', body: t.reminders.talk, data: { url: '/talk' } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, ...parts(talkTime) },
     });
   }
 
   for (const med of meds) {
-    const content = { title: 'Hilo', body: `Te toca: ${med.name.toLowerCase()}.`, data: { url: '/pills' } };
+    const content = { title: 'Hilo', body: t.reminders.pill(med.name), data: { url: '/pills' } };
     for (const time of med.times) {
       if (med.weekdays.length === 7) {
         await Notifications.scheduleNotificationAsync({
@@ -73,7 +74,7 @@ export async function scheduleReminders(talkTime: string | null, meds: Medicatio
 export async function remindLater(name: string, minutes: number) {
   if (!(await Notifications.getPermissionsAsync()).granted) return;
   await Notifications.scheduleNotificationAsync({
-    content: { title: 'Hilo', body: `Te lo recuerdo: ${name.toLowerCase()}.`, data: { url: '/pills' } },
+    content: { title: 'Hilo', body: t.reminders.later(name), data: { url: '/pills' } },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: minutes * 60 },
   });
 }

@@ -5,6 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
+import { t } from '@/i18n';
 import { pairingLink } from '@/lib/pairing';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
@@ -17,7 +18,7 @@ export default function PairStep() {
   const newCode = useCallback(() => {
     supabase.rpc('create_pairing_code', { senior_id: seniorId }).then(({ data, error: e }) => {
       if (e || !data) {
-        setError('No hemos podido crear el código. Comprueba tu conexión y vuelve a probar.');
+        setError(t.pair.createFailed);
         return;
       }
       setError(null);
@@ -36,31 +37,31 @@ export default function PairStep() {
   return (
     <OnboardingStep
       step={6}
-      question={seniorName ? `Conecta el móvil de ${seniorName}` : 'Conecta su móvil'}
-      hint="Ten su móvil a mano. Es un momento."
+      question={t.pair.question(seniorName)}
+      hint={t.pair.hint}
       footer={
         <>
-          <BigButton scale="family" label="Ya está" onPress={done} />
-          <BigButton scale="family" variant="outline" label="Lo haré luego" onPress={done} />
+          <BigButton scale="family" label={t.pair.done} onPress={done} />
+          <BigButton scale="family" variant="outline" label={t.common.later} onPress={done} />
         </>
       }>
       <View style={styles.steps}>
-        <Text style={styles.step}>1. En su móvil, instala Hilo desde la App Store.</Text>
-        <Text style={styles.step}>2. Abre Hilo y toca «Tengo un código».</Text>
-        <Text style={styles.step}>3. Toca «Escanear el código QR» y apunta aquí, o escribe los números.</Text>
+        <Text style={styles.step}>{t.pair.step1}</Text>
+        <Text style={styles.step}>{t.pair.step2}</Text>
+        <Text style={styles.step}>{t.pair.step3}</Text>
       </View>
 
       <View style={styles.qr} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {code ? <QRCode value={pairingLink(code)} size={176} color={colors.ink} backgroundColor={colors.background} /> : null}
       </View>
 
-      <View style={styles.codeBox} accessible accessibilityLabel={code ? `Código ${code.split('').join(' ')}` : 'Creando código'}>
+      <View style={styles.codeBox} accessible accessibilityLabel={code ? t.pair.codeA11y(code.split('').join(' ')) : t.pair.creating}>
         <Text style={styles.code}>{code ? `${code.slice(0, 3)} ${code.slice(3)}` : '··· ···'}</Text>
       </View>
-      <Text style={styles.note}>Caduca en 30 minutos y solo sirve una vez.</Text>
+      <Text style={styles.note}>{t.pair.expires}</Text>
 
       <Pressable onPress={newCode} accessibilityRole="button" hitSlop={8} style={styles.again}>
-        <Text style={styles.againText}>Crear otro código</Text>
+        <Text style={styles.againText}>{t.pair.again}</Text>
       </Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </OnboardingStep>

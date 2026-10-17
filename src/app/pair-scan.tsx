@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { ScreenHeader } from '@/components/screen-header';
 import { Bot } from '@/components/bot';
+import { t } from '@/i18n';
 import { codeFromQr, pair, PAIR_MESSAGES } from '@/lib/pairing';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
@@ -38,7 +39,7 @@ export default function PairScanScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.screen}>
-        <ScreenHeader title="Escanea el código" subtitle="Apunta al cuadrado del móvil de tu familia." backLabel="Atrás" />
+        <ScreenHeader title={t.pairScan.title} subtitle={t.pairScan.subtitle} backLabel={t.common.back} />
 
         <View style={styles.body}>
           {connecting ? (
@@ -46,7 +47,7 @@ export default function PairScanScreen() {
               <View style={styles.bot}>
                 <Bot size={140} mood="thinking" />
               </View>
-              <Text style={styles.text}>Conectando…</Text>
+              <Text style={styles.text}>{t.pairCode.connecting}</Text>
             </View>
           ) : !permission ? null : permission.granted ? (
             <View style={styles.frame}>
@@ -59,11 +60,11 @@ export default function PairScanScreen() {
             </View>
           ) : (
             <View style={styles.ask}>
-              <Text style={styles.text}>Hilo necesita la cámara para leer el código.</Text>
+              <Text style={styles.text}>{t.pairScan.needCamera}</Text>
               {permission.canAskAgain ? (
-                <BigButton label="Usar la cámara" onPress={requestPermission} />
+                <BigButton label={t.pairScan.useCamera} onPress={requestPermission} />
               ) : (
-                <Text style={styles.text}>Actívala en Ajustes, o vuelve atrás y escribe los números.</Text>
+                <Text style={styles.text}>{t.pairScan.denied}</Text>
               )}
             </View>
           )}

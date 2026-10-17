@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { t } from '@/i18n';
 import { colors, fontSize, fontWeight, lineHeight } from '@/theme';
 
 type Props = {
@@ -17,7 +18,7 @@ export function ScreenHeader({ title, subtitle, backLabel }: Props) {
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel={`Volver a ${backLabel}`}
+          accessibilityLabel={t.common.backTo(backLabel)}
           hitSlop={12}
           style={styles.back}>
           <Text style={styles.backText}>‹ {backLabel}</Text>

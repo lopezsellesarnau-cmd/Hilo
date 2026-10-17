@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { WideFrame } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight, spacing } from '@/theme';
@@ -14,21 +15,10 @@ const SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
 
 const LANGUAGE_NAMES: Record<string, string> = { es: 'Español', en: 'English', nl: 'Nederlands' };
 
-// Texts of the section about the senior, together for the translation later
 const text = {
-  talk: 'La charla',
+  ...t.settings,
   talkValue: (time: string | null, locale: string) =>
-    `${time ? time.slice(0, 5).replace(/^0/, '') : 'Sin hora'} · ${LANGUAGE_NAMES[locale] ?? locale}`,
-  pills: 'Sus pastillas',
-  pillsValue: (n: number) => (n ? String(n) : 'Ninguna'),
-  phone: 'Su móvil',
-  phoneValue: (connected: boolean) => (connected ? 'Conectado' : 'Sin conectar'),
-  relinkTitle: '¿Conectar otro móvil?',
-  relinkText: (name: string) =>
-    `El móvil que tiene ahora ${name} dejará de funcionar con Hilo. Luego escaneas el código nuevo con el otro móvil.`,
-  relinkYes: 'Sí, conectar otro',
-  cancel: 'Cancelar',
-  relinkError: 'No hemos podido desconectarlo. Comprueba tu conexión y vuelve a probar.',
+    `${time ? time.slice(0, 5).replace(/^0/, '') : t.settings.noTime} · ${LANGUAGE_NAMES[locale] ?? locale}`,
 };
 
 type Senior = {
@@ -125,7 +115,7 @@ export default function SettingsScreen() {
     const { error: e } = await supabase.rpc('delete_my_account');
     if (e) {
       setDeleting(false);
-      setError('No hemos podido borrar la cuenta. Comprueba tu conexión y vuelve a probar.');
+      setError(text.deleteFailed);
       return;
     }
     // The user no longer exists; this only clears the session stored on the phone
@@ -139,7 +129,7 @@ export default function SettingsScreen() {
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
           <Text style={styles.title} accessibilityRole="header">
-            Ajustes
+            {text.title}
           </Text>
 
           {senior ? (
@@ -171,38 +161,35 @@ export default function SettingsScreen() {
             </>
           ) : null}
 
-          <Text style={styles.section}>TU CUENTA</Text>
+          <Text style={styles.section}>{text.account}</Text>
           <View style={styles.group}>
             <View style={styles.row}>
-              <Text style={styles.rowText}>Email</Text>
+              <Text style={styles.rowText}>{text.email}</Text>
               <Text style={styles.value} numberOfLines={1}>
                 {email}
               </Text>
             </View>
-            <Row label="Gestionar suscripción" onPress={() => Linking.openURL(SUBSCRIPTIONS_URL)} />
-            <Row label="Cerrar sesión" onPress={signOut} />
+            <Row label={text.subscription} onPress={() => Linking.openURL(SUBSCRIPTIONS_URL)} />
+            <Row label={text.signOut} onPress={signOut} />
           </View>
 
-          <Text style={styles.section}>AYUDA Y LEGAL</Text>
+          <Text style={styles.section}>{text.helpLegal}</Text>
           <View style={styles.group}>
-            <Row label="Ayuda" onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} />
-            <Row label="Términos" onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
-            <Row label="Política de privacidad" onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} />
+            <Row label={text.help} onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} />
+            <Row label={t.agree.terms} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
+            <Row label={t.agree.privacy} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} />
           </View>
 
           <View style={styles.group}>
-            <Row label="Borrar mi cuenta" danger onPress={() => setConfirming(true)} />
+            <Row label={text.deleteAccount} danger onPress={() => setConfirming(true)} />
           </View>
 
           {confirming ? (
             <View style={styles.confirm}>
-              <Text style={styles.confirmTitle}>¿Borrar tu cuenta?</Text>
-              <Text style={styles.confirmText}>
-                Si eres el único familiar en Hilo, también se borra todo lo de tu familia: sus pastillas, sus charlas y su
-                libro. No se puede deshacer.
-              </Text>
-              <BigButton scale="family" label={deleting ? 'Borrando…' : 'Sí, borrar todo'} onPress={deleteAccount} />
-              <BigButton scale="family" variant="outline" label="Cancelar" onPress={() => setConfirming(false)} />
+              <Text style={styles.confirmTitle}>{text.deleteTitle}</Text>
+              <Text style={styles.confirmText}>{text.deleteText}</Text>
+              <BigButton scale="family" label={deleting ? text.deleting : text.deleteYes} onPress={deleteAccount} />
+              <BigButton scale="family" variant="outline" label={text.cancel} onPress={() => setConfirming(false)} />
               {error ? <Text style={styles.error}>{error}</Text> : null}
             </View>
           ) : null}

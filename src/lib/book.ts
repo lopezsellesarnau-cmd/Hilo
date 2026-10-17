@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 
 export type Chapter = {
@@ -24,7 +25,7 @@ export async function loadBook(): Promise<{ name: string; chapters: Chapter[] } 
     .eq('user_id', session?.user.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();
-  if (!me) return { error: 'Este móvil aún no está conectado con tu familia.' };
+  if (!me) return { error: t.common.notPaired };
 
   const { data, error } = await supabase
     .from('chapters')
@@ -32,7 +33,7 @@ export async function loadBook(): Promise<{ name: string; chapters: Chapter[] } 
     .eq('person_id', me.id)
     .eq('status', 'approved')
     .order('created_at');
-  if (error) return { error: 'No hay conexión. Prueba otra vez en un momento.' };
+  if (error) return { error: t.common.offline };
 
   return { name: me.display_name, chapters: data.map((c, i) => ({ ...c, number: i + 1 })) };
 }
@@ -47,14 +48,14 @@ export type Draft = Omit<Chapter, 'number'> & {
 /** The family's view of the book: every chapter of their senior, drafts included (RLS), newest first */
 export async function loadFamilyBook(): Promise<{ name: string; chapters: Draft[] } | { error: string }> {
   const { data: senior } = await supabase.from('people').select('id, display_name').eq('role', 'senior').limit(1).maybeSingle();
-  if (!senior) return { error: 'No hemos podido cargar los datos. Comprueba tu conexión.' };
+  if (!senior) return { error: t.common.loadFailed };
 
   const { data, error } = await supabase
     .from('chapters')
     .select('id, title, quote, paragraphs, status, unheard_words, created_at')
     .eq('person_id', senior.id)
     .order('created_at', { ascending: false });
-  if (error) return { error: 'No hemos podido cargar los datos. Comprueba tu conexión.' };
+  if (error) return { error: t.common.loadFailed };
 
   return {
     name: senior.display_name,

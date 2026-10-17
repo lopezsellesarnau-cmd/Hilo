@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Bot, type BotMood } from '@/components/bot';
 import { WideSplit } from '@/components/wide-split';
+import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
@@ -35,17 +36,17 @@ export function OnboardingStep({ step, question, hint, children, footer, mood = 
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Atrás"
+          accessibilityLabel={t.common.back}
           hitSlop={12}
           style={styles.back}>
-          <Text style={styles.backText}>‹ Atrás</Text>
+          <Text style={styles.backText}>‹ {t.common.back}</Text>
         </Pressable>
       ) : (
         <View style={styles.backSpace} />
       )}
 
       {step ? (
-        <View style={styles.dots} accessible accessibilityLabel={`Paso ${step} de ${TOTAL_STEPS}`}>
+        <View style={styles.dots} accessible accessibilityLabel={t.onboarding.stepOf(step, TOTAL_STEPS)}>
           {Array.from({ length: TOTAL_STEPS }, (_, i) => (
             <View key={i} style={[styles.dot, i + 1 === step && styles.dotOn]} />
           ))}
