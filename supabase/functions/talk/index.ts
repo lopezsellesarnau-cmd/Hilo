@@ -113,6 +113,9 @@ const SAY = {
     refusal: 'Perdona, de eso prefiero no hablar. ¿Me cuentas otra cosa?',
     start: (name: string, now: string) => `[Empieza la charla de hoy. Se llama ${name}. Ahora es ${now}.]`,
     noQuestion: '[Nota: en esta respuesta no hagas ninguna pregunta. Justo después le pregunto por sus pastillas.]',
+    memory: (notes: string) =>
+      `[Lo que sabes de charlas anteriores. Úsalo con naturalidad, como alguien que se acuerda: pregunta por algo de aquí si encaja, sin recitarlo ni decir que lo tienes apuntado.\n${notes}]`,
+    stories: (titles: string) => `[Historias que ya te ha contado para su libro: ${titles}. Busca un recuerdo nuevo o un detalle que faltó, no repitas la misma.]`,
     pillOne: (time: string, name: string) => `Por cierto, a las ${time} te tocaba esto: ${name}. ¿Te lo has tomado?`,
     pillMany: (list: string) => `Por cierto, hoy te tocaba esto: ${list}. ¿Te lo has tomado todo?`,
     and: 'y',
@@ -127,6 +130,9 @@ const SAY = {
     refusal: 'Sorry, daar praat ik liever niet over. Vertelt u me iets anders?',
     start: (name: string, now: string) => `[Het gesprek van vandaag begint. De naam is ${name}. Het is nu ${now}.]`,
     noQuestion: '[Let op: stel in dit antwoord geen vraag. Direct daarna vraag ik naar de pillen.]',
+    memory: (notes: string) =>
+      `[Wat je weet uit eerdere gesprekken. Gebruik het natuurlijk, zoals iemand die het onthouden heeft: vraag ernaar als het past, zonder het op te sommen of te zeggen dat je het hebt opgeschreven.\n${notes}]`,
+    stories: (titles: string) => `[Verhalen die al verteld zijn voor het boek: ${titles}. Zoek een nieuwe herinnering of een detail dat ontbrak, herhaal niet hetzelfde verhaal.]`,
     pillOne: (time: string, name: string) => `Trouwens, om ${time} was het tijd voor ${name}. Heeft u die genomen?`,
     pillMany: (list: string) => `Trouwens, vandaag was het tijd voor ${list}. Heeft u alles genomen?`,
     and: 'en',
@@ -141,6 +147,9 @@ const SAY = {
     refusal: "Sorry, I'd rather not talk about that. Will you tell me something else?",
     start: (name: string, now: string) => `[Today's chat starts. Their name is ${name}. It is now ${now}.]`,
     noQuestion: "[Note: don't ask any question in this reply. Right after it, I ask about their pills.]",
+    memory: (notes: string) =>
+      `[What you know from earlier chats. Use it naturally, like someone who remembers: ask about something here if it fits, without reciting it or saying you wrote it down.\n${notes}]`,
+    stories: (titles: string) => `[Stories already told for their book: ${titles}. Look for a new memory or a missing detail, don't repeat the same one.]`,
     pillOne: (time: string, name: string) => `By the way, at ${time} it was time for ${name}. Have you taken it?`,
     pillMany: (list: string) => `By the way, today it was time for ${list}. Have you taken everything?`,
     and: 'and',
@@ -336,7 +345,7 @@ const STORY_SCHEMA = {
 };
 
 type Turn = { speaker: string; text: string };
-type Senior = { id: string; family_id: string; display_name: string; timezone: string; locale: string };
+type Senior = { id: string; family_id: string; display_name: string; timezone: string; locale: string; memory: string | null };
 
 /** The chapter is written in the language she spoke */
 const STORY_LANGUAGE: Record<Lang, string> = { es: '', nl: '\n\nEscribe la historia en neerlandés, como ella habla.', en: '\n\nEscribe la historia en inglés, como ella habla.' };
@@ -432,10 +441,78 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
   }
 }
 
+// ── Memory ────────────────────────────────────────────────────────────────
+// After each talk, a few notes about her are rewritten (people.memory) and given to Hilo next time.
+// One cheap call per talk; the next talks never carry old transcripts.
+
+const MEMORY_MAX = 2000;
+/** Less than this from her (characters) adds nothing worth remembering */
+const MIN_MEMORY_CHARS = 40;
+
+const MEMORY_WRITER = `Llevas unas notas breves sobre una persona mayor para que Hilo, el compañero que charla con ella cada día, se acuerde de ella en la próxima charla.
+Te doy las notas que había y la charla de hoy. Devuelves las notas nuevas, completas.
+
+Reglas:
+- Solo lo que ella ha dicho. No inventes ni deduzcas nada.
+- Guarda lo que sirve para la próxima charla: personas de su vida (nombre y relación), lugares, gustos, lo que le preocupa, planes con fecha, y de qué se habló hoy.
+- Fechas siempre exactas, nunca "mañana" ni "el jueves": conviértelas con la fecha de hoy que te doy.
+- Salud: solo lo justo para preguntar con cariño (por ejemplo "le dolía la rodilla"), sin diagnósticos ni medicinas.
+- Quita lo que ya no sirve, como un plan que ya pasó y ya se comentó.
+- Una idea por línea, empezando por "- ". Máximo 15 líneas. Nada más: sin títulos ni comentarios.
+- Escribe las notas en el idioma de la charla.`;
+
+/** Rewrites her notes with what she said today. Runs after the goodbye, like the chapter */
+async function updateMemory(admin: SupabaseClient, me: Senior, transcript: Turn[]) {
+  const hers = transcript.filter((t) => t.speaker === 'senior').map((t) => t.text).join(' ');
+  if (hers.length < MIN_MEMORY_CHARS) return;
+  try {
+    const res = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 800,
+      output_config: { effort: 'low' },
+      system: MEMORY_WRITER,
+      messages: [
+        {
+          role: 'user',
+          content:
+            `Se llama ${me.display_name}. Hoy es ${localNow(me.timezone).date}.\n\n` +
+            `Notas que había:\n${me.memory?.trim() || '(ninguna, es la primera vez)'}\n\n` +
+            `La charla de hoy:\n` +
+            transcript.map((t) => `${t.speaker === 'hilo' ? 'Hilo' : me.display_name}: ${t.text}`).join('\n'),
+        },
+      ],
+    });
+    await admin.rpc('add_usage', {
+      pid: me.id,
+      usage_day: localNow(me.timezone).date,
+      input_tokens: res.usage.input_tokens,
+      output_tokens: res.usage.output_tokens,
+      characters: 0,
+    });
+    const notes = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('')
+      .trim();
+    // A cut answer could drop half of what she told: keep the old notes
+    if (res.stop_reason !== 'end_turn' || !notes) {
+      console.error('memory skipped:', res.stop_reason);
+      return;
+    }
+    const { error } = await admin
+      .from('people')
+      .update({ memory: notes.slice(0, MEMORY_MAX), memory_updated_at: new Date().toISOString() })
+      .eq('id', me.id);
+    if (error) console.error('memory', error.message);
+  } catch (e) {
+    console.error('memory', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
+  }
+}
+
 // Supabase keeps the function alive for promises passed here, after the response is sent
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
-/** Sets ended_at once (goodbye, turn limit or she left) and writes the chapter in the background */
+/** Sets ended_at once (goodbye, turn limit or she left) and writes the chapter and her notes in the background */
 async function closeTalk(db: SupabaseClient, admin: SupabaseClient, me: Senior, sessionId: string, transcript: Turn[]) {
   const { data: closed } = await db
     .from('talk_sessions')
@@ -443,7 +520,9 @@ async function closeTalk(db: SupabaseClient, admin: SupabaseClient, me: Senior, 
     .eq('id', sessionId)
     .is('ended_at', null)
     .select('id');
-  if (closed?.length) EdgeRuntime.waitUntil(writeChapter(admin, me, sessionId, transcript));
+  if (closed?.length) {
+    EdgeRuntime.waitUntil(Promise.all([writeChapter(admin, me, sessionId, transcript), updateMemory(admin, me, transcript)]));
+  }
 }
 
 const json = (body: unknown, status = 200) =>
@@ -477,7 +556,7 @@ Deno.serve(async (req) => {
   const { data: userData } = await db.auth.getUser(auth.replace('Bearer ', ''));
   const { data: me } = await db
     .from('people')
-    .select('id, family_id, display_name, locale, timezone, voice_speed')
+    .select('id, family_id, display_name, locale, timezone, voice_speed, memory')
     .eq('user_id', userData.user?.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();
@@ -529,9 +608,11 @@ Deno.serve(async (req) => {
     sessionId = data.id;
   }
 
-  const [{ data: turns, error: turnsError }, { data: talk }] = await Promise.all([
+  const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }] = await Promise.all([
     db.from('turns').select('seq, speaker, text').eq('session_id', sessionId).order('seq'),
     db.from('talk_sessions').select('pills_asked_at').eq('id', sessionId).single(),
+    // Titles only (drafts too): enough for Hilo not to ask for the same story twice
+    admin.from('chapters').select('title').eq('person_id', me.id).order('created_at', { ascending: false }).limit(12),
   ]);
   if (turnsError || !talk) return json({ error: 'session' }, 404);
 
@@ -579,10 +660,16 @@ Deno.serve(async (req) => {
     if (askPills.length) await db.from('talk_sessions').update({ pills_asked_at: new Date().toISOString() }).eq('id', sessionId);
   }
 
-  // Only today's talk, never the full history (cost and privacy). The opening user message is fixed.
+  // Only today's talk, never the full history (cost and privacy): what she told before comes as her notes.
+  // The opening user message stays the same during the talk (her notes change only after it ends).
   const now = new Date().toLocaleString(say.dateLocale, { timeZone: me.timezone, weekday: 'long', hour: '2-digit', minute: '2-digit' });
+  const opening = [
+    say.start(me.display_name, now),
+    me.memory?.trim() ? say.memory(me.memory.trim()) : '',
+    chapters?.length ? say.stories(chapters.map((c) => c.title).join('; ')) : '',
+  ].filter(Boolean);
   const messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: say.start(me.display_name, now) },
+    { role: 'user', content: opening.join('\n\n') },
     ...history.map((t): Anthropic.MessageParam => ({ role: t.speaker === 'hilo' ? 'assistant' : 'user', content: t.text })),
   ];
   // The pill question goes right after Claude's reply, so Claude must not ask one of its own (not saved in turns)
