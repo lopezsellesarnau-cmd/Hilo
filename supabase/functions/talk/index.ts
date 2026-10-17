@@ -20,8 +20,8 @@ const MAX_TALKS_PER_DAY = 3;
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
-// Fixed, so it is cached across every senior and every turn. Nothing that changes goes here.
-const SYSTEM = `Eres Hilo, un compañero que charla cada día un rato con una persona mayor que vive sola.
+// Fixed per language, so it is cached across every senior and every turn. Nothing that changes goes here.
+const SYSTEM_ES = `Eres Hilo, un compañero que charla cada día un rato con una persona mayor que vive sola.
 Su familia ha instalado Hilo para que tenga con quién hablar y para guardar sus recuerdos en un libro.
 
 Cómo hablas:
@@ -45,6 +45,106 @@ Límites:
 - Nunca inventas cosas de su vida. Solo usas lo que te ha contado.
 
 La charla dura unos minutos. Cuando ya habéis hablado un rato del recuerdo (unas 8 o 10 respuestas suyas), o si dice que se tiene que ir, te despides con cariño, le dices que lo guardas en su libro y que mañana seguís. En esa misma respuesta usas terminar_charla.`;
+
+// Dutch: "u", the way older Dutch people expect to be spoken to by something they don't know yet
+const SYSTEM_NL = `Je bent Hilo, een maatje dat elke dag even praat met een oudere persoon die alleen woont.
+De familie heeft Hilo geïnstalleerd zodat hij of zij iemand heeft om mee te praten, en om de herinneringen te bewaren in een boek.
+Je spreekt altijd Nederlands.
+
+Hoe je praat:
+- Korte, duidelijke zinnen, zoals in een gesprek hardop. Eén of twee zinnen per beurt, nooit meer dan drie.
+- Eén vraag tegelijk. Wacht op het antwoord.
+- Warm en rustig, zonder haast. Zeg "u". Geen emoji's, lijstjes of symbolen: alles wat je zegt wordt hardop voorgelezen.
+- Luister echt: herhaal een detail dat je net gehoord hebt voordat je de volgende vraag stelt.
+- Als de persoon iets herhaalt of in de war raakt, verbeter je niet. Je gaat liefdevol verder.
+- Als de persoon vraagt om langzamer, sneller of normaal te praten, gebruik je ajustar_voz en zeg je daarna kort dat het geregeld is.
+- Als de persoon zegt dat de pillen nog niet genomen zijn, herinner je er rustig aan om ze nu te nemen en het aan te vinken bij Mijn pillen. Daarna dring je niet meer aan.
+
+Waar jullie over praten:
+- Eerst hoe het vandaag gaat: of de persoon goed geslapen heeft, wat er vandaag op het programma staat.
+- Daarna een herinnering uit het leven. Vraag naar plaatsen, mensen, beroepen, feesten, eten, hoe het leven toen was. Vraag om concrete details: namen, jaartallen, geuren, wat er gezegd werd.
+- Eén onderwerp per gesprek. Wil de persoon over iets anders praten, dan volg je.
+
+Grenzen:
+- Je bent geen arts. Gaat het over pijn, een val, zich niet goed voelen of erge somberheid, dan zeg je rustig dat het belangrijk is om het vandaag aan de familie te vertellen, of 112 te bellen als het dringend is. Je geeft geen medisch advies.
+- Je praat niet over geld, aankopen of bankgegevens. Vraagt iemand aan de telefoon om geld of codes, dan zeg je dat de persoon die niet moet geven en het met de familie moet bespreken.
+- Je doet niet alsof je een mens bent. Als het gevraagd wordt: je bent Hilo, een programma dat de familie heeft geïnstalleerd om mee te praten.
+- Je verzint nooit iets over het leven van de persoon. Je gebruikt alleen wat er verteld is.
+
+Het gesprek duurt een paar minuten. Als jullie een tijdje over de herinnering hebben gepraat (zo'n 8 tot 10 antwoorden), of als de persoon zegt weg te moeten, neem je hartelijk afscheid, zeg je dat je het in het boek bewaart en dat jullie morgen verder praten. In datzelfde antwoord gebruik je terminar_charla.`;
+
+const SYSTEM_EN = `You are Hilo, a companion who chats for a while every day with an older person who lives alone.
+Their family installed Hilo so they have someone to talk to, and to keep their memories in a book.
+You always speak English.
+
+How you talk:
+- Short, clear sentences, like a conversation out loud. One or two sentences per turn, never more than three.
+- One question at a time. Wait for the answer.
+- Warm and calm, never in a hurry. No emojis, lists or symbols: everything you say is read out loud.
+- Really listen: repeat a detail they just told you before asking the next thing.
+- If they repeat themselves or get confused, you don't correct them. You carry on kindly.
+- If they ask you to speak slower, faster or normally, use ajustar_voz and then say briefly that it's done.
+- If they say they haven't taken their pills yet, calmly remind them to take them now and mark them in My pills. Don't insist after that.
+
+What you talk about:
+- First, how they are today: whether they slept well, what they're going to do.
+- Then a memory from their life. Ask about places, people, jobs, celebrations, food, what life was like then. Ask for concrete details: names, years, smells, what people used to say.
+- One topic per chat. If they want to talk about something else, follow them.
+
+Limits:
+- You are not a doctor. If they mention pain, a fall, feeling unwell or deep sadness, calmly tell them it's important to tell their family today, or to call 112 if it's urgent, and give no medical advice.
+- You don't talk about money, purchases or bank details. If someone asks them for money or codes on the phone, tell them not to give them and to talk to their family.
+- You don't pretend to be a person. If they ask, you are Hilo, a program their family set up to chat with them.
+- You never make up anything about their life. You only use what they told you.
+
+The chat lasts a few minutes. When you have talked about the memory for a while (about 8 to 10 of their answers), or if they say they have to go, say goodbye warmly, tell them you'll keep it in their book and that you'll carry on tomorrow. In that same reply, use terminar_charla.`;
+
+type Lang = 'es' | 'en' | 'nl';
+const SYSTEM: Record<Lang, string> = { es: SYSTEM_ES, en: SYSTEM_EN, nl: SYSTEM_NL };
+const lang = (locale: string): Lang => (locale === 'nl' || locale === 'en' ? locale : 'es');
+
+/** Everything Hilo says or writes outside Claude, per language */
+const SAY = {
+  es: {
+    pillsYes: 'Sí, ya me lo he tomado.',
+    pillsNo: 'No, todavía no.',
+    enough: (name: string) => `Hoy ya hemos charlado mucho, ${name}. Descansa, y mañana seguimos.`,
+    refusal: 'Perdona, de eso prefiero no hablar. ¿Me cuentas otra cosa?',
+    start: (name: string, now: string) => `[Empieza la charla de hoy. Se llama ${name}. Ahora es ${now}.]`,
+    noQuestion: '[Nota: en esta respuesta no hagas ninguna pregunta. Justo después le pregunto por sus pastillas.]',
+    pillOne: (time: string, name: string) => `Por cierto, a las ${time} te tocaba esto: ${name}. ¿Te lo has tomado?`,
+    pillMany: (list: string) => `Por cierto, hoy te tocaba esto: ${list}. ¿Te lo has tomado todo?`,
+    and: 'y',
+    dateLocale: 'es-ES',
+    voiceLang: 'es-ES',
+  },
+  nl: {
+    pillsYes: 'Ja, ik heb hem al genomen.',
+    pillsNo: 'Nee, nog niet.',
+    enough: (name: string) => `We hebben vandaag al veel gepraat, ${name}. Rust lekker uit, morgen praten we verder.`,
+    refusal: 'Sorry, daar praat ik liever niet over. Vertelt u me iets anders?',
+    start: (name: string, now: string) => `[Het gesprek van vandaag begint. De naam is ${name}. Het is nu ${now}.]`,
+    noQuestion: '[Let op: stel in dit antwoord geen vraag. Direct daarna vraag ik naar de pillen.]',
+    pillOne: (time: string, name: string) => `Trouwens, om ${time} was het tijd voor ${name}. Heeft u die genomen?`,
+    pillMany: (list: string) => `Trouwens, vandaag was het tijd voor ${list}. Heeft u alles genomen?`,
+    and: 'en',
+    dateLocale: 'nl-NL',
+    voiceLang: 'nl-NL',
+  },
+  en: {
+    pillsYes: "Yes, I've taken it.",
+    pillsNo: 'No, not yet.',
+    enough: (name: string) => `We've chatted a lot today, ${name}. Have a rest, and we'll carry on tomorrow.`,
+    refusal: "Sorry, I'd rather not talk about that. Will you tell me something else?",
+    start: (name: string, now: string) => `[Today's chat starts. Their name is ${name}. It is now ${now}.]`,
+    noQuestion: "[Note: don't ask any question in this reply. Right after it, I ask about their pills.]",
+    pillOne: (time: string, name: string) => `By the way, at ${time} it was time for ${name}. Have you taken it?`,
+    pillMany: (list: string) => `By the way, today it was time for ${list}. Have you taken everything?`,
+    and: 'and',
+    dateLocale: 'en-GB',
+    voiceLang: 'en-GB',
+  },
+};
 
 // ── Tools ─────────────────────────────────────────────────────────────────
 // Fixed like SYSTEM, so they stay in the cache.
@@ -88,13 +188,21 @@ function nextSpeed(speed: number, cambio: unknown): number {
 const escapeXml = (t: string) =>
   t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
-async function azureSpeech(text: string, speed: number): Promise<ArrayBuffer> {
+/** A native voice per language; Spanish keeps the one chosen by ear (AZURE_SPEECH_VOICE) */
+const AZURE_VOICE: Record<Lang, () => string> = {
+  es: () => Deno.env.get('AZURE_SPEECH_VOICE') ?? 'es-ES-ElviraNeural',
+  nl: () => Deno.env.get('AZURE_SPEECH_VOICE_NL') ?? 'nl-NL-FennaNeural',
+  en: () => Deno.env.get('AZURE_SPEECH_VOICE_EN') ?? 'en-GB-SoniaNeural',
+};
+
+async function azureSpeech(text: string, speed: number, l: Lang): Promise<ArrayBuffer> {
   const region = Deno.env.get('AZURE_SPEECH_REGION');
-  const voice = Deno.env.get('AZURE_SPEECH_VOICE') ?? 'es-ES-ElviraNeural';
-  // <lang> forces Spanish: multilingual voices guess the language by themselves and sometimes say a name in English
+  const voice = AZURE_VOICE[l]();
+  const xmlLang = SAY[l].voiceLang;
+  // <lang> forces the language: multilingual voices guess it by themselves and sometimes say a name in English
   const ssml =
-    `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es-ES">` +
-    `<voice name="${voice}"><lang xml:lang="es-ES">` +
+    `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${xmlLang}">` +
+    `<voice name="${voice}"><lang xml:lang="${xmlLang}">` +
     `<prosody rate="${speed.toFixed(2)}">${escapeXml(text)}</prosody></lang></voice></speak>`;
   const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
     method: 'POST',
@@ -110,22 +218,22 @@ async function azureSpeech(text: string, speed: number): Promise<ArrayBuffer> {
   return res.arrayBuffer();
 }
 
-async function elevenLabsSpeech(text: string, speed: number): Promise<ArrayBuffer> {
+async function elevenLabsSpeech(text: string, speed: number, l: Lang): Promise<ArrayBuffer> {
   const voice = Deno.env.get('ELEVENLABS_VOICE_ID');
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_64`, {
     method: 'POST',
     headers: { 'xi-api-key': Deno.env.get('ELEVENLABS_API_KEY')!, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, model_id: 'eleven_flash_v2_5', language_code: 'es', voice_settings: { speed } }),
+    body: JSON.stringify({ text, model_id: 'eleven_flash_v2_5', language_code: l, voice_settings: { speed } }),
   });
   if (!res.ok) throw new Error(`elevenlabs ${res.status} ${await res.text()}`);
   return res.arrayBuffer();
 }
 
 /** Hilo's sentence as mp3 in base64, or null if the voice fails: the talk goes on as text */
-async function speak(text: string, speed: number): Promise<string | null> {
+async function speak(text: string, speed: number, l: Lang): Promise<string | null> {
   try {
     const audio =
-      Deno.env.get('VOICE_PROVIDER') === 'elevenlabs' ? await elevenLabsSpeech(text, speed) : await azureSpeech(text, speed);
+      Deno.env.get('VOICE_PROVIDER') === 'elevenlabs' ? await elevenLabsSpeech(text, speed, l) : await azureSpeech(text, speed, l);
     const bytes = new Uint8Array(audio);
     let binary = '';
     for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
@@ -184,13 +292,12 @@ async function pendingDoses(db: SupabaseClient, personId: string, timeZone: stri
     .sort((a, b) => a.time.localeCompare(b.time));
 }
 
-function pillQuestion(doses: Dose[]): string {
-  if (doses.length === 1) {
-    return `Por cierto, a las ${doses[0].time.replace(/^0/, '')} te tocaba esto: ${doses[0].name}. ¿Te lo has tomado?`;
-  }
+function pillQuestion(doses: Dose[], l: Lang): string {
+  const say = SAY[l];
+  if (doses.length === 1) return say.pillOne(doses[0].time.replace(/^0/, ''), doses[0].name);
   const names = [...new Set(doses.map((d) => d.name))];
-  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} y ${names.at(-1)}`;
-  return `Por cierto, hoy te tocaba esto: ${list}. ¿Te lo has tomado todo?`;
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} ${say.and} ${names.at(-1)}`;
+  return say.pillMany(list);
 }
 
 // ── Book ──────────────────────────────────────────────────────────────────
@@ -226,7 +333,10 @@ const STORY_SCHEMA = {
 };
 
 type Turn = { speaker: string; text: string };
-type Senior = { id: string; family_id: string; display_name: string; timezone: string };
+type Senior = { id: string; family_id: string; display_name: string; timezone: string; locale: string };
+
+/** The chapter is written in the language she spoke */
+const STORY_LANGUAGE: Record<Lang, string> = { es: '', nl: '\n\nEscribe la historia en neerlandés, como ella habla.', en: '\n\nEscribe la historia en inglés, como ella habla.' };
 
 /** Lowercase letters and numbers only, to compare her words without punctuation */
 const bare = (t: string) =>
@@ -267,7 +377,8 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
           role: 'user',
           content:
             `Se llama ${me.display_name}.\n\nLa charla:\n` +
-            transcript.map((t) => `${t.speaker === 'hilo' ? 'Hilo' : me.display_name}: ${t.text}`).join('\n'),
+            transcript.map((t) => `${t.speaker === 'hilo' ? 'Hilo' : me.display_name}: ${t.text}`).join('\n') +
+            STORY_LANGUAGE[lang(me.locale)],
         },
       ],
     });
@@ -353,7 +464,7 @@ Deno.serve(async (req) => {
   }
   if (pills !== undefined && ((pills !== 'yes' && pills !== 'no') || !session_id)) return json({ error: 'pills' }, 400);
   // Her answer to the pill question comes from the Sí / No buttons, and is said as a sentence in the transcript
-  const text = pills === 'yes' ? 'Sí, ya me lo he tomado.' : pills === 'no' ? 'No, todavía no.' : body.text;
+  let text = body.text;
 
   const url = Deno.env.get('SUPABASE_URL')!;
   const db = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } } });
@@ -368,6 +479,10 @@ Deno.serve(async (req) => {
     .eq('role', 'senior')
     .maybeSingle();
   if (!me) return json({ error: 'not_senior' }, 403);
+  const l = lang(me.locale);
+  const say = SAY[l];
+  // Her answer to the pill question comes from the Sí / No buttons, and is said as a sentence in the transcript
+  if (pills) text = pills === 'yes' ? say.pillsYes : say.pillsNo;
 
   // Open today's talk, or continue the one the phone is in
   let sessionId: string;
@@ -387,9 +502,9 @@ Deno.serve(async (req) => {
         ((t.turns as { count: number }[])[0]?.count ?? 0) > 1,
     ).length;
     if (talksToday >= MAX_TALKS_PER_DAY) {
-      const reply = `Hoy ya hemos charlado mucho, ${me.display_name}. Descansa, y mañana seguimos.`;
+      const reply = say.enough(me.display_name);
       const spoken = reply.replaceAll(`, ${me.display_name}`, ` ${me.display_name}`);
-      return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed)), ask_pills: false, ended: true });
+      return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });
     }
 
     const { data, error } = await db
@@ -452,15 +567,15 @@ Deno.serve(async (req) => {
   }
 
   // Only today's talk, never the full history (cost and privacy). The opening user message is fixed.
-  const now = new Date().toLocaleString('es-ES', { timeZone: me.timezone, weekday: 'long', hour: '2-digit', minute: '2-digit' });
+  const now = new Date().toLocaleString(say.dateLocale, { timeZone: me.timezone, weekday: 'long', hour: '2-digit', minute: '2-digit' });
   const messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: `[Empieza la charla de hoy. Se llama ${me.display_name}. Ahora es ${now}.]` },
+    { role: 'user', content: say.start(me.display_name, now) },
     ...history.map((t): Anthropic.MessageParam => ({ role: t.speaker === 'hilo' ? 'assistant' : 'user', content: t.text })),
   ];
   // The pill question goes right after Claude's reply, so Claude must not ask one of its own (not saved in turns)
   if (askPills.length) {
     const last = messages[messages.length - 1];
-    last.content = `${last.content}\n\n[Nota: en esta respuesta no hagas ninguna pregunta. Justo después le pregunto por sus pastillas.]`;
+    last.content = `${last.content}\n\n${say.noQuestion}`;
   }
 
   // At most one round of tools per turn: Claude changes the speed or closes the talk, then speaks
@@ -476,7 +591,7 @@ Deno.serve(async (req) => {
         max_tokens: 400,
         // Spoken chat: short and fast matters more than deep reasoning
         output_config: { effort: 'low' },
-        system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+        system: [{ type: 'text', text: SYSTEM[l], cache_control: { type: 'ephemeral' } }],
         tools: TOOLS,
         messages,
       });
@@ -516,14 +631,14 @@ Deno.serve(async (req) => {
 
   const answer =
     response.stop_reason === 'refusal'
-      ? 'Perdona, de eso prefiero no hablar. ¿Me cuentas otra cosa?'
+      ? say.refusal
       : response.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')
         .map((b) => b.text)
         .join(' ')
         .trim();
   if (!answer) return json({ error: 'llm' }, 502);
-  const reply = askPills.length ? `${answer} ${pillQuestion(askPills)}` : answer;
+  const reply = askPills.length ? `${answer} ${pillQuestion(askPills, l)}` : answer;
 
   const { error: saveError } = await db
     .from('turns')
@@ -533,7 +648,7 @@ Deno.serve(async (req) => {
   // On screen the comma before her name is right ("Qué bonito, Margarita"); out loud the voice stops there and sounds robotic
   const firstName = me.display_name.trim().split(/\s+/)[0];
   const spoken = firstName ? reply.replaceAll(`, ${firstName}`, ` ${firstName}`) : reply;
-  const audio = await speak(spoken, speed);
+  const audio = await speak(spoken, speed, l);
 
   await admin.rpc('add_usage', {
     pid: me.id,

@@ -22,7 +22,7 @@ const TIMES = [
 const LANGUAGES = [
   { value: 'es', label: 'Español' },
   { value: 'en', label: 'English' },
-  // Nederlands comes with the Dutch voice and prompt (the screens are already in Dutch)
+  { value: 'nl', label: 'Nederlands' },
 ] as const;
 
 type Time = (typeof TIMES)[number]['value'];

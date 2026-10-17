@@ -8,6 +8,8 @@ export type SeniorMe = {
   display_name: string;
   timezone: string;
   talk_time: string | null;
+  /** Language of the talk: Hilo speaks and listens in it, whatever the phone's language */
+  locale: 'es' | 'en' | 'nl';
 };
 
 type Medication = { id: string; name: string; times: string[]; weekdays: number[] };
@@ -25,7 +27,7 @@ export async function loadSeniorDay(): Promise<
   } = await supabase.auth.getSession();
   const { data: me } = await supabase
     .from('people')
-    .select('id, family_id, display_name, timezone, talk_time')
+    .select('id, family_id, display_name, timezone, talk_time, locale')
     .eq('user_id', session?.user.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();

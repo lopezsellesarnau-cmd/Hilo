@@ -14,7 +14,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { WideSplit } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
-import { loadSeniorDay } from '@/lib/senior-day';
+import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
 import { leaveTalk, sendTurn } from '@/lib/talk';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
@@ -26,10 +26,13 @@ const PAUSE_MS = 3500;
 const FIRST_WORDS_MS = 8000;
 const MAX_TURN_MS = 2 * 60 * 1000;
 
-// Spanish, live text while she speaks (the talk is Spanish only for now, whatever the phone's language)
-const startRecognition = () =>
+/** people.locale → what iOS listens for */
+const LISTEN: Record<SeniorMe['locale'], string> = { es: 'es-ES', en: 'en-GB', nl: 'nl-NL' };
+
+// Live text while she speaks, in the language of her talk
+const startRecognition = (locale: SeniorMe['locale']) =>
   ExpoSpeechRecognitionModule.start({
-    lang: 'es-ES',
+    lang: LISTEN[locale] ?? 'es-ES',
     interimResults: true,
     continuous: true,
     addsPunctuation: true,
@@ -56,6 +59,7 @@ export default function TalkScreen() {
   const [heard, setHeard] = useState('');
   const [hint, setHint] = useState<string | null>(null);
   const heardRef = useRef('');
+  const locale = useRef<SeniorMe['locale']>('es');
   // iOS can end recognition by itself on a short pause; while her turn is still open we start it again and keep what she said
   const listening = useRef(false);
   const earlier = useRef('');
@@ -170,7 +174,11 @@ export default function TalkScreen() {
     if (started.current) return;
     started.current = true;
     sendTurn(null).then(handle);
-    loadSeniorDay().then((day) => day.me && setName(day.me.display_name));
+    loadSeniorDay().then((day) => {
+      if (!day.me) return;
+      setName(day.me.display_name);
+      locale.current = day.me.locale;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -212,7 +220,7 @@ export default function TalkScreen() {
     if (mood !== 'listening') return;
     if (listening.current) {
       earlier.current = heardRef.current;
-      startRecognition();
+      startRecognition(locale.current);
       return;
     }
     const text = heardRef.current.trim();
@@ -244,7 +252,7 @@ export default function TalkScreen() {
     setHeard('');
     setHint(null);
     setMood('listening');
-    startRecognition();
+    startRecognition(locale.current);
     waitForPause(FIRST_WORDS_MS);
     maxTimer.current = setTimeout(finish, MAX_TURN_MS);
   };
