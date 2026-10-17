@@ -16,10 +16,10 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/** Where a tapped reminder should open */
+/** Where a tapped reminder (or the family's alert) should open */
 export function reminderUrl(n: Notifications.Notification) {
   const url = n.request.content.data?.url;
-  return url === '/talk' || url === '/pills' ? url : null;
+  return url === '/talk' || url === '/pills' || url === '/family/today' ? url : null;
 }
 
 type Medication = { id: string; name: string; times: string[]; weekdays: number[] };

@@ -8,6 +8,7 @@ import { BigButton } from '@/components/big-button';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
+import { forgetFamilyPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
@@ -104,6 +105,7 @@ export default function SettingsScreen() {
   };
 
   const signOut = async () => {
+    await forgetFamilyPush();
     await supabase.auth.signOut();
     router.replace('/');
   };

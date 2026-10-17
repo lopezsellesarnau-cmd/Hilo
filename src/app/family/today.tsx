@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,6 +8,7 @@ import { Bot } from '@/components/bot';
 import { TodayPills } from '@/components/today-pills';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
+import { registerFamilyPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { localNow } from '@/lib/time';
 import { colors, family, fontWeight, spacing } from '@/theme';
@@ -37,6 +38,11 @@ export default function TodayScreen() {
   // Stories from her talks waiting for the family, newest first
   const [drafts, setDrafts] = useState<{ id: string; title: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // So the server can tell this phone when she hasn't talked in 2 days
+  useEffect(() => {
+    registerFamilyPush();
+  }, []);
 
   // Reload when coming back to the tab, e.g. after pairing their phone
   useFocusEffect(
