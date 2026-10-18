@@ -87,6 +87,12 @@ export const es = {
     timezone: (zone: string) => `Zona horaria: ${zone}`,
     langLabel: 'IDIOMA DE LA CHARLA',
     langA11y: 'Idioma de la charla',
+    placeLabel: 'SU PUEBLO O CIUDAD',
+    placePlaceholder: 'Por ejemplo, Alcoy',
+    placeHint: 'Así Hilo sabe qué tiempo hace allí y qué días son festivos. Opcional.',
+    placeSearching: 'Buscando…',
+    placeFound: (label: string) => `📍 ${label}`,
+    placeNotFound: 'No lo encontramos. Prueba con el pueblo y la provincia, por ejemplo «Alcoy, Alicante».',
   },
 
   pillsStep: {

@@ -83,6 +83,12 @@ export const en: Strings = {
     timezone: (zone: string) => `Time zone: ${zone}`,
     langLabel: 'LANGUAGE OF THE CHAT',
     langA11y: 'Language of the chat',
+    placeLabel: 'THEIR TOWN OR CITY',
+    placePlaceholder: 'For example, Leeds',
+    placeHint: 'So Hilo knows the weather there and which days are holidays. Optional.',
+    placeSearching: 'Searching…',
+    placeFound: (label: string) => `📍 ${label}`,
+    placeNotFound: "We couldn't find it. Try the town and the county, for example “Ilkley, Yorkshire”.",
   },
 
   pillsStep: {

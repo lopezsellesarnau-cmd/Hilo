@@ -87,6 +87,12 @@ export const nl: Strings = {
     timezone: (zone: string) => `Tijdzone: ${zone}`,
     langLabel: 'TAAL VAN HET PRAATJE',
     langA11y: 'Taal van het praatje',
+    placeLabel: 'WOONPLAATS',
+    placePlaceholder: 'Bijvoorbeeld Utrecht',
+    placeHint: 'Zo weet Hilo wat voor weer het daar is en welke dagen feestdagen zijn. Optioneel.',
+    placeSearching: 'Zoeken…',
+    placeFound: (label: string) => `📍 ${label}`,
+    placeNotFound: 'We kunnen het niet vinden. Probeer plaats en provincie, bijvoorbeeld „Zeist, Utrecht”.',
   },
 
   pillsStep: {

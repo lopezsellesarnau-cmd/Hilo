@@ -121,6 +121,25 @@ const SAY = {
     and: 'y',
     dateLocale: 'es-ES',
     voiceLang: 'es-ES',
+    context: (city: string, facts: string) =>
+      `[Hoy en ${city}, por si sale en la charla: ${facts} Úsalo solo si viene a cuento (por ejemplo, si llueve no le propongas salir a pasear). No lo recites ni añadas nada que no esté aquí.]`,
+    weatherNow: (sky: string, temp: number, max: number) => `Ahora ${sky}, ${temp} °C; máxima de hoy ${max} °C.`,
+    rainAt: (time: string) => `Puede llover hacia las ${time}.`,
+    holidayToday: (name: string) => `Hoy es festivo: ${name}.`,
+    holidayOn: (day: string, name: string) => `El ${day} es festivo: ${name}.`,
+    sky: {
+      clear: 'despejado',
+      fair: 'casi despejado',
+      partlycloudy: 'algunas nubes',
+      cloudy: 'nublado',
+      fog: 'niebla',
+      lightrain: 'llovizna',
+      rain: 'lloviendo',
+      heavyrain: 'lloviendo fuerte',
+      sleet: 'aguanieve',
+      snow: 'nevando',
+      thunder: 'tormenta',
+    },
   },
   nl: {
     pillsYes: 'Ja, ik heb hem al genomen.',
@@ -138,6 +157,25 @@ const SAY = {
     and: 'en',
     dateLocale: 'nl-NL',
     voiceLang: 'nl-NL',
+    context: (city: string, facts: string) =>
+      `[Vandaag in ${city}, voor het geval het ter sprake komt: ${facts} Gebruik het alleen als het past (regent het, stel dan geen wandeling voor). Som het niet op en voeg niets toe wat hier niet staat.]`,
+    weatherNow: (sky: string, temp: number, max: number) => `Nu ${sky}, ${temp} °C; vandaag maximaal ${max} °C.`,
+    rainAt: (time: string) => `Rond ${time} kan het gaan regenen.`,
+    holidayToday: (name: string) => `Vandaag is het een feestdag: ${name}.`,
+    holidayOn: (day: string, name: string) => `Op ${day} is het een feestdag: ${name}.`,
+    sky: {
+      clear: 'helder',
+      fair: 'vrijwel helder',
+      partlycloudy: 'wat bewolking',
+      cloudy: 'bewolkt',
+      fog: 'mist',
+      lightrain: 'motregen',
+      rain: 'regen',
+      heavyrain: 'zware regen',
+      sleet: 'natte sneeuw',
+      snow: 'sneeuw',
+      thunder: 'onweer',
+    },
   },
   en: {
     pillsYes: "Yes, I've taken it.",
@@ -155,8 +193,126 @@ const SAY = {
     and: 'and',
     dateLocale: 'en-GB',
     voiceLang: 'en-GB',
+    context: (city: string, facts: string) =>
+      `[Today in ${city}, in case it comes up: ${facts} Use it only if it fits (if it's raining, don't suggest going for a walk). Don't recite it or add anything that isn't here.]`,
+    weatherNow: (sky: string, temp: number, max: number) => `Now ${sky}, ${temp} °C; today's high ${max} °C.`,
+    rainAt: (time: string) => `Rain is likely around ${time}.`,
+    holidayToday: (name: string) => `Today is a public holiday: ${name}.`,
+    holidayOn: (day: string, name: string) => `${day} is a public holiday: ${name}.`,
+    sky: {
+      clear: 'clear skies',
+      fair: 'mostly clear',
+      partlycloudy: 'some clouds',
+      cloudy: 'cloudy',
+      fog: 'foggy',
+      lightrain: 'light rain',
+      rain: 'raining',
+      heavyrain: 'heavy rain',
+      sleet: 'sleet',
+      snow: 'snowing',
+      thunder: 'thunderstorms',
+    },
   },
 };
+
+// ── Today in her town ─────────────────────────────────────────────────────
+// Weather from MET Norway (free, commercial use allowed, credit "Data from MET Norway") and public holidays
+// from Nager.Date (national + her region). Fetched once when a talk starts; if either fails, the talk goes on.
+
+const CONTEXT_TIMEOUT_MS = 1500;
+const USER_AGENT = 'Hilo/1.0 https://hilo-web.vercel.app';
+
+type Place = { city: string; latitude: number; longitude: number; country_code: string; region_code: string | null };
+type Sky = keyof (typeof SAY)['es']['sky'];
+
+/** MET's symbol codes ("lightrainshowers_day", "partlycloudy_night"…) to the few words Hilo needs */
+function skyOf(symbol: string): Sky {
+  const s = symbol.replace(/_(day|night|polartwilight)$/, '');
+  if (s.includes('thunder')) return 'thunder';
+  if (s.includes('snow')) return 'snow';
+  if (s.includes('sleet')) return 'sleet';
+  if (s.includes('rain')) return s.startsWith('light') ? 'lightrain' : s.startsWith('heavy') ? 'heavyrain' : 'rain';
+  if (s === 'fog' || s === 'cloudy' || s === 'partlycloudy' || s === 'fair') return s;
+  return 'clear';
+}
+
+type MetStep = {
+  time: string;
+  data: {
+    instant: { details: { air_temperature: number } };
+    next_1_hours?: { summary: { symbol_code: string }; details: { precipitation_amount?: number } };
+    next_6_hours?: { summary: { symbol_code: string } };
+  };
+};
+
+async function weatherLine(place: Place, timeZone: string, l: Lang): Promise<string> {
+  // MET asks for at most 4 decimals; 2 (about 1 km) is plenty for a town and says less about where she lives
+  const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${place.latitude.toFixed(2)}&lon=${place.longitude.toFixed(2)}`;
+  const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(CONTEXT_TIMEOUT_MS) });
+  if (!res.ok) return '';
+  const steps: MetStep[] = (await res.json()).properties.timeseries;
+  const today = localNow(timeZone).date;
+  const rest = steps.filter((t) => Date.parse(t.time) >= Date.now() - 60 * 60 * 1000 && localNow(timeZone, new Date(t.time)).date === today);
+  if (!rest.length) return '';
+  const now = rest[0];
+  const symbol = now.data.next_1_hours?.summary.symbol_code ?? now.data.next_6_hours?.summary.symbol_code;
+  if (!symbol) return '';
+  const say = SAY[l];
+  const temp = Math.round(now.data.instant.details.air_temperature);
+  const max = Math.round(Math.max(...rest.map((t) => t.data.instant.details.air_temperature)));
+  const parts = [say.weatherNow(say.sky[skyOf(symbol)], temp, max)];
+  // Not raining now but it will later today: worth knowing before she goes out
+  if (!skyOf(symbol).includes('rain')) {
+    const wet = rest.slice(1).find((t) => (t.data.next_1_hours?.details.precipitation_amount ?? 0) >= 0.3);
+    if (wet) parts.push(say.rainAt(localNow(timeZone, new Date(wet.time)).time));
+  }
+  return parts.join(' ');
+}
+
+type Holiday = { date: string; localName: string; name: string; global: boolean; counties: string[] | null };
+/** Holidays only change once a year: kept while this function instance stays warm */
+const holidayCache = new Map<string, Holiday[]>();
+
+async function holidays(year: number, country: string): Promise<Holiday[]> {
+  const key = `${year}-${country}`;
+  const cached = holidayCache.get(key);
+  if (cached) return cached;
+  const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, {
+    signal: AbortSignal.timeout(CONTEXT_TIMEOUT_MS),
+  });
+  // 204 = a country Nager.Date doesn't cover
+  const list: Holiday[] = res.status === 200 ? await res.json() : [];
+  holidayCache.set(key, list);
+  return list;
+}
+
+/** Today's holiday or the next one this week, in her region */
+async function holidayLine(place: Place, timeZone: string, l: Lang): Promise<string> {
+  const today = localNow(timeZone).date;
+  const year = Number(today.slice(0, 4));
+  const inAWeek = new Date(Date.parse(`${today}T12:00:00Z`) + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const years = inAWeek.slice(0, 4) === today.slice(0, 4) ? [year] : [year, year + 1];
+  const list = (await Promise.all(years.map((y) => holidays(y, place.country_code)))).flat();
+  const next = list.find(
+    (h) => h.date >= today && h.date <= inAWeek && (h.global || (place.region_code && h.counties?.includes(place.region_code))),
+  );
+  if (!next) return '';
+  // English talk: the English name; Spanish or Dutch: the name used in her country
+  const name = l === 'en' ? next.name : next.localName;
+  if (next.date === today) return SAY[l].holidayToday(name);
+  const day = new Date(`${next.date}T12:00:00Z`).toLocaleDateString(SAY[l].dateLocale, { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
+  return SAY[l].holidayOn(day, name);
+}
+
+/** One line for the opening message, or null if she has no town saved or nothing could be fetched */
+async function todayContext(me: Senior, l: Lang): Promise<string | null> {
+  if (!me.city || me.latitude == null || me.longitude == null || !me.country_code) return null;
+  const place: Place = { city: me.city, latitude: me.latitude, longitude: me.longitude, country_code: me.country_code, region_code: me.region_code };
+  const [weather, holiday] = await Promise.allSettled([weatherLine(place, me.timezone, l), holidayLine(place, me.timezone, l)]);
+  for (const r of [weather, holiday]) if (r.status === 'rejected') console.error('context', r.reason);
+  const facts = [weather, holiday].map((r) => (r.status === 'fulfilled' ? r.value : '')).filter(Boolean).join(' ');
+  return facts ? SAY[l].context(place.city, facts).slice(0, 600) : null;
+}
 
 // ── Tools ─────────────────────────────────────────────────────────────────
 // Fixed like SYSTEM, so they stay in the cache.
@@ -345,7 +501,19 @@ const STORY_SCHEMA = {
 };
 
 type Turn = { speaker: string; text: string };
-type Senior = { id: string; family_id: string; display_name: string; timezone: string; locale: string; memory: string | null };
+type Senior = {
+  id: string;
+  family_id: string;
+  display_name: string;
+  timezone: string;
+  locale: string;
+  memory: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  country_code: string | null;
+  region_code: string | null;
+};
 
 /** The chapter is written in the language she spoke */
 const STORY_LANGUAGE: Record<Lang, string> = { es: '', nl: '\n\nEscribe la historia en neerlandés, como ella habla.', en: '\n\nEscribe la historia en inglés, como ella habla.' };
@@ -556,7 +724,7 @@ Deno.serve(async (req) => {
   const { data: userData } = await db.auth.getUser(auth.replace('Bearer ', ''));
   const { data: me } = await db
     .from('people')
-    .select('id, family_id, display_name, locale, timezone, voice_speed, memory')
+    .select('id, family_id, display_name, locale, timezone, voice_speed, memory, city, latitude, longitude, country_code, region_code')
     .eq('user_id', userData.user?.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();
@@ -573,6 +741,7 @@ Deno.serve(async (req) => {
 
   // Open today's talk, or continue the one the phone is in
   let sessionId: string;
+  let context: string | null = null;
   if (session_id) sessionId = session_id;
   else {
     if (!paid) {
@@ -599,9 +768,12 @@ Deno.serve(async (req) => {
       return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });
     }
 
+    // Weather and holidays: fetched once, when the talk really starts, and saved on it so every turn
+    // sends the same opening message
+    context = await todayContext(me, l).catch(() => null);
     const { data, error } = await db
       .from('talk_sessions')
-      .insert({ family_id: me.family_id, person_id: me.id, locale: me.locale })
+      .insert({ family_id: me.family_id, person_id: me.id, locale: me.locale, context })
       .select('id')
       .single();
     if (error) return json({ error: 'session' }, 500);
@@ -610,7 +782,7 @@ Deno.serve(async (req) => {
 
   const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }] = await Promise.all([
     db.from('turns').select('seq, speaker, text').eq('session_id', sessionId).order('seq'),
-    db.from('talk_sessions').select('pills_asked_at').eq('id', sessionId).single(),
+    db.from('talk_sessions').select('pills_asked_at, context').eq('id', sessionId).single(),
     // Titles only (drafts too): enough for Hilo not to ask for the same story twice
     admin.from('chapters').select('title').eq('person_id', me.id).order('created_at', { ascending: false }).limit(12),
   ]);
@@ -667,6 +839,7 @@ Deno.serve(async (req) => {
     say.start(me.display_name, now),
     me.memory?.trim() ? say.memory(me.memory.trim()) : '',
     chapters?.length ? say.stories(chapters.map((c) => c.title).join('; ')) : '',
+    context ?? talk.context ?? '',
   ].filter(Boolean);
   const messages: Anthropic.MessageParam[] = [
     { role: 'user', content: opening.join('\n\n') },

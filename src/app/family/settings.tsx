@@ -18,8 +18,10 @@ const LANGUAGE_NAMES: Record<string, string> = { es: 'Español', en: 'English', 
 
 const text = {
   ...t.settings,
-  talkValue: (time: string | null, locale: string) =>
-    `${time ? time.slice(0, 5).replace(/^0/, '') : t.settings.noTime} · ${LANGUAGE_NAMES[locale] ?? locale}`,
+  talkValue: (time: string | null, locale: string, city: string | null) =>
+    [time ? time.slice(0, 5).replace(/^0/, '') : t.settings.noTime, LANGUAGE_NAMES[locale] ?? locale, city]
+      .filter(Boolean)
+      .join(' · '),
 };
 
 type Senior = {
@@ -27,6 +29,7 @@ type Senior = {
   display_name: string;
   talk_time: string | null;
   locale: string;
+  city: string | null;
   user_id: string | null;
   medications: { count: number }[];
 };
@@ -77,7 +80,7 @@ export default function SettingsScreen() {
     useCallback(() => {
       supabase
         .from('people')
-        .select('id, display_name, talk_time, locale, user_id, medications(count)')
+        .select('id, display_name, talk_time, locale, city, user_id, medications(count)')
         .eq('role', 'senior')
         .limit(1)
         .maybeSingle()
@@ -138,7 +141,11 @@ export default function SettingsScreen() {
             <>
               <Text style={styles.section}>{senior.display_name.toUpperCase()}</Text>
               <View style={styles.group}>
-                <Row label={text.talk} value={text.talkValue(senior.talk_time, senior.locale)} onPress={() => edit('/onboarding/talk')} />
+                <Row
+                  label={text.talk}
+                  value={text.talkValue(senior.talk_time, senior.locale, senior.city)}
+                  onPress={() => edit('/onboarding/talk')}
+                />
                 <Row
                   label={text.pills}
                   value={text.pillsValue(senior.medications[0]?.count ?? 0)}

@@ -1,11 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { OnboardingStep } from '@/components/onboarding-step';
+import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
+import { findPlace, type Place } from '@/lib/place';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
 
@@ -42,12 +44,16 @@ export default function TalkStep() {
   const editing = from === 'settings';
   const [time, setTime] = useState<Time>('10:00');
   const [language, setLanguage] = useState<Language>('es');
+  // Her town: typed by the family, looked up once, saved with its coordinates for the weather
+  const [town, setTown] = useState('');
+  const [place, setPlace] = useState<Place | null>(null);
+  const [placeState, setPlaceState] = useState<'idle' | 'searching' | 'notFound'>('idle');
 
   useEffect(() => {
     if (!editing) return;
     supabase
       .from('people')
-      .select('talk_time, locale')
+      .select('talk_time, locale, city, latitude, longitude, country_code, region_code')
       .eq('id', seniorId)
       .single()
       .then(({ data }) => {
@@ -55,19 +61,57 @@ export default function TalkStep() {
         if (saved) setTime(saved.value);
         const savedLang = LANGUAGES.find((l) => l.value === data?.locale);
         if (savedLang) setLanguage(savedLang.value);
+        if (data?.city && data.latitude != null && data.longitude != null && data.country_code) {
+          setTown(data.city);
+          setPlace({
+            city: data.city,
+            label: data.city,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            country_code: data.country_code,
+            region_code: data.region_code,
+          });
+        }
       });
   }, [editing, seniorId]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /** Looks the town up unless it is the one already found. Null when the field is empty. */
+  const lookUp = async (): Promise<Place | null | 'notFound'> => {
+    const query = town.trim();
+    if (!query) return null;
+    if (place && query === place.city) return place;
+    setPlaceState('searching');
+    const found = await findPlace(query, language);
+    setPlace(found);
+    setPlaceState(found ? 'idle' : 'notFound');
+    return found ?? 'notFound';
+  };
+
   const next = async () => {
     if (saving) return;
     setSaving(true);
     setError(null);
+    const found = await lookUp();
+    if (found === 'notFound') return setSaving(false);
+    const where = found
+      ? {
+          city: found.city,
+          latitude: found.latitude,
+          longitude: found.longitude,
+          country_code: found.country_code,
+          region_code: found.region_code,
+        }
+      : { city: null, latitude: null, longitude: null, country_code: null, region_code: null };
     // When editing, the time zone stays: the family member may live somewhere else
     const { error: e } = await supabase
       .from('people')
-      .update(editing ? { talk_time: time, locale: language } : { talk_time: time, locale: language, timezone: deviceTimezone })
+      .update(
+        editing
+          ? { talk_time: time, locale: language, ...where }
+          : { talk_time: time, locale: language, timezone: deviceTimezone, ...where },
+      )
       .eq('id', seniorId);
     setSaving(false);
     if (e) {
@@ -97,6 +141,31 @@ export default function TalkStep() {
 
       <Text style={[styles.label, styles.spaced]}>{t.talkStep.langLabel}</Text>
       <ChoiceChips label={t.talkStep.langA11y} options={LANGUAGES} value={language} onChange={setLanguage} />
+
+      <View style={styles.spaced}>
+        <TextField
+          label={t.talkStep.placeLabel}
+          placeholder={t.talkStep.placePlaceholder}
+          value={town}
+          onChangeText={(value) => {
+            setTown(value);
+            setPlaceState('idle');
+          }}
+          onBlur={() => lookUp()}
+          autoCapitalize="words"
+          autoCorrect={false}
+          returnKeyType="done"
+        />
+      </View>
+      <Text style={placeState === 'notFound' ? styles.error : styles.note}>
+        {placeState === 'searching'
+          ? t.talkStep.placeSearching
+          : placeState === 'notFound'
+            ? t.talkStep.placeNotFound
+            : place && town.trim() === place.city && place.label !== place.city
+              ? t.talkStep.placeFound(place.label)
+              : t.talkStep.placeHint}
+      </Text>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </OnboardingStep>
