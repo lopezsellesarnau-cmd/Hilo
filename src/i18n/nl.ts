@@ -256,7 +256,8 @@ export const nl: Strings = {
       (minutes !== null ? ` · ${minutes} min` : '') +
       (count > 1 ? ` · ${count} praatjes` : '') +
       '.',
-    notYet: (time: string | null) => `Vandaag nog niet gepraat.${time ? ` Het praatje is om ${time}.` : ''}`,
+    notYetTitle: 'Vandaag nog niet gepraat',
+    talkAt: (time: string) => `Het praatje is om ${time}.`,
     story: 'Nieuw verhaal',
     stories: (n: number) => `${n} verhalen om na te kijken`,
     quoted: (title: string) => `"${title}"`,
@@ -294,8 +295,6 @@ export const nl: Strings = {
   },
 
   review: {
-    back: '‹ Boek',
-    backLabel: 'Terug naar Boek',
     draft: 'NAKIJKEN',
     approved: 'IN HET BOEK',
     promise: (name: string) => `Alles zijn woorden van ${name}. We verzinnen niets.`,
@@ -341,6 +340,7 @@ export const nl: Strings = {
     deleteYes: 'Ja, alles verwijderen',
     deleting: 'Verwijderen…',
     deleteFailed: 'Het account kon niet worden verwijderd. Controleer je verbinding en probeer het opnieuw.',
+    weatherCredit: 'Weergegevens: MET Norway',
   },
 
   paywall: {

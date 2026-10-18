@@ -80,12 +80,13 @@ export default function PaywallScreen() {
         accessibilityRole="radio"
         accessibilityState={{ selected: on }}
         accessibilityLabel={`${name}, ${price(packages?.[packageId(p, period)])}. ${points}`}
+        animateColor
         style={[styles.card, on && styles.cardOn]}>
         <View style={styles.cardTop}>
-          <Text style={styles.cardName}>{name}</Text>
-          <Text style={styles.cardPrice}>{price(packages?.[packageId(p, period)])}</Text>
+          <Text style={[styles.cardName, on && styles.onDark]}>{name}</Text>
+          <Text style={[styles.cardPrice, on && styles.onDark]}>{price(packages?.[packageId(p, period)])}</Text>
         </View>
-        <Text style={styles.cardPoints}>{points}</Text>
+        <Text style={[styles.cardPoints, on && styles.pointsOn]}>{points}</Text>
       </PressScale>
     );
   };
@@ -133,19 +134,23 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 6,
   },
+  // Grey like the rows of the app; the chosen plan turns black, like a selected chip
   card: {
     flexShrink: 0,
     gap: 6,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    borderWidth: family.size.buttonBorder,
-    borderColor: colors.accentSoft,
-    backgroundColor: colors.background,
+    paddingVertical: 18,
+    paddingHorizontal: 22,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
   },
   cardOn: {
-    borderColor: colors.accent,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.accent,
+  },
+  onDark: {
+    color: colors.onAccent,
+  },
+  pointsOn: {
+    color: 'rgba(255,255,255,0.75)',
   },
   cardTop: {
     flexDirection: 'row',
@@ -155,14 +160,14 @@ const styles = StyleSheet.create({
   },
   cardName: {
     fontSize: family.fontSize.button,
-    fontWeight: fontWeight.heavy,
+    fontWeight: fontWeight.bold,
     color: colors.ink,
   },
   cardPrice: {
     flexShrink: 1,
     textAlign: 'right',
     fontSize: family.fontSize.body,
-    fontWeight: fontWeight.semibold,
+    fontWeight: fontWeight.bold,
     color: colors.ink,
   },
   cardPoints: {

@@ -252,7 +252,8 @@ export const en: Strings = {
       (minutes !== null ? ` · ${minutes} min` : '') +
       (count > 1 ? ` · ${count} chats` : '') +
       '.',
-    notYet: (time: string | null) => `No chat yet today.${time ? ` Their chat is at ${time}.` : ''}`,
+    notYetTitle: 'No chat yet today',
+    talkAt: (time: string) => `Their chat is at ${time}.`,
     story: 'New story',
     stories: (n: number) => `${n} stories to review`,
     quoted: (title: string) => `"${title}"`,
@@ -290,8 +291,6 @@ export const en: Strings = {
   },
 
   review: {
-    back: '‹ Book',
-    backLabel: 'Back to Book',
     draft: 'TO REVIEW',
     approved: 'IN THEIR BOOK',
     promise: (name: string) => `Every word is ${name}'s. We don't make anything up.`,
@@ -337,6 +336,7 @@ export const en: Strings = {
     deleteYes: 'Yes, delete everything',
     deleting: 'Deleting…',
     deleteFailed: "We couldn't delete the account. Check your connection and try again.",
+    weatherCredit: 'Weather data: MET Norway',
   },
 
   paywall: {

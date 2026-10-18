@@ -44,12 +44,19 @@ export function PillIllustration({ size = 150 }: { size?: number }) {
   );
 }
 
-/** A round black button with a chevron, at the end of a row */
-export function ChevronCircle({ size = 52 }: { size?: number }) {
+/** A round black button with a chevron, at the end of a row. Inverted: white on a black row. */
+export function ChevronCircle({ size = 52, inverted = false }: { size?: number; inverted?: boolean }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 52 52">
-      <Circle cx={26} cy={26} r={26} fill={colors.accent} />
-      <Path d="M22 17l9 9-9 9" fill="none" stroke={colors.onAccent} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={26} cy={26} r={26} fill={inverted ? colors.onAccent : colors.accent} />
+      <Path
+        d="M22 17l9 9-9 9"
+        fill="none"
+        stroke={inverted ? colors.accent : colors.onAccent}
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }

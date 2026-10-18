@@ -2,9 +2,11 @@ import { router, useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { ListRow } from '@/components/list-row';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
@@ -34,28 +36,15 @@ type Senior = {
   medications: { count: number }[];
 };
 
-function Row({
-  label,
-  value,
-  onPress,
-  danger = false,
-}: {
-  label: string;
-  value?: string;
-  onPress: () => void;
-  danger?: boolean;
-}) {
+/** A line inside the grey group (account, help): smaller than a ListRow, there are many */
+function Row({ label, onPress, last = false }: { label: string; onPress: () => void; last?: boolean }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-      <Text style={[styles.rowText, danger && styles.danger]}>{label}</Text>
-      <View style={styles.rowRight}>
-        {value ? (
-          <Text style={styles.value} numberOfLines={1}>
-            {value}
-          </Text>
-        ) : null}
-        <Text style={styles.chevron}>›</Text>
-      </View>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.row, !last && styles.rowLine, pressed && styles.rowPressed]}>
+      <Text style={styles.rowText}>{label}</Text>
+      <Text style={styles.chevron}>›</Text>
     </Pressable>
   );
 }
@@ -129,34 +118,35 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
-          <Text style={styles.title} accessibilityRole="header">
-            {text.title}
-          </Text>
+          <Animated.View entering={FadeIn.duration(400)} style={styles.head}>
+            <Text style={styles.title} accessibilityRole="header">
+              {text.title}
+            </Text>
+            {email ? <Text style={styles.subtitle}>{email}</Text> : null}
+          </Animated.View>
 
           {senior ? (
-            <>
-              <Text style={styles.section}>{senior.display_name.toUpperCase()}</Text>
-              <View style={styles.group}>
-                <Row
-                  label={text.talk}
-                  value={text.talkValue(senior.talk_time, senior.locale, senior.city)}
-                  onPress={() => edit('/onboarding/talk')}
-                />
-                <Row
-                  label={text.pills}
-                  value={text.pillsValue(senior.medications[0]?.count ?? 0)}
-                  onPress={() => edit('/onboarding/pills')}
-                />
-                <Row
-                  label={text.phone}
-                  value={text.phoneValue(Boolean(senior.user_id))}
-                  onPress={() => (senior.user_id ? setRelinking(true) : pair())}
-                />
-              </View>
+            <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.section}>
+              <Text style={styles.label}>{senior.display_name.toUpperCase()}</Text>
+              <ListRow
+                title={text.talk}
+                detail={text.talkValue(senior.talk_time, senior.locale, senior.city)}
+                onPress={() => edit('/onboarding/talk')}
+              />
+              <ListRow
+                title={text.pills}
+                detail={text.pillsValue(senior.medications[0]?.count ?? 0)}
+                onPress={() => edit('/onboarding/pills')}
+              />
+              <ListRow
+                title={text.phone}
+                detail={text.phoneValue(Boolean(senior.user_id))}
+                onPress={() => (senior.user_id ? setRelinking(true) : pair())}
+              />
 
               {relinking ? (
                 <View style={styles.confirm}>
@@ -167,31 +157,31 @@ export default function SettingsScreen() {
                   {relinkError ? <Text style={styles.error}>{relinkError}</Text> : null}
                 </View>
               ) : null}
-            </>
+            </Animated.View>
           ) : null}
 
-          <Text style={styles.section}>{text.account}</Text>
-          <View style={styles.group}>
-            <View style={styles.row}>
-              <Text style={styles.rowText}>{text.email}</Text>
-              <Text style={styles.value} numberOfLines={1}>
-                {email}
-              </Text>
+          <Animated.View entering={FadeInDown.duration(400).delay(160)} style={styles.section}>
+            <Text style={styles.label}>{text.account}</Text>
+            <View style={styles.group}>
+              <Row label={text.subscription} onPress={() => Linking.openURL(SUBSCRIPTIONS_URL)} />
+              <Row label={text.signOut} onPress={signOut} last />
             </View>
-            <Row label={text.subscription} onPress={() => Linking.openURL(SUBSCRIPTIONS_URL)} />
-            <Row label={text.signOut} onPress={signOut} />
-          </View>
+          </Animated.View>
 
-          <Text style={styles.section}>{text.helpLegal}</Text>
-          <View style={styles.group}>
-            <Row label={text.help} onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} />
-            <Row label={t.agree.terms} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
-            <Row label={t.agree.privacy} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} />
-          </View>
+          <Animated.View entering={FadeInDown.duration(400).delay(220)} style={styles.section}>
+            <Text style={styles.label}>{text.helpLegal}</Text>
+            <View style={styles.group}>
+              <Row label={text.help} onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} />
+              <Row label={t.agree.terms} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
+              <Row label={t.agree.privacy} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)} last />
+            </View>
+            {/* MET Norway's licence asks for this credit wherever its forecasts are used */}
+            <Text style={styles.credit}>{text.weatherCredit}</Text>
+          </Animated.View>
 
-          <View style={styles.group}>
-            <Row label={text.deleteAccount} danger onPress={() => setConfirming(true)} />
-          </View>
+          <Pressable onPress={() => setConfirming(true)} accessibilityRole="button" style={styles.deleteLink}>
+            <Text style={styles.danger}>{text.deleteAccount}</Text>
+          </Pressable>
 
           {confirming ? (
             <View style={styles.confirm}>
@@ -220,34 +210,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: 48,
+    gap: 28,
+  },
+  head: {
+    alignItems: 'center',
   },
   title: {
-    fontSize: family.fontSize.title,
-    fontWeight: '700',
+    marginTop: 14,
+    fontSize: 36,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.5,
     color: colors.ink,
-    marginBottom: 12,
   },
-  section: {
-    marginTop: 26,
-    marginBottom: 8,
-    fontSize: family.fontSize.note,
-    fontWeight: '700',
-    letterSpacing: 0.6,
+  subtitle: {
+    marginTop: 2,
+    fontSize: 18,
     color: colors.muted,
   },
+  section: {
+    gap: 10,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 0.8,
+    color: colors.muted,
+  },
+  // One grey block with thin lines, the same grey and roundness as the rows above
   group: {
-    marginTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#d9dbd6',
+    borderRadius: 28,
+    paddingHorizontal: 20,
+    backgroundColor: colors.surface,
   },
   row: {
-    minHeight: 56,
+    minHeight: 58,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
+  },
+  rowLine: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#d9dbd6',
+    borderBottomColor: '#d4d4d4',
   },
   rowPressed: {
     opacity: 0.6,
@@ -257,31 +261,30 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.ink,
   },
-  rowRight: {
-    flexShrink: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  value: {
-    flexShrink: 1,
-    fontSize: family.fontSize.body,
-    color: colors.muted,
-  },
   chevron: {
     fontSize: 24,
     color: colors.muted,
   },
+  credit: {
+    fontSize: 13,
+    color: colors.muted,
+    textAlign: 'center',
+  },
+  deleteLink: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
   danger: {
+    fontSize: family.fontSize.body,
+    fontWeight: fontWeight.semibold,
     color: '#b3261e',
   },
   confirm: {
-    marginTop: 18,
-    padding: 18,
+    padding: 20,
     gap: 12,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#e4e4e4',
+    borderRadius: 28,
+    backgroundColor: colors.surface,
   },
   confirmTitle: {
     fontSize: family.fontSize.subtitle,

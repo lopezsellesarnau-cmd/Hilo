@@ -257,7 +257,8 @@ export const es = {
       (minutes !== null ? ` · ${minutes} min` : '') +
       (count > 1 ? ` · ${count} charlas` : '') +
       '.',
-    notYet: (time: string | null) => `Aún no ha charlado hoy.${time ? ` Su charla es a las ${time}.` : ''}`,
+    notYetTitle: 'Aún no ha charlado hoy',
+    talkAt: (time: string) => `Su charla es a las ${time}.`,
     story: 'Nueva historia',
     stories: (n: number) => `${n} historias para revisar`,
     quoted: (title: string) => `«${title}»`,
@@ -295,8 +296,6 @@ export const es = {
   },
 
   review: {
-    back: '‹ Libro',
-    backLabel: 'Volver a Libro',
     draft: 'PARA REVISAR',
     approved: 'EN SU LIBRO',
     promise: (name: string) => `Todo son palabras de ${name}. No inventamos nada.`,
@@ -343,6 +342,7 @@ export const es = {
     deleteYes: 'Sí, borrar todo',
     deleting: 'Borrando…',
     deleteFailed: 'No hemos podido borrar la cuenta. Comprueba tu conexión y vuelve a probar.',
+    weatherCredit: 'Datos del tiempo: MET Norway',
   },
 
   paywall: {

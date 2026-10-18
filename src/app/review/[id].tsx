@@ -1,13 +1,14 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
+import { ScreenHeader } from '@/components/screen-header';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { deleteChapter, loadFamilyBook, setChapterStatus, type Draft } from '@/lib/book';
-import { colors, family, fontWeight, spacing } from '@/theme';
+import { colors, family, fontWeight, serif, spacing } from '@/theme';
 
 const text = t.review;
 
@@ -58,9 +59,15 @@ export default function ReviewScreen() {
     router.back();
   };
 
+  // Paper behind the screen too, so it never flashes white while it slides in
+  const paper = <Stack.Screen options={{ contentStyle: { backgroundColor: colors.paper } }} />;
+
   if (!chapter) {
     return (
-      <SafeAreaView style={styles.safe}>{error ? <Text style={[styles.error, styles.screen]}>{error}</Text> : null}</SafeAreaView>
+      <SafeAreaView style={styles.safe}>
+        {paper}
+        {error ? <Text style={[styles.error, styles.screen]}>{error}</Text> : null}
+      </SafeAreaView>
     );
   }
   const draft = chapter.status === 'draft';
@@ -68,18 +75,21 @@ export default function ReviewScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {paper}
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
-          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={text.backLabel} hitSlop={12}>
-            <Text style={styles.back}>{text.back}</Text>
-          </Pressable>
+          <ScreenHeader backLabel={t.familyBook.tab} />
 
-          <Text style={styles.kicker}>{draft ? text.draft : text.approved}</Text>
-          <Text style={styles.title} accessibilityRole="header">
-            {chapter.title}
-          </Text>
-          <Text style={styles.promise}>{text.promise(name)}</Text>
+          {/* Set like her chapter page: the story reads the way she will read it in her book */}
+          <View style={styles.header}>
+            <Text style={styles.kicker}>{draft ? text.draft : text.approved}</Text>
+            <Text style={styles.title} accessibilityRole="header">
+              {chapter.title}
+            </Text>
+            <View style={styles.rule} />
+            <Text style={styles.promise}>{text.promise(name)}</Text>
+          </View>
           {draft && unheard.size ? (
             <View style={styles.checkBox}>
               <Text style={styles.checkText}>{text.check(name)}</Text>
@@ -137,82 +147,93 @@ export default function ReviewScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.paper,
   },
   screen: {
     width: '100%',
     maxWidth: spacing.contentMax,
     alignSelf: 'center',
-    paddingHorizontal: spacing.screenX,
+    paddingHorizontal: spacing.screenX + 6,
     paddingTop: spacing.screenTop,
-    paddingBottom: 48,
-    gap: 14,
+    paddingBottom: 56,
+    gap: 16,
   },
-  back: {
-    fontSize: family.fontSize.body,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
+  header: {
+    marginTop: 10,
+    alignItems: 'center',
   },
   kicker: {
-    marginTop: 8,
-    fontSize: family.fontSize.note,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: colors.muted,
+    fontSize: 13,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 2,
+    color: '#6b6457',
+    marginBottom: 10,
   },
   title: {
-    marginTop: -8,
-    fontSize: 30,
-    fontWeight: '700',
+    fontFamily: serif,
+    fontSize: 32,
+    lineHeight: 38,
     color: colors.ink,
+    textAlign: 'center',
+  },
+  rule: {
+    width: 40,
+    height: 1,
+    marginTop: 16,
+    backgroundColor: colors.ink,
   },
   promise: {
+    marginTop: 12,
     fontSize: family.fontSize.note,
     lineHeight: 21,
-    color: colors.muted,
+    color: '#6b6457',
+    textAlign: 'center',
   },
+  // Black like everything that waits for the family
   checkBox: {
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
+    padding: 18,
+    borderRadius: 24,
+    backgroundColor: colors.accent,
   },
   checkText: {
     fontSize: family.fontSize.note,
     lineHeight: 21,
     fontWeight: fontWeight.semibold,
-    color: colors.ink,
+    color: colors.onAccent,
   },
   paragraph: {
-    fontSize: family.fontSize.body,
-    lineHeight: 28,
-    color: colors.ink,
+    fontFamily: serif,
+    fontSize: 20,
+    lineHeight: 31,
+    color: '#1a1a1a',
   },
-  // A word she never said: black underline, easy to spot without shouting
+  // A word she never said: bold and underlined on a soft band, easy to spot without shouting
   unheard: {
+    fontFamily: undefined,
     fontWeight: '700',
     textDecorationLine: 'underline',
     textDecorationColor: colors.accent,
     backgroundColor: 'rgba(17, 17, 17, 0.1)',
   },
   quote: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: fontWeight.semibold,
-    color: colors.ink,
+    fontFamily: serif,
+    fontStyle: 'italic',
+    fontSize: 21,
+    lineHeight: 30,
+    color: '#4a453c',
     textAlign: 'center',
-    marginVertical: 6,
+    marginVertical: 8,
   },
   actions: {
-    marginTop: 12,
+    marginTop: 16,
     gap: 12,
   },
   confirm: {
     marginTop: 6,
-    padding: 18,
+    padding: 20,
     gap: 12,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#e4e4e4',
+    borderRadius: 28,
+    backgroundColor: colors.background,
   },
   confirmTitle: {
     fontSize: family.fontSize.subtitle,

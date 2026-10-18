@@ -1,41 +1,27 @@
-import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BookCover } from '@/components/book-cover';
+import { ListRow } from '@/components/list-row';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
 import { loadFamilyBook, type Draft } from '@/lib/book';
 import { colors, family, fontWeight, spacing } from '@/theme';
-
-const bookIcon = require('../../../assets/icons/book.svg');
 
 const text = t.familyBook;
 
 /** '2026-10-14T…' → '14 oct' */
 const day = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
 
-function StoryRow({ chapter }: { chapter: Draft }) {
-  const draft = chapter.status === 'draft';
-  return (
-    <Pressable
-      onPress={() => router.push({ pathname: '/review/[id]', params: { id: chapter.id } })}
-      accessibilityRole="button"
-      style={({ pressed }) => [styles.story, draft && styles.storyDraft, pressed && styles.pressed]}>
-      <View style={styles.storyText}>
-        <Text style={styles.storyTitle}>{chapter.title}</Text>
-        <Text style={styles.storyNote}>
-          {day(chapter.createdAt)}
-          {draft && chapter.unheardWords.length ? ` · ${text.check(chapter.unheardWords.length)}` : ''}
-        </Text>
-      </View>
-      <Text style={styles.chevron}>›</Text>
-    </Pressable>
-  );
-}
+const open = (chapter: Draft) => router.push({ pathname: '/review/[id]', params: { id: chapter.id } });
 
-/** Libro: the stories from her talks. The family approves each one before she sees it in Mi libro. */
+/**
+ * Libro: the stories from her talks. The family approves each one before she sees it in Mi libro.
+ * Same look as her book (18 oct): her cover on top, the stories as pills. Black = waiting for you.
+ */
 export default function FamilyBookScreen() {
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadFamilyBook>> | null>(null);
 
@@ -56,41 +42,55 @@ export default function FamilyBookScreen() {
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
-          <Text style={styles.title} accessibilityRole="header">
-            {text.title}
-          </Text>
-          {book && 'error' in book ? <Text style={styles.error}>{book.error}</Text> : null}
+          <Animated.View entering={FadeIn.duration(400)} style={styles.head}>
+            {/* The space is kept while loading, so the title never jumps */}
+            <View style={styles.cover}>{book && 'name' in book ? <BookCover width={COVER} title={t.book.cover(book.name)} /> : null}</View>
+            <Text style={styles.title} accessibilityRole="header">
+              {text.title}
+            </Text>
+            {book && 'chapters' in book ? <Text style={styles.subtitle}>{t.book.count(approved.length)}</Text> : null}
+          </Animated.View>
+
+          {book && 'error' in book ? <Text style={styles.note}>{book.error}</Text> : null}
 
           {book && 'chapters' in book && !chapters.length ? (
             <View style={styles.empty}>
-              <Image source={bookIcon} style={styles.book} contentFit="contain" />
               <Text style={styles.emptyTitle}>{text.emptyTitle}</Text>
-              <Text style={styles.emptyText}>{text.emptyText}</Text>
+              <Text style={styles.note}>{text.emptyText}</Text>
             </View>
           ) : null}
 
           {drafts.length ? (
-            <>
-              <Text style={styles.section}>{text.toReview}</Text>
+            <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.section}>
+              <Text style={styles.label}>{text.toReview}</Text>
               {drafts.map((c) => (
-                <StoryRow key={c.id} chapter={c} />
+                <ListRow
+                  key={c.id}
+                  dark
+                  kicker={day(c.createdAt).toUpperCase()}
+                  title={c.title}
+                  detail={c.unheardWords.length ? text.check(c.unheardWords.length) : undefined}
+                  onPress={() => open(c)}
+                />
               ))}
-            </>
+            </Animated.View>
           ) : null}
 
           {approved.length ? (
-            <>
-              <Text style={styles.section}>{text.inBook}</Text>
-              {approved.map((c) => (
-                <StoryRow key={c.id} chapter={c} />
+            <Animated.View entering={FadeInDown.duration(400).delay(160)} style={styles.section}>
+              <Text style={styles.label}>{text.inBook}</Text>
+              {approved.map((c, i) => (
+                <ListRow key={c.id} kicker={t.book.kicker(i + 1)} title={c.title} onPress={() => open(c)} />
               ))}
-            </>
+            </Animated.View>
           ) : null}
         </ScrollView>
       </WideFrame>
     </SafeAreaView>
   );
 }
+
+const COVER = 132;
 
 const styles = StyleSheet.create({
   safe: {
@@ -104,82 +104,53 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
-    paddingBottom: 40,
-    gap: 12,
+    paddingBottom: 48,
+    gap: 28,
+  },
+  head: {
+    alignItems: 'center',
+  },
+  cover: {
+    width: COVER,
+    height: (COVER * 250) / 200,
   },
   title: {
-    fontSize: family.fontSize.title,
-    fontWeight: '700',
+    marginTop: 14,
+    fontSize: 36,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.5,
     color: colors.ink,
+  },
+  subtitle: {
+    marginTop: 2,
+    fontSize: 21,
+    fontWeight: fontWeight.regular,
+    color: colors.muted,
   },
   section: {
-    marginTop: 14,
-    fontSize: family.fontSize.note,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: colors.muted,
+    gap: 10,
   },
-  story: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 18,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: '#e4e4e4',
-  },
-  // The only filled block: what is waiting for them
-  storyDraft: {
-    borderColor: colors.surface,
-    backgroundColor: colors.surface,
-  },
-  pressed: {
-    opacity: 0.6,
-  },
-  storyText: {
-    flex: 1,
-    gap: 2,
-  },
-  storyTitle: {
-    fontSize: 20,
+  label: {
+    fontSize: 13,
     fontWeight: fontWeight.semibold,
-    color: colors.ink,
-  },
-  storyNote: {
-    fontSize: family.fontSize.note,
-    color: colors.muted,
-  },
-  chevron: {
-    fontSize: 24,
+    letterSpacing: 0.8,
     color: colors.muted,
   },
   empty: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingBottom: 60,
-  },
-  book: {
-    width: 92,
-    height: 113,
-    marginBottom: 12,
+    gap: 8,
   },
   emptyTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: fontWeight.bold,
     color: colors.ink,
   },
-  emptyText: {
+  note: {
+    maxWidth: 320,
+    alignSelf: 'center',
     fontSize: family.fontSize.body,
     lineHeight: 26,
     color: colors.muted,
     textAlign: 'center',
-    maxWidth: 300,
-  },
-  error: {
-    fontSize: family.fontSize.note,
-    color: '#b3261e',
-    fontWeight: '600',
   },
 });

@@ -1,10 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
+import { DayDot } from '@/components/day-dot';
+import { ListRow } from '@/components/list-row';
 import { TodayPills } from '@/components/today-pills';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
@@ -83,72 +85,70 @@ export default function TodayScreen() {
   const pair = () =>
     senior && router.push({ pathname: '/onboarding/pair', params: { seniorId: senior.id, seniorName: senior.display_name } });
 
+  const lastTalk = talks[0];
+  const talkTitle =
+    senior && lastTalk
+      ? text.talked(
+          localNow(senior.timezone, new Date(lastTalk.started_at)).time.replace(/^0/, ''),
+          lastTalk.ended_at
+            ? Math.max(1, Math.round((Date.parse(lastTalk.ended_at) - Date.parse(lastTalk.started_at)) / 60_000))
+            : null,
+          talks.length,
+        )
+      : text.notYetTitle;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
-          <Text style={styles.title} accessibilityRole="header">
-            {text.title}
-          </Text>
-          {senior ? <Text style={styles.subtitle}>{text.with(senior.display_name)}</Text> : null}
+          {/* Like the senior's Home: the bot and a centred title */}
+          <Animated.View entering={FadeIn.duration(400)} style={styles.head}>
+            <Bot size={84} look="left" />
+            <Text style={styles.title} accessibilityRole="header">
+              {text.title}
+            </Text>
+            {senior ? <Text style={styles.subtitle}>{text.with(senior.display_name)}</Text> : null}
+          </Animated.View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {senior ? (
-            <>
-              <View style={styles.card}>
-                <View style={styles.cardBot}>
-                  <Bot size={56} />
-                </View>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>{text.talk}</Text>
-                  <Text style={styles.cardBody}>
-                    {talks.length
-                      ? text.talked(
-                          localNow(senior.timezone, new Date(talks[0].started_at)).time.replace(/^0/, ''),
-                          talks[0].ended_at
-                            ? Math.max(1, Math.round((Date.parse(talks[0].ended_at) - Date.parse(talks[0].started_at)) / 60_000))
-                            : null,
-                          talks.length,
-                        )
-                      : text.notYet(senior.talk_time ? showTime(senior.talk_time) : null)}
-                  </Text>
-                </View>
-              </View>
+            <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.list}>
+              {/* The one thing a son or daughter opens the app for: black, first */}
+              <ListRow
+                dark
+                kicker={text.talk.toUpperCase()}
+                title={talkTitle}
+                detail={!lastTalk && senior.talk_time ? text.talkAt(showTime(senior.talk_time)) : undefined}
+              />
 
               {drafts.length ? (
-                <View style={[styles.card, styles.cardTodo]}>
-                  <View style={styles.cardText}>
-                    <Text style={styles.cardTitle}>{drafts.length === 1 ? text.story : text.stories(drafts.length)}</Text>
-                    <Text style={styles.cardBody}>{text.quoted(drafts[0].title)}</Text>
-                  </View>
-                  <BigButton
-                    scale="family"
-                    label={text.review}
-                    onPress={() => router.push({ pathname: '/review/[id]', params: { id: drafts[0].id } })}
-                  />
-                </View>
+                <ListRow
+                  kicker={(drafts.length === 1 ? text.story : text.stories(drafts.length)).toUpperCase()}
+                  title={text.quoted(drafts[0].title)}
+                  onPress={() => router.push({ pathname: '/review/[id]', params: { id: drafts[0].id } })}
+                  accessibilityLabel={`${text.review}: ${drafts[0].title}`}
+                />
               ) : null}
 
               {senior.user_id ? (
-                <View style={styles.card}>
-                  <View style={styles.cardText}>
-                    <Text style={styles.cardTitle}>{text.phone}</Text>
-                    <Text style={styles.cardBody}>{text.phoneOk}</Text>
-                  </View>
-                </View>
+                <ListRow left={<DayDot state="done" size={40} />} title={text.phone} detail={text.phoneOk} />
               ) : (
-                <View style={[styles.card, styles.cardTodo]}>
-                  <View style={styles.cardText}>
-                    <Text style={styles.cardTitle}>{text.phoneMissing}</Text>
-                    <Text style={styles.cardBody}>{text.phoneMissingBody(senior.display_name)}</Text>
-                  </View>
-                  <BigButton scale="family" label={text.connect} onPress={pair} />
-                </View>
+                <ListRow
+                  left={<DayDot state="now" size={40} />}
+                  title={text.phoneMissing}
+                  detail={text.phoneMissingBody(senior.display_name)}
+                  onPress={pair}
+                  accessibilityLabel={text.connect}
+                />
               )}
+            </Animated.View>
+          ) : null}
 
+          {senior ? (
+            <Animated.View entering={FadeInDown.duration(400).delay(160)}>
               <TodayPills seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
-            </>
+            </Animated.View>
           ) : null}
         </ScrollView>
       </WideFrame>
@@ -167,56 +167,32 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
-    paddingBottom: 40,
-    gap: 14,
+    paddingBottom: 48,
+    gap: 28,
+  },
+  head: {
+    alignItems: 'center',
   },
   title: {
-    fontSize: family.fontSize.title,
-    fontWeight: '700',
+    marginTop: 14,
+    fontSize: 36,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.5,
     color: colors.ink,
   },
   subtitle: {
-    marginTop: -10,
-    marginBottom: 8,
-    fontSize: family.fontSize.subtitle,
-    fontWeight: fontWeight.semibold,
+    marginTop: 2,
+    fontSize: 21,
+    fontWeight: fontWeight.regular,
     color: colors.muted,
   },
-  card: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 14,
-    padding: 18,
-    borderRadius: 28,
-    backgroundColor: colors.surface,
-  },
-  cardTodo: {
-    backgroundColor: colors.background,
-    borderWidth: 3,
-    borderColor: colors.accent,
-  },
-  cardBot: {
-    flexShrink: 0,
-  },
-  cardText: {
-    flex: 1,
-    minWidth: 200,
-    gap: 2,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: fontWeight.bold,
-    color: colors.ink,
-  },
-  cardBody: {
-    fontSize: family.fontSize.body,
-    lineHeight: 25,
-    color: '#555555',
+  list: {
+    gap: 10,
   },
   error: {
     fontSize: family.fontSize.note,
     color: '#b3261e',
     fontWeight: '600',
+    textAlign: 'center',
   },
 });
