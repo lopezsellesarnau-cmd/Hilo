@@ -122,11 +122,12 @@ const SAY = {
     dateLocale: 'es-ES',
     voiceLang: 'es-ES',
     context: (city: string, facts: string) =>
-      `[Hoy en ${city}, por si sale en la charla: ${facts} Úsalo solo si viene a cuento (por ejemplo, si llueve no le propongas salir a pasear). No lo recites ni añadas nada que no esté aquí.]`,
+      `[Hoy en ${city}, por si sale en la charla: ${facts} Úsalo solo si viene a cuento (por ejemplo, si llueve no le propongas salir a pasear). No lo recites ni añadas nada que no esté aquí. No sabes qué ferias, fiestas o actos hay en su pueblo: si te pregunta, dilo con sencillez y pregúntale qué se suele celebrar allí y cómo lo vivía ella.]`,
     weatherNow: (sky: string, temp: number, max: number) => `Ahora ${sky}, ${temp} °C; máxima de hoy ${max} °C.`,
     rainAt: (time: string) => `Puede llover hacia las ${time}.`,
     holidayToday: (name: string) => `Hoy es festivo: ${name}.`,
     holidayOn: (day: string, name: string) => `El ${day} es festivo: ${name}.`,
+    holidayNext: (day: string, name: string) => `Esta semana no hay festivos. El próximo es el ${day}: ${name}.`,
     sky: {
       clear: 'despejado',
       fair: 'casi despejado',
@@ -158,11 +159,12 @@ const SAY = {
     dateLocale: 'nl-NL',
     voiceLang: 'nl-NL',
     context: (city: string, facts: string) =>
-      `[Vandaag in ${city}, voor het geval het ter sprake komt: ${facts} Gebruik het alleen als het past (regent het, stel dan geen wandeling voor). Som het niet op en voeg niets toe wat hier niet staat.]`,
+      `[Vandaag in ${city}, voor het geval het ter sprake komt: ${facts} Gebruik het alleen als het past (regent het, stel dan geen wandeling voor). Som het niet op en voeg niets toe wat hier niet staat. Je weet niet welke markten, feesten of evenementen er in haar plaats zijn: vraagt ze ernaar, zeg dat eenvoudig en vraag wat er daar meestal gevierd wordt en hoe zij dat beleefde.]`,
     weatherNow: (sky: string, temp: number, max: number) => `Nu ${sky}, ${temp} °C; vandaag maximaal ${max} °C.`,
     rainAt: (time: string) => `Rond ${time} kan het gaan regenen.`,
     holidayToday: (name: string) => `Vandaag is het een feestdag: ${name}.`,
     holidayOn: (day: string, name: string) => `Op ${day} is het een feestdag: ${name}.`,
+    holidayNext: (day: string, name: string) => `Deze week is er geen feestdag. De volgende is op ${day}: ${name}.`,
     sky: {
       clear: 'helder',
       fair: 'vrijwel helder',
@@ -194,11 +196,12 @@ const SAY = {
     dateLocale: 'en-GB',
     voiceLang: 'en-GB',
     context: (city: string, facts: string) =>
-      `[Today in ${city}, in case it comes up: ${facts} Use it only if it fits (if it's raining, don't suggest going for a walk). Don't recite it or add anything that isn't here.]`,
+      `[Today in ${city}, in case it comes up: ${facts} Use it only if it fits (if it's raining, don't suggest going for a walk). Don't recite it or add anything that isn't here. You don't know about local fairs, festivals or events in their town: if they ask, say so simply and ask what is usually celebrated there and how they used to enjoy it.]`,
     weatherNow: (sky: string, temp: number, max: number) => `Now ${sky}, ${temp} °C; today's high ${max} °C.`,
     rainAt: (time: string) => `Rain is likely around ${time}.`,
     holidayToday: (name: string) => `Today is a public holiday: ${name}.`,
     holidayOn: (day: string, name: string) => `${day} is a public holiday: ${name}.`,
+    holidayNext: (day: string, name: string) => `No public holiday this week. The next one is ${day}: ${name}.`,
     sky: {
       clear: 'clear skies',
       fair: 'mostly clear',
@@ -293,17 +296,18 @@ async function holidayLine(place: Place, timeZone: string, l: Lang): Promise<str
   const today = localNow(timeZone).date;
   const year = Number(today.slice(0, 4));
   const inAWeek = new Date(Date.parse(`${today}T12:00:00Z`) + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const years = inAWeek.slice(0, 4) === today.slice(0, 4) ? [year] : [year, year + 1];
-  const list = (await Promise.all(years.map((y) => holidays(y, place.country_code)))).flat();
-  const next = list.find(
-    (h) => h.date >= today && h.date <= inAWeek && (h.global || (place.region_code && h.counties?.includes(place.region_code))),
-  );
+  // This year and the next: in December the next holiday is in January
+  const list = (await Promise.all([year, year + 1].map((y) => holidays(y, place.country_code)))).flat();
+  const next = list
+    .filter((h) => h.date >= today && (h.global || (place.region_code && h.counties?.includes(place.region_code))))
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
   if (!next) return '';
   // English talk: the English name; Spanish or Dutch: the name used in her country
   const name = l === 'en' ? next.name : next.localName;
   if (next.date === today) return SAY[l].holidayToday(name);
   const day = new Date(`${next.date}T12:00:00Z`).toLocaleDateString(SAY[l].dateLocale, { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
-  return SAY[l].holidayOn(day, name);
+  // Weeks away: still worth knowing, so Hilo can answer "when is the next holiday?"
+  return next.date <= inAWeek ? SAY[l].holidayOn(day, name) : SAY[l].holidayNext(day, name);
 }
 
 /** One line for the opening message, or null if she has no town saved or nothing could be fetched */
