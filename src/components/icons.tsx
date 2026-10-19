@@ -60,3 +60,20 @@ export function ChevronCircle({ size = 52, inverted = false }: { size?: number; 
     </Svg>
   );
 }
+
+export function PlayIcon({ size = 24, color = colors.onAccent }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill={color} />
+    </Svg>
+  );
+}
+
+export function PauseIcon({ size = 24, color = colors.onAccent }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Rect x={6} y={5} width={4.5} height={14} rx={1.5} fill={color} />
+      <Rect x={13.5} y={5} width={4.5} height={14} rx={1.5} fill={color} />
+    </Svg>
+  );
+}

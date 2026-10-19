@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/book-cover';
+import { ListenButton } from '@/components/listen-button';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
@@ -84,6 +85,9 @@ export default function ChapterScreen() {
             <View style={styles.rule} />
             <Text style={styles.by}>{text.by(book.name)}</Text>
           </View>
+
+          {/* key: a new player for each chapter when she goes to the next one */}
+          <ListenButton key={chapter.id} chapterId={chapter.id} />
 
           {first ? (
             // Hanging initial: React Native can't wrap text around a dropped letter,

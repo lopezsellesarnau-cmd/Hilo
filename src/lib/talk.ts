@@ -43,3 +43,12 @@ export async function sendTurn(
 export function leaveTalk(sessionId: string) {
   supabase.functions.invoke('talk', { body: { session_id: sessionId, leave: true } });
 }
+
+/**
+ * "Escuchar mi historia": a link to her chapter read aloud with her talk voice.
+ * The server records it the first time (a few seconds) and keeps it, so it's quick after that.
+ */
+export async function chapterAudio(chapterId: string): Promise<string | null> {
+  const { data, error } = await supabase.functions.invoke('talk', { body: { read: chapterId } });
+  return error || typeof data?.url !== 'string' ? null : data.url;
+}

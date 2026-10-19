@@ -363,7 +363,10 @@ const AZURE_VOICE: Record<Lang, () => string> = {
   en: () => Deno.env.get('AZURE_SPEECH_VOICE_EN') ?? 'en-GB-SoniaNeural',
 };
 
-async function azureSpeech(text: string, speed: number, l: Lang): Promise<ArrayBuffer> {
+/** Pause between paragraphs when Hilo reads a chapter */
+const PARAGRAPH_BREAK_MS = 900;
+
+async function azureSpeech(parts: string[], speed: number, l: Lang): Promise<ArrayBuffer> {
   const region = Deno.env.get('AZURE_SPEECH_REGION');
   const voice = AZURE_VOICE[l]();
   const xmlLang = SAY[l].voiceLang;
@@ -371,7 +374,7 @@ async function azureSpeech(text: string, speed: number, l: Lang): Promise<ArrayB
   const ssml =
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="${xmlLang}">` +
     `<voice name="${voice}"><lang xml:lang="${xmlLang}">` +
-    `<prosody rate="${speed.toFixed(2)}">${escapeXml(text)}</prosody></lang></voice></speak>`;
+    `<prosody rate="${speed.toFixed(2)}">${parts.map(escapeXml).join(`<break time="${PARAGRAPH_BREAK_MS}ms"/>`)}</prosody></lang></voice></speak>`;
   const res = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
     method: 'POST',
     headers: {
@@ -386,8 +389,9 @@ async function azureSpeech(text: string, speed: number, l: Lang): Promise<ArrayB
   return res.arrayBuffer();
 }
 
-async function elevenLabsSpeech(text: string, speed: number, l: Lang): Promise<ArrayBuffer> {
+async function elevenLabsSpeech(parts: string[], speed: number, l: Lang): Promise<ArrayBuffer> {
   const voice = Deno.env.get('ELEVENLABS_VOICE_ID');
+  const text = parts.join('\n\n');
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_64`, {
     method: 'POST',
     headers: { 'xi-api-key': Deno.env.get('ELEVENLABS_API_KEY')!, 'Content-Type': 'application/json' },
@@ -398,10 +402,17 @@ async function elevenLabsSpeech(text: string, speed: number, l: Lang): Promise<A
 }
 
 /** Hilo's sentence as mp3 in base64, or null if the voice fails: the talk goes on as text */
+const useElevenLabs = () => Deno.env.get('VOICE_PROVIDER') === 'elevenlabs';
+
+/** The voice that reads, as part of the stored file's name: a new voice makes a new recording */
+const voiceName = (l: Lang) => (useElevenLabs() ? `el-${Deno.env.get('ELEVENLABS_VOICE_ID')}` : AZURE_VOICE[l]());
+
+const synthesize = (parts: string[], speed: number, l: Lang) =>
+  useElevenLabs() ? elevenLabsSpeech(parts, speed, l) : azureSpeech(parts, speed, l);
+
 async function speak(text: string, speed: number, l: Lang): Promise<string | null> {
   try {
-    const audio =
-      Deno.env.get('VOICE_PROVIDER') === 'elevenlabs' ? await elevenLabsSpeech(text, speed, l) : await azureSpeech(text, speed, l);
+    const audio = await synthesize([text], speed, l);
     const bytes = new Uint8Array(audio);
     let binary = '';
     for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
@@ -410,6 +421,57 @@ async function speak(text: string, speed: number, l: Lang): Promise<string | nul
     console.error('voice', e);
     return null;
   }
+}
+
+// ── Escuchar mi historia ──────────────────────────────────────────────────
+
+const AUDIO_BUCKET = 'chapter-audio';
+/** Long enough to listen to a chapter, short enough that a shared link stops working soon */
+const AUDIO_LINK_SECONDS = 60 * 60;
+/** A chapter is a few minutes; this stops one very long text from costing a lot */
+const MAX_READ_CHARS = 12_000;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Her approved chapter read aloud with her talk voice and speed. Made once and kept in Storage:
+ * the next time it's only a new link. Runs as her (RLS), so she can only get chapters she can see.
+ */
+async function readChapter(db: SupabaseClient, admin: SupabaseClient, me: Senior, chapterId: string, speed: number) {
+  if (!UUID.test(chapterId)) return json({ error: 'chapter' }, 400);
+  const { data: chapter } = await db
+    .from('chapters')
+    .select('id, family_id, title, paragraphs, status')
+    .eq('id', chapterId)
+    .eq('person_id', me.id)
+    .maybeSingle();
+  if (!chapter || chapter.status !== 'approved') return json({ error: 'chapter' }, 404);
+
+  const l = lang(me.locale);
+  const path = `${chapter.family_id}/${chapter.id}/${voiceName(l)}-${speed.toFixed(2)}.mp3`;
+  const storage = admin.storage.from(AUDIO_BUCKET);
+  const existing = await storage.createSignedUrl(path, AUDIO_LINK_SECONDS);
+  if (existing.data) return json({ url: existing.data.signedUrl });
+
+  const parts = [chapter.title, ...(chapter.paragraphs as string[])];
+  const characters = parts.join(' ').length;
+  if (characters > MAX_READ_CHARS) return json({ error: 'too_long' }, 413);
+  try {
+    const audio = await synthesize(parts, speed, l);
+    const { error } = await storage.upload(path, audio, { contentType: 'audio/mpeg', upsert: true });
+    if (error) throw error;
+  } catch (e) {
+    console.error('read', e);
+    return json({ error: 'voice' }, 502);
+  }
+  await admin.rpc('add_usage', {
+    pid: me.id,
+    usage_day: localNow(me.timezone).date,
+    input_tokens: 0,
+    output_tokens: 0,
+    characters,
+  });
+  const fresh = await storage.createSignedUrl(path, AUDIO_LINK_SECONDS);
+  return fresh.data ? json({ url: fresh.data.signedUrl }) : json({ error: 'voice' }, 502);
 }
 
 // ── Pills ─────────────────────────────────────────────────────────────────
@@ -707,6 +769,8 @@ Deno.serve(async (req) => {
     pills?: 'yes' | 'no';
     /** She left the talk screen without a goodbye: close the talk and keep her story */
     leave?: boolean;
+    /** "Escuchar mi historia": a link to this chapter read aloud, nothing to do with the talk */
+    read?: string;
   };
   const { session_id, pills } = body;
   if (body.text !== undefined && (typeof body.text !== 'string' || !body.text.trim() || body.text.length > MAX_TEXT)) {
@@ -731,6 +795,8 @@ Deno.serve(async (req) => {
   if (!me) return json({ error: 'not_senior' }, 403);
   const l = lang(me.locale);
   const say = SAY[l];
+  // Listening to her book is free, like reading it: no subscription check
+  if (typeof body.read === 'string') return readChapter(db, admin, me, body.read, Number(me.voice_speed));
   // Her answer to the pill question comes from the Sí / No buttons, and is said as a sentence in the transcript
   if (pills) text = pills === 'yes' ? say.pillsYes : say.pillsNo;
 

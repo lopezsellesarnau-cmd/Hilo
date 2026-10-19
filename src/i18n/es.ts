@@ -246,6 +246,11 @@ export const es = {
     normal: 'Letra normal',
     next: 'Siguiente',
     cover: (name: string) => `La vida de ${name}`,
+    listen: 'Escuchar mi historia',
+    listenPreparing: 'Preparándola…',
+    listenPause: 'Pausar',
+    listenResume: 'Seguir escuchando',
+    listenFailed: 'No se ha podido preparar. Toca otra vez.',
   },
 
   today: {

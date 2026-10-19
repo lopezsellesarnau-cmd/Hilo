@@ -245,6 +245,11 @@ export const nl: Strings = {
     normal: 'Normale letters',
     next: 'Volgende',
     cover: (name: string) => `Het leven van ${name}`,
+    listen: 'Luister naar mijn verhaal',
+    listenPreparing: 'Even klaarzetten…',
+    listenPause: 'Pauzeren',
+    listenResume: 'Verder luisteren',
+    listenFailed: 'Het lukte niet. Tik nog een keer.',
   },
 
   today: {

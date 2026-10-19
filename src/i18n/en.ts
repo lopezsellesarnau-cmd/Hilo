@@ -241,6 +241,11 @@ export const en: Strings = {
     normal: 'Normal text',
     next: 'Next',
     cover: (name: string) => `The life of ${name}`,
+    listen: 'Listen to my story',
+    listenPreparing: 'Getting it ready…',
+    listenPause: 'Pause',
+    listenResume: 'Keep listening',
+    listenFailed: "It couldn't be prepared. Tap again.",
   },
 
   today: {
