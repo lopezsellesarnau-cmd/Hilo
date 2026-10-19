@@ -280,7 +280,8 @@ async function holidays(year: number, country: string): Promise<Holiday[]> {
   const res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, {
     signal: AbortSignal.timeout(CONTEXT_TIMEOUT_MS),
   });
-  // 204 = a country Nager.Date doesn't cover
+  // 204 = a country Nager.Date doesn't cover. Anything else is a failure: not kept, tried again next talk
+  if (res.status !== 200 && res.status !== 204) throw new Error(`nager ${res.status}`);
   const list: Holiday[] = res.status === 200 ? await res.json() : [];
   holidayCache.set(key, list);
   return list;
