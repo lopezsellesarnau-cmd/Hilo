@@ -1,6 +1,7 @@
 // Hilo: deletes what must not be kept. Run every hour by Supabase Cron (same secret as quiet-alert).
 // Today: the recordings of "Escuchar mi historia" whose chapter was discarded, taken back to draft or
 // deleted with the account. Within an hour of the family deleting something, its audio is gone too.
+// Also the anonymous accounts of pairings that never finished (wrong code), after 7 days.
 
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
@@ -30,5 +31,8 @@ Deno.serve(async (req) => {
     if (e) console.error('remove', e.message);
     else deleted += data?.length ?? 0;
   }
-  return json({ found: files.length, deleted });
+
+  const { data: users, error: u } = await admin.rpc('delete_orphan_anonymous_users');
+  if (u) console.error('anonymous', u.message);
+  return json({ found: files.length, deleted, anonymous: users ?? null });
 });
