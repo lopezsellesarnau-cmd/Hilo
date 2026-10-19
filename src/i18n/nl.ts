@@ -318,6 +318,12 @@ export const nl: Strings = {
     error: 'Het opslaan is niet gelukt. Controleer je verbinding en probeer het opnieuw.',
   },
 
+  memory: {
+    title: (name: string) => `Wat Hilo onthoudt${name ? ` over ${name}` : ''}`,
+    hint: 'Na elk praatje schrijft Hilo op wat belangrijk is, om het de volgende keer te onthouden. Je kunt alles verbeteren of wissen.',
+    empty: 'Nog niets. Na het eerste praatje zie je hier wat Hilo onthoudt.',
+  },
+
   settings: {
     title: 'Instellingen',
     talk: 'Het praatje',
@@ -346,6 +352,8 @@ export const nl: Strings = {
     deleting: 'Verwijderen…',
     deleteFailed: 'Het account kon niet worden verwijderd. Controleer je verbinding en probeer het opnieuw.',
     weatherCredit: 'Weergegevens: MET Norway',
+    memory: 'Wat Hilo onthoudt',
+    memoryValue: (has: boolean) => (has ? 'Bekijken en verbeteren' : 'Nog niets'),
   },
 
   paywall: {

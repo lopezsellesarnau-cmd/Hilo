@@ -314,6 +314,12 @@ export const en: Strings = {
     error: "We couldn't save it. Check your connection and try again.",
   },
 
+  memory: {
+    title: (name: string) => `What Hilo remembers${name ? ` about ${name}` : ''}`,
+    hint: 'After each chat, Hilo writes down what matters to remember it next time. You can correct or delete anything.',
+    empty: "Nothing yet. After their first chat, you'll see here what Hilo remembers.",
+  },
+
   settings: {
     title: 'Settings',
     talk: 'The chat',
@@ -342,6 +348,8 @@ export const en: Strings = {
     deleting: 'Deleting…',
     deleteFailed: "We couldn't delete the account. Check your connection and try again.",
     weatherCredit: 'Weather data: MET Norway',
+    memory: 'What Hilo remembers',
+    memoryValue: (has: boolean) => (has ? 'See and correct' : 'Nothing yet'),
   },
 
   paywall: {

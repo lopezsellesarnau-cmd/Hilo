@@ -320,6 +320,12 @@ export const es = {
     error: 'No se ha podido guardar. Comprueba tu conexión y vuelve a probar.',
   },
 
+  memory: {
+    title: (name: string) => `Lo que Hilo recuerda${name ? ` de ${name}` : ''}`,
+    hint: 'Después de cada charla, Hilo apunta lo importante para acordarse la próxima vez. Puedes corregir o borrar lo que quieras.',
+    empty: 'Todavía no hay nada. Después de su primera charla, aquí verás lo que Hilo recuerda.',
+  },
+
   settings: {
     title: 'Ajustes',
     talk: 'La charla',
@@ -348,6 +354,8 @@ export const es = {
     deleting: 'Borrando…',
     deleteFailed: 'No hemos podido borrar la cuenta. Comprueba tu conexión y vuelve a probar.',
     weatherCredit: 'Datos del tiempo: MET Norway',
+    memory: 'Lo que Hilo recuerda',
+    memoryValue: (has: boolean): string => (has ? 'Ver y corregir' : 'Aún nada'),
   },
 
   paywall: {

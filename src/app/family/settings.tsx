@@ -32,6 +32,7 @@ type Senior = {
   talk_time: string | null;
   locale: string;
   city: string | null;
+  memory: string | null;
   user_id: string | null;
   medications: { count: number }[];
 };
@@ -69,7 +70,7 @@ export default function SettingsScreen() {
     useCallback(() => {
       supabase
         .from('people')
-        .select('id, display_name, talk_time, locale, city, user_id, medications(count)')
+        .select('id, display_name, talk_time, locale, city, memory, user_id, medications(count)')
         .eq('role', 'senior')
         .limit(1)
         .maybeSingle()
@@ -77,7 +78,7 @@ export default function SettingsScreen() {
     }, []),
   );
 
-  const edit = (pathname: '/onboarding/talk' | '/onboarding/pills') =>
+  const edit = (pathname: '/onboarding/talk' | '/onboarding/pills' | '/memory') =>
     senior && router.push({ pathname, params: { seniorId: senior.id, seniorName: senior.display_name, from: 'settings' } });
 
   const pair = () =>
@@ -141,6 +142,11 @@ export default function SettingsScreen() {
                 title={text.pills}
                 detail={text.pillsValue(senior.medications[0]?.count ?? 0)}
                 onPress={() => edit('/onboarding/pills')}
+              />
+              <ListRow
+                title={text.memory}
+                detail={text.memoryValue(Boolean(senior.memory?.trim()))}
+                onPress={() => edit('/memory')}
               />
               <ListRow
                 title={text.phone}
