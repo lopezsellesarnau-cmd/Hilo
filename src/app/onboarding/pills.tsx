@@ -155,9 +155,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: colors.accentSoft,
+    paddingHorizontal: 20,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
   },
   pillText: {
     flex: 1,

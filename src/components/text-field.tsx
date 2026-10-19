@@ -52,10 +52,11 @@ const styles = StyleSheet.create({
     color: colors.ink,
     paddingVertical: 16,
     paddingHorizontal: 18,
-    borderRadius: 16,
+    // Grey and round like the rows of the 18 oct design; black outline while typing
+    borderRadius: 24,
     borderWidth: 2,
-    borderColor: '#e4e4e4',
-    backgroundColor: colors.background,
+    borderColor: colors.surface,
+    backgroundColor: colors.surface,
   },
   code: {
     fontSize: 30,
