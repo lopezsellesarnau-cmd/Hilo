@@ -219,7 +219,8 @@ const SAY = {
 // Weather from MET Norway (free, commercial use allowed, credit "Data from MET Norway") and public holidays
 // from Nager.Date (national + her region). Fetched once when a talk starts; if either fails, the talk goes on.
 
-const CONTEXT_TIMEOUT_MS = 1500;
+/** The first call from a cold function also opens the connection: 1.5 s was not enough (18 oct, Amsterdam) */
+const CONTEXT_TIMEOUT_MS = 3000;
 const USER_AGENT = 'Hilo/1.0 https://hilo-web.vercel.app';
 
 type Place = { city: string; latitude: number; longitude: number; country_code: string; region_code: string | null };
@@ -249,14 +250,14 @@ async function weatherLine(place: Place, timeZone: string, l: Lang): Promise<str
   // MET asks for at most 4 decimals; 2 (about 1 km) is plenty for a town and says less about where she lives
   const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${place.latitude.toFixed(2)}&lon=${place.longitude.toFixed(2)}`;
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(CONTEXT_TIMEOUT_MS) });
-  if (!res.ok) return '';
+  if (!res.ok) throw new Error(`met ${res.status} ${(await res.text()).slice(0, 200)}`);
   const steps: MetStep[] = (await res.json()).properties.timeseries;
   const today = localNow(timeZone).date;
   const rest = steps.filter((t) => Date.parse(t.time) >= Date.now() - 60 * 60 * 1000 && localNow(timeZone, new Date(t.time)).date === today);
-  if (!rest.length) return '';
+  if (!rest.length) throw new Error(`met: no forecast left for ${today}`);
   const now = rest[0];
   const symbol = now.data.next_1_hours?.summary.symbol_code ?? now.data.next_6_hours?.summary.symbol_code;
-  if (!symbol) return '';
+  if (!symbol) throw new Error('met: no symbol');
   const say = SAY[l];
   const temp = Math.round(now.data.instant.details.air_temperature);
   const max = Math.round(Math.max(...rest.map((t) => t.data.instant.details.air_temperature)));
@@ -310,7 +311,8 @@ async function todayContext(me: Senior, l: Lang): Promise<string | null> {
   if (!me.city || me.latitude == null || me.longitude == null || !me.country_code) return null;
   const place: Place = { city: me.city, latitude: me.latitude, longitude: me.longitude, country_code: me.country_code, region_code: me.region_code };
   const [weather, holiday] = await Promise.allSettled([weatherLine(place, me.timezone, l), holidayLine(place, me.timezone, l)]);
-  for (const r of [weather, holiday]) if (r.status === 'rejected') console.error('context', r.reason);
+  if (weather.status === 'rejected') console.error('context weather', me.city, String(weather.reason));
+  if (holiday.status === 'rejected') console.error('context holiday', me.country_code, String(holiday.reason));
   const facts = [weather, holiday].map((r) => (r.status === 'fulfilled' ? r.value : '')).filter(Boolean).join(' ');
   return facts ? SAY[l].context(place.city, facts).slice(0, 600) : null;
 }
@@ -800,6 +802,8 @@ Deno.serve(async (req) => {
   if (typeof body.read === 'string') return readChapter(db, admin, me, body.read, Number(me.voice_speed));
   // Her answer to the pill question comes from the Sí / No buttons, and is said as a sentence in the transcript
   if (pills) text = pills === 'yes' ? say.pillsYes : say.pillsNo;
+  // A new talk: start fetching her town's weather and holidays now, while the checks below run
+  const contextPromise = session_id ? null : todayContext(me, l).catch((e) => (console.error('context', String(e)), null));
 
   // The family pays: without a trial or a subscription, a new talk doesn't start (one in progress is never cut)
   const { data: sub } = await db.from('subscriptions').select('plan, status, expires_at').eq('family_id', me.family_id).maybeSingle();
@@ -837,7 +841,7 @@ Deno.serve(async (req) => {
 
     // Weather and holidays: fetched once, when the talk really starts, and saved on it so every turn
     // sends the same opening message
-    context = await todayContext(me, l).catch(() => null);
+    context = contextPromise ? await contextPromise : null;
     const { data, error } = await db
       .from('talk_sessions')
       .insert({ family_id: me.family_id, person_id: me.id, locale: me.locale, context })
