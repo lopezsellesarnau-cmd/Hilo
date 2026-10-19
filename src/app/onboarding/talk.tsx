@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
@@ -48,6 +48,8 @@ export default function TalkStep() {
   const [town, setTown] = useState('');
   const [place, setPlace] = useState<Place | null>(null);
   const [placeState, setPlaceState] = useState<'idle' | 'searching' | 'notFound'>('idle');
+  // Leaving the field and tapping Save both look it up: the second one waits for the first
+  const searching = useRef<Promise<Place | null | 'notFound'> | null>(null);
 
   useEffect(() => {
     if (!editing) return;
@@ -78,15 +80,21 @@ export default function TalkStep() {
   const [error, setError] = useState<string | null>(null);
 
   /** Looks the town up unless it is the one already found. Null when the field is empty. */
-  const lookUp = async (): Promise<Place | null | 'notFound'> => {
+  const lookUp = (): Promise<Place | null | 'notFound'> => {
     const query = town.trim();
-    if (!query) return null;
-    if (place && query === place.city) return place;
+    if (!query) return Promise.resolve(null);
+    if (place && query === place.city) return Promise.resolve(place);
+    if (searching.current) return searching.current;
     setPlaceState('searching');
-    const found = await findPlace(query, language);
-    setPlace(found);
-    setPlaceState(found ? 'idle' : 'notFound');
-    return found ?? 'notFound';
+    searching.current = findPlace(query, language).then((found) => {
+      searching.current = null;
+      setPlace(found);
+      setPlaceState(found ? 'idle' : 'notFound');
+      // "alcoy" or "amstedam" become the town's real name, so the family sees what was found
+      if (found) setTown(found.city);
+      return found ?? 'notFound';
+    });
+    return searching.current;
   };
 
   const next = async () => {
