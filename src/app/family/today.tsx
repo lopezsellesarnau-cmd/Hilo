@@ -1,7 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Bot } from '@/components/bot';
@@ -103,17 +102,17 @@ export default function TodayScreen() {
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
           {/* Like the senior's Home: the bot and a centred title */}
-          <Animated.View entering={FadeIn.duration(400)} style={styles.head}>
+          <View style={styles.head}>
             <Bot size={84} look="left" />
             <Text style={styles.title} accessibilityRole="header">
               {text.title}
             </Text>
             {senior ? <Text style={styles.subtitle}>{text.with(senior.display_name)}</Text> : null}
-          </Animated.View>
+          </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {senior ? (
-            <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.list}>
+            <View style={styles.list}>
               {/* The one thing a son or daughter opens the app for: black, first */}
               <ListRow
                 dark
@@ -142,13 +141,13 @@ export default function TodayScreen() {
                   accessibilityLabel={text.connect}
                 />
               )}
-            </Animated.View>
+            </View>
           ) : null}
 
           {senior ? (
-            <Animated.View entering={FadeInDown.duration(400).delay(160)}>
+            <View>
               <TodayPills seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
-            </Animated.View>
+            </View>
           ) : null}
         </ScrollView>
       </WideFrame>
