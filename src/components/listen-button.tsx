@@ -19,12 +19,15 @@ export function ListenButton({ chapterId }: { chapterId: string }) {
   const status = useAudioPlayerStatus(player);
   const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle');
 
+  // Read to the end: the button offers to listen again from the start
+  const ended = status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration - 0.5);
+
   const press = async () => {
     if (state === 'loading') return;
     if (state === 'ready') {
       if (status.playing) return player.pause();
       // Finished: start again from the beginning
-      if (status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration - 0.5)) await player.seekTo(0);
+      if (ended) await player.seekTo(0);
       return player.play();
     }
     setState('loading');
@@ -38,7 +41,7 @@ export function ListenButton({ chapterId }: { chapterId: string }) {
   };
 
   const playing = state === 'ready' && status.playing;
-  const started = state === 'ready' && status.currentTime > 0.5 && !status.didJustFinish;
+  const started = state === 'ready' && status.currentTime > 0.5 && !ended;
   const label =
     state === 'loading' ? text.listenPreparing : playing ? text.listenPause : started ? text.listenResume : text.listen;
 

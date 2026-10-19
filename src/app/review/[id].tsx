@@ -209,7 +209,6 @@ const styles = StyleSheet.create({
   },
   // A word she never said: bold and underlined on a soft band, easy to spot without shouting
   unheard: {
-    fontFamily: undefined,
     fontWeight: '700',
     textDecorationLine: 'underline',
     textDecorationColor: colors.accent,
