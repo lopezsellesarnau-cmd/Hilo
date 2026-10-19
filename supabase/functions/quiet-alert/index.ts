@@ -90,15 +90,26 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
   // Only Supabase Cron (or Arnau testing) knows this secret
   if (req.headers.get('x-cron-secret') !== Deno.env.get('CRON_SECRET')) return json({ error: 'auth' }, 401);
-  /** test: ignore the hour and the 2 days, to try it now. Never from the cron. */
-  const { test = false } = (await req.json().catch(() => ({}))) as { test?: boolean };
+  /**
+   * test: ignore the hour and the 2 days, to try it now. Never from the cron.
+   * email (only with test): send only to the family phones of this account, not to every family.
+   */
+  const { test = false, email } = (await req.json().catch(() => ({}))) as { test?: boolean; email?: string };
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-  const { data: seniors, error } = await admin
+  let query = admin
     .from('people')
     .select('id, family_id, display_name, timezone, quiet_alert_at')
     .eq('role', 'senior')
     .not('user_id', 'is', null);
+  if (test && email) {
+    const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const user = users?.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    if (!user) return json({ error: 'no_user' }, 404);
+    const { data: mine } = await admin.from('people').select('family_id').eq('user_id', user.id).eq('role', 'member');
+    query = query.in('family_id', (mine ?? []).map((m) => m.family_id));
+  }
+  const { data: seniors, error } = await query;
   if (error) return json({ error: 'people' }, 500);
 
   let jwt: string | null = null;
