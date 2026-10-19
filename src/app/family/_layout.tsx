@@ -7,7 +7,7 @@ import { t } from '@/i18n';
 import { familyHasAccess, myFamilyId } from '@/lib/purchases';
 import { colors } from '@/theme';
 
-// SF Symbols for now. TODO: tab icons from Figma (Hoy / Libro / Ajustes)
+// SF Symbols for the tab icons (Hoy / Libro / Ajustes)
 function TabIcon({ name, color }: { name: SymbolViewProps['name']; color: ColorValue }) {
   return <SymbolView name={name} tintColor={color} size={26} />;
 }
@@ -38,7 +38,7 @@ export default function FamilyLayout() {
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
         sceneStyle: { backgroundColor: colors.background },
-        // No tab animation: 'fade' together with the screens' entering animations left blank tabs
+        // No tab animation and no entering animations in the tab screens: both left blank tabs
       }}>
       <Tabs.Screen name="today" options={{ title: t.today.title, tabBarIcon: icon('sun.max') }} />
       <Tabs.Screen name="book" options={{ title: t.familyBook.tab, tabBarIcon: icon('book.closed') }} />

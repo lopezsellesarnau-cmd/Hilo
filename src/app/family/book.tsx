@@ -1,7 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/book-cover';
@@ -42,14 +41,14 @@ export default function FamilyBookScreen() {
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
-          <Animated.View entering={FadeIn.duration(400)} style={styles.head}>
+          <View style={styles.head}>
             {/* The space is kept while loading, so the title never jumps */}
             <View style={styles.cover}>{book && 'name' in book ? <BookCover width={COVER} title={t.book.cover(book.name)} /> : null}</View>
             <Text style={styles.title} accessibilityRole="header">
               {text.title}
             </Text>
             {book && 'chapters' in book ? <Text style={styles.subtitle}>{t.book.count(approved.length)}</Text> : null}
-          </Animated.View>
+          </View>
 
           {book && 'error' in book ? <Text style={styles.note}>{book.error}</Text> : null}
 
@@ -61,7 +60,7 @@ export default function FamilyBookScreen() {
           ) : null}
 
           {drafts.length ? (
-            <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.section}>
+            <View style={styles.section}>
               <Text style={styles.label}>{text.toReview}</Text>
               {drafts.map((c) => (
                 <ListRow
@@ -73,16 +72,16 @@ export default function FamilyBookScreen() {
                   onPress={() => open(c)}
                 />
               ))}
-            </Animated.View>
+            </View>
           ) : null}
 
           {approved.length ? (
-            <Animated.View entering={FadeInDown.duration(400).delay(160)} style={styles.section}>
+            <View style={styles.section}>
               <Text style={styles.label}>{text.inBook}</Text>
               {approved.map((c, i) => (
                 <ListRow key={c.id} kicker={t.book.kicker(i + 1)} title={c.title} onPress={() => open(c)} />
               ))}
-            </Animated.View>
+            </View>
           ) : null}
         </ScrollView>
       </WideFrame>

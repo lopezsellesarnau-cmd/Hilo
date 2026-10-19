@@ -2,7 +2,6 @@ import { router, useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
@@ -123,15 +122,15 @@ export default function SettingsScreen() {
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
-          <Animated.View entering={FadeIn.duration(400)} style={styles.head}>
+          <View style={styles.head}>
             <Text style={styles.title} accessibilityRole="header">
               {text.title}
             </Text>
             {email ? <Text style={styles.subtitle}>{email}</Text> : null}
-          </Animated.View>
+          </View>
 
           {senior ? (
-            <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.section}>
+            <View style={styles.section}>
               <Text style={styles.label}>{senior.display_name.toUpperCase()}</Text>
               <ListRow
                 title={text.talk}
@@ -163,18 +162,18 @@ export default function SettingsScreen() {
                   {relinkError ? <Text style={styles.error}>{relinkError}</Text> : null}
                 </View>
               ) : null}
-            </Animated.View>
+            </View>
           ) : null}
 
-          <Animated.View entering={FadeInDown.duration(400).delay(160)} style={styles.section}>
+          <View style={styles.section}>
             <Text style={styles.label}>{text.account}</Text>
             <View style={styles.group}>
               <Row label={text.subscription} onPress={() => Linking.openURL(SUBSCRIPTIONS_URL)} />
               <Row label={text.signOut} onPress={signOut} last />
             </View>
-          </Animated.View>
+          </View>
 
-          <Animated.View entering={FadeInDown.duration(400).delay(220)} style={styles.section}>
+          <View style={styles.section}>
             <Text style={styles.label}>{text.helpLegal}</Text>
             <View style={styles.group}>
               <Row label={text.help} onPress={() => WebBrowser.openBrowserAsync(SUPPORT_URL)} />
@@ -183,7 +182,7 @@ export default function SettingsScreen() {
             </View>
             {/* MET Norway's licence asks for this credit wherever its forecasts are used */}
             <Text style={styles.credit}>{text.weatherCredit}</Text>
-          </Animated.View>
+          </View>
 
           <Pressable onPress={() => setConfirming(true)} accessibilityRole="button" style={styles.deleteLink}>
             <Text style={styles.danger}>{text.deleteAccount}</Text>
