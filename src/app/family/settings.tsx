@@ -61,6 +61,7 @@ export default function SettingsScreen() {
   }, []);
 
   const [senior, setSenior] = useState<Senior | null>(null);
+  const [members, setMembers] = useState(0);
   const [relinking, setRelinking] = useState(false);
   const [relinkError, setRelinkError] = useState<string | null>(null);
 
@@ -74,6 +75,11 @@ export default function SettingsScreen() {
         .limit(1)
         .maybeSingle()
         .then(({ data }) => setSenior(data as Senior | null));
+      supabase
+        .from('people')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'member')
+        .then(({ count }) => setMembers(count ?? 0));
     }, []),
   );
 
@@ -164,6 +170,11 @@ export default function SettingsScreen() {
               ) : null}
             </View>
           ) : null}
+
+          <View style={styles.section}>
+            <Text style={styles.label}>{text.familyLabel}</Text>
+            <ListRow title={text.invite} detail={text.membersValue(members)} onPress={() => router.push('/invite')} />
+          </View>
 
           <View style={styles.section}>
             <Text style={styles.label}>{text.account}</Text>

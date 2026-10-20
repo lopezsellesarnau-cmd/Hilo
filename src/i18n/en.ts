@@ -61,6 +61,7 @@ export const en: Strings = {
   },
 
   name: {
+    invited: "I've been invited",
     question: "What's your name?",
     hint: "This is how you'll appear in Hilo to the rest of the family.",
     label: 'Your name',
@@ -314,6 +315,33 @@ export const en: Strings = {
     error: "We couldn't save it. Check your connection and try again.",
   },
 
+  join: {
+    question: "Enter your family's code",
+    hint: "It's 8 digits. Whoever already uses Hilo sent it to you, or scan their QR code.",
+    label: 'Invite code',
+    join: 'Join',
+    joining: 'Joining…',
+    scanSubtitle: "Point at the QR code on your relative's phone.",
+    badCode: "That code doesn't work or has expired. Ask your family for a new one.",
+    already: 'This account is already in a Hilo family.',
+    tooMany: 'Too many tries. Wait an hour and try again.',
+  },
+
+  invite: {
+    title: 'Invite your family',
+    hint: (name: string) =>
+      `Your siblings, children or grandchildren will see how ${name || 'your relative'} is doing, their book and the alerts. The subscription already covers them.`,
+    step1: '1. They install Hilo from the App Store.',
+    step2: '2. They tap "I\'m family", sign in with their email and tap "I\'ve been invited".',
+    step3: '3. They scan this QR code or type the digits.',
+    expires: 'Works for the whole family for 7 days.',
+    send: 'Send the code',
+    message: (name: string, code: string) =>
+      `Join Hilo to keep up with ${name || 'the family'}. Install Hilo, tap "I'm family" and then "I've been invited". Code: ${code}`,
+    already: (names: string) => `Already on Hilo: ${names}`,
+    createFailed: "We couldn't create the code. Check your connection and try again.",
+  },
+
   memory: {
     title: (name: string) => `What Hilo remembers${name ? ` about ${name}` : ''}`,
     hint: 'After each chat, Hilo writes down what matters to remember it next time. You can correct or delete anything.',
@@ -350,6 +378,9 @@ export const en: Strings = {
     weatherCredit: 'Weather data: MET Norway',
     memory: 'What Hilo remembers',
     memoryValue: (has: boolean) => (has ? 'See and correct' : 'Nothing yet'),
+    familyLabel: 'YOUR FAMILY',
+    invite: 'Invite the family',
+    membersValue: (n: number) => (n > 1 ? `${n} on Hilo` : 'Just you'),
   },
 
   paywall: {
