@@ -254,6 +254,9 @@ export const nl: Strings = {
   },
 
   today: {
+    toDo: 'Te doen',
+    callKicker: 'Bellen',
+    callDue: (name: string) => `Al dagen heeft niemand met ${name} gesproken`,
     title: 'Vandaag',
     with: (name: string) => `Met ${name}`,
     talk: 'Het praatje',
@@ -295,6 +298,12 @@ export const nl: Strings = {
     noTalks: 'Hier zie je de gesprekken zodra de persoon met Hilo begint te praten.',
     today: 'vandaag',
     yesterday: 'gisteren',
+  },
+
+  week: {
+    talk: 'Gesprek',
+    pills: 'Pillen',
+    a11y: (talks: number, days: number) => `Deze week ${talks} van de ${days} dagen gepraat.`,
   },
 
   todayPills: {

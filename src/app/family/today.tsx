@@ -7,8 +7,10 @@ import { Bot } from '@/components/bot';
 import { DayDot } from '@/components/day-dot';
 import { ListRow } from '@/components/list-row';
 import { TodayPills } from '@/components/today-pills';
+import { WeekStrip } from '@/components/week-strip';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
+import { loadCalls } from '@/lib/calls';
 import { registerFamilyPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { localNow } from '@/lib/time';
@@ -22,6 +24,8 @@ const showTime = (t: string) => t.slice(0, 5).replace(/^0/, '');
 type Talk = { started_at: string; ended_at: string | null };
 
 const text = t.today;
+/** Same as quiet-alert: after this, "llama" becomes one of the things to do */
+const CALL_DAYS = 3;
 
 /** Her talks today, in her time zone. The latest one first */
 const talkedToday = (talks: Talk[], timeZone: string) => {
@@ -39,6 +43,8 @@ export default function TodayScreen() {
   // Stories from her talks waiting for the family, newest first
   const [drafts, setDrafts] = useState<{ id: string; title: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Nobody in the family has talked with her for CALL_DAYS: one of the things to do today
+  const [callDue, setCallDue] = useState(false);
 
   // So the server can tell this phone when she hasn't talked in 2 days
   useEffect(() => {
@@ -77,6 +83,12 @@ export default function TodayScreen() {
             .eq('status', 'draft')
             .order('created_at', { ascending: false })
             .then(({ data: rows }) => setDrafts(rows ?? []));
+          // Same rule as the evening nudge: 3 days since the last call (or since her phone was connected)
+          if (data.user_id) {
+            loadCalls(data.id, 1).then((calls) =>
+              setCallDue(!calls.length || Date.now() - Date.parse(calls[0].at) >= CALL_DAYS * 86_400_000),
+            );
+          }
         });
     }, []),
   );
@@ -119,8 +131,25 @@ export default function TodayScreen() {
                 kicker={text.talk.toUpperCase()}
                 title={talkTitle}
                 detail={!lastTalk && senior.talk_time ? text.talkAt(showTime(senior.talk_time)) : undefined}
+                onPress={() => router.push('/family/talks')}
               />
+              <WeekStrip seniorId={senior.id} timezone={senior.timezone} />
+            </View>
+          ) : null}
 
+          {/* Only what needs the family today; nothing when all is well */}
+          {senior && (!senior.user_id || drafts.length || callDue) ? (
+            <View style={styles.list}>
+              <Text style={styles.label}>{text.toDo.toUpperCase()}</Text>
+              {!senior.user_id ? (
+                <ListRow
+                  left={<DayDot state="now" size={40} />}
+                  title={text.phoneMissing}
+                  detail={text.phoneMissingBody(senior.display_name)}
+                  onPress={pair}
+                  accessibilityLabel={text.connect}
+                />
+              ) : null}
               {drafts.length ? (
                 <ListRow
                   kicker={(drafts.length === 1 ? text.story : text.stories(drafts.length)).toUpperCase()}
@@ -129,18 +158,13 @@ export default function TodayScreen() {
                   accessibilityLabel={`${text.review}: ${drafts[0].title}`}
                 />
               ) : null}
-
-              {senior.user_id ? (
-                <ListRow left={<DayDot state="done" size={40} />} title={text.phone} detail={text.phoneOk} />
-              ) : (
+              {callDue ? (
                 <ListRow
-                  left={<DayDot state="now" size={40} />}
-                  title={text.phoneMissing}
-                  detail={text.phoneMissingBody(senior.display_name)}
-                  onPress={pair}
-                  accessibilityLabel={text.connect}
+                  kicker={text.callKicker.toUpperCase()}
+                  title={text.callDue(senior.display_name)}
+                  onPress={() => router.push('/family/talks')}
                 />
-              )}
+              ) : null}
             </View>
           ) : null}
 
@@ -187,6 +211,12 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 10,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 0.8,
+    color: colors.muted,
   },
   error: {
     fontSize: family.fontSize.note,
