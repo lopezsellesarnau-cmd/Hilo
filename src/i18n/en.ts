@@ -271,6 +271,28 @@ export const en: Strings = {
     connect: 'Connect their phone',
   },
 
+  talks: {
+    tab: 'Chats',
+    title: 'Chats',
+    todayLabel: 'Today',
+    liveNow: 'Chatting with Hilo right now',
+    talked: (time: string, minutes: number | null, count: number) =>
+      `Chatted at ${time}` + (minutes !== null ? ` · ${minutes} min` : '') + (count > 1 ? ` · ${count} chats` : ''),
+    notYet: "Hasn't chatted yet today",
+    calls: 'Family calls',
+    calledButton: (name: string) => `I talked with ${name} today`,
+    calledDone: '✓ Noted: you talked today',
+    you: 'You',
+    toldHilo: (name: string) => `${name} told Hilo`,
+    noCalls: (name: string) => `No calls to ${name} recorded yet.`,
+    callsHint: 'If nobody in the family talks with them for 3 days, Hilo will remind one of you.',
+    history: 'Recent chats',
+    story: (title: string) => `Story: "${title}"`,
+    noTalks: "You'll see their chats here as soon as they start chatting with Hilo.",
+    today: 'today',
+    yesterday: 'yesterday',
+  },
+
   todayPills: {
     title: 'Pills',
     summary: (taken: number, total: number) => `Pills: ${taken} of ${total} taken`,
@@ -316,6 +338,7 @@ export const en: Strings = {
   },
 
   join: {
+    noPlan: "This family doesn't have the Family plan any more. Ask whoever invited you to turn it on.",
     question: "Enter your family's code",
     hint: "It's 8 digits. Whoever already uses Hilo sent it to you, or scan their QR code.",
     label: 'Invite code',
@@ -328,6 +351,8 @@ export const en: Strings = {
   },
 
   invite: {
+    planOnly: 'Inviting siblings, children or grandchildren is part of the Family plan. With it, you all see how they are, their book and the alerts.',
+    seePlan: 'See the Family plan',
     title: 'Invite your family',
     hint: (name: string) =>
       `Your siblings, children or grandchildren will see how ${name || 'your relative'} is doing, their book and the alerts. The subscription already covers them.`,

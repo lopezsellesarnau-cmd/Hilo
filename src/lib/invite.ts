@@ -11,6 +11,7 @@ export const showInviteCode = (code: string) => `${code.slice(0, 4)} ${code.slic
 /** The family's invite code (a new one each time: the old one stops working) */
 export async function createInvite(): Promise<string> {
   const { data, error } = await supabase.rpc('create_family_invite');
+  if (error?.message.includes('Family plan')) throw new Error('plan');
   if (error || !data) throw new Error('offline');
   return data as string;
 }
@@ -24,6 +25,7 @@ export async function joinFamily(code: string, memberName: string) {
   if (error) {
     if (error.message.includes('Already')) throw new Error('already');
     if (error.message.includes('Too many')) throw new Error('many');
+    if (error.message.includes('Family plan')) throw new Error('plan');
     throw new Error('offline');
   }
   if (!familyId) throw new Error('code');
@@ -38,12 +40,14 @@ export async function joinFamily(code: string, memberName: string) {
     .eq('user_id', user?.id ?? '')
     .single();
   // Joined already: a failed record of the terms must not stop them
-  if (me) await supabase.from('consents').insert({ family_id: familyId, person_id: me.id, kind: 'terms', version: TERMS_VERSION });
+  if (me)
+    await supabase.from('consents').insert({ family_id: familyId, person_id: me.id, kind: 'terms', version: TERMS_VERSION });
 }
 
 export const JOIN_MESSAGES: Record<string, string> = {
   code: t.join.badCode,
   already: t.join.already,
   many: t.join.tooMany,
+  plan: t.join.noPlan,
   offline: t.common.offline,
 };

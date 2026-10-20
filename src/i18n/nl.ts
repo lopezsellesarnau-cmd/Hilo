@@ -275,6 +275,28 @@ export const nl: Strings = {
     connect: 'Telefoon verbinden',
   },
 
+  talks: {
+    tab: 'Gesprekken',
+    title: 'Gesprekken',
+    todayLabel: 'Vandaag',
+    liveNow: 'Praat nu met Hilo',
+    talked: (time: string, minutes: number | null, count: number) =>
+      `Gepraat om ${time}` + (minutes !== null ? ` · ${minutes} min` : '') + (count > 1 ? ` · ${count} gesprekken` : ''),
+    notYet: 'Vandaag nog niet gepraat',
+    calls: 'Gesprekken met de familie',
+    calledButton: (name: string) => `Ik heb vandaag met ${name} gesproken`,
+    calledDone: '✓ Genoteerd: je hebt vandaag gesproken',
+    you: 'Jij',
+    toldHilo: (name: string) => `${name} vertelde het aan Hilo`,
+    noCalls: (name: string) => `Nog geen gesprek met ${name} genoteerd.`,
+    callsHint: 'Als niemand van de familie 3 dagen met de persoon praat, herinnert Hilo een van jullie eraan.',
+    history: 'Laatste gesprekken',
+    story: (title: string) => `Verhaal: „${title}"`,
+    noTalks: 'Hier zie je de gesprekken zodra de persoon met Hilo begint te praten.',
+    today: 'vandaag',
+    yesterday: 'gisteren',
+  },
+
   todayPills: {
     title: 'Pillen',
     summary: (taken: number, total: number) => `Pillen: ${taken} van ${total} genomen`,
@@ -320,6 +342,7 @@ export const nl: Strings = {
   },
 
   join: {
+    noPlan: 'Deze familie heeft het Familie-abonnement niet meer. Vraag wie je uitnodigde om het aan te zetten.',
     question: 'Typ de code van je familie',
     hint: 'Het zijn 8 cijfers. Je kreeg ze van wie Hilo al gebruikt, of scan hun QR-code.',
     label: 'Uitnodigingscode',
@@ -332,6 +355,8 @@ export const nl: Strings = {
   },
 
   invite: {
+    planOnly: 'Broers, zussen, kinderen of kleinkinderen uitnodigen hoort bij het Familie-abonnement. Dan zien jullie allemaal hoe het gaat, het boek en de meldingen.',
+    seePlan: 'Familie-abonnement bekijken',
     title: 'Nodig je familie uit',
     hint: (name: string) =>
       `Je broers, zussen, kinderen of kleinkinderen zien hoe het met ${name || 'je familielid'} gaat, het boek en de meldingen. Het abonnement geldt ook voor hen.`,
