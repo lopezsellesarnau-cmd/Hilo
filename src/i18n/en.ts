@@ -144,6 +144,7 @@ export const en: Strings = {
     points: [
       'It keeps your voice and what you say in the chats, to write your book.',
       'It keeps when you take your pills, to tell your family if you forget.',
+      'It tells your family, in one sentence, what you talked about, so they call you. If something is just for you, tell Hilo.',
       'Only your family sees it. We never sell it to anyone.',
       'You can ask for everything to be deleted whenever you want.',
     ],
@@ -275,6 +276,8 @@ export const en: Strings = {
   },
 
   talks: {
+    noteLabel: (name: string) => `What to talk about with ${name}`,
+    noteWhen: (day: string) => `From their chat ${day === 'today' || day === 'yesterday' ? '' : 'on '}${day}.`,
     tab: 'Chats',
     title: 'Chats',
     todayLabel: 'Today',

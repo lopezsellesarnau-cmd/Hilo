@@ -15,12 +15,21 @@ import { colors, family, fontWeight, spacing } from '@/theme';
 const text = t.talks;
 
 type Senior = { id: string; display_name: string; talk_time: string | null; timezone: string };
-type Talk = { id: string; started_at: string; ended_at: string | null; chapter: { id: string; title: string } | null };
+type Talk = {
+  id: string;
+  started_at: string;
+  ended_at: string | null;
+  chapter: { id: string; title: string } | null;
+  /** "De qué hablar con ella": one sentence for the family, when something fitted */
+  note: string | null;
+};
 
 /** How many of her talks the history shows */
 const HISTORY = 14;
 /** A talk without an end, started less than this ago, is going on now */
 const LIVE_MS = 20 * 60 * 1000;
+/** "De qué hablar con ella" is fresh for this long, then it's old news */
+const NOTE_MS = 3 * 86_400_000;
 
 const minutes = (talk: Talk) =>
   talk.ended_at ? Math.max(1, Math.round((Date.parse(talk.ended_at) - Date.parse(talk.started_at)) / 60_000)) : null;
@@ -55,7 +64,7 @@ export default function TalksScreen() {
           const [{ data: rows }, latest] = await Promise.all([
             supabase
               .from('talk_sessions')
-              .select('id, started_at, ended_at, turns(count), chapters(id, title)')
+              .select('id, started_at, ended_at, family_note, turns(count), chapters(id, title)')
               .eq('person_id', data.id)
               .order('started_at', { ascending: false })
               .limit(HISTORY * 2),
@@ -73,6 +82,7 @@ export default function TalksScreen() {
                 started_at: r.started_at,
                 ended_at: r.ended_at,
                 chapter: (r.chapters as unknown as { id: string; title: string } | null) ?? null,
+                note: r.family_note,
               })),
           );
         });
@@ -106,6 +116,7 @@ export default function TalksScreen() {
     : latest
       ? text.talked(time(latest.started_at), minutes(latest), today.length)
       : text.notYet;
+  const noted = talks.find((k) => k.note && loadedAt - Date.parse(k.started_at) < NOTE_MS);
   const calledToday = Boolean(calls[0]?.mine && dayLabel(calls[0].at, senior.timezone) === text.today);
 
   return (
@@ -129,6 +140,16 @@ export default function TalksScreen() {
               detail={!latest && senior.talk_time ? t.today.talkAt(showTime(senior.talk_time)) : undefined}
             />
           </View>
+
+          {noted?.note ? (
+            <View style={styles.list}>
+              <Text style={styles.label}>{text.noteLabel(senior.display_name).toUpperCase()}</Text>
+              <View style={styles.noteBox}>
+                <Text style={styles.noteText}>{noted.note}</Text>
+                <Text style={styles.note}>{text.noteWhen(dayLabel(noted.started_at, senior.timezone))}</Text>
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.list}>
             <Text style={styles.label}>{text.calls.toUpperCase()}</Text>
@@ -218,6 +239,17 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     letterSpacing: 0.8,
     color: colors.muted,
+  },
+  noteBox: {
+    gap: 8,
+    padding: 18,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+  },
+  noteText: {
+    fontSize: family.fontSize.body,
+    lineHeight: 26,
+    color: colors.ink,
   },
   note: {
     fontSize: family.fontSize.note,

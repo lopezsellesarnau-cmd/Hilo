@@ -149,6 +149,7 @@ export const es = {
     points: [
       'Guarda tu voz y lo que cuentas en las charlas, para escribir tu libro.',
       'Guarda cuándo tomas tus pastillas, para avisar a tu familia si se te olvida.',
+      'A tu familia le cuenta, en una frase, de qué habéis hablado, para que te llamen. Si algo es solo para ti, díselo a Hilo.',
       'Solo lo ve tu familia. No lo vendemos a nadie.',
       'Puedes pedir que se borre todo cuando quieras.',
     ],
@@ -281,6 +282,8 @@ export const es = {
 
   // Charlas: her talks and the family's calls
   talks: {
+    noteLabel: (name: string) => `De qué hablar con ${name}`,
+    noteWhen: (day: string) => `De su charla ${day === 'hoy' || day === 'ayer' ? 'de' : 'del'} ${day}.`,
     tab: 'Charlas',
     title: 'Charlas',
     todayLabel: 'Hoy',

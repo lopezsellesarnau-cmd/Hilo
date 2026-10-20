@@ -148,6 +148,7 @@ export const nl: Strings = {
     points: [
       'Hilo bewaart uw stem en wat u vertelt in de gesprekken, om uw boek te schrijven.',
       'Hilo bewaart wanneer u uw pillen neemt, om uw familie te laten weten als u er een vergeet.',
+      'Hilo vertelt uw familie in één zin waarover u heeft gepraat, zodat ze u bellen. Is iets alleen voor u, zeg het dan tegen Hilo.',
       'Alleen uw familie ziet het. We verkopen het aan niemand.',
       'U kunt altijd vragen om alles te wissen.',
     ],
@@ -279,6 +280,8 @@ export const nl: Strings = {
   },
 
   talks: {
+    noteLabel: (name: string) => `Waarover je met ${name} kunt praten`,
+    noteWhen: (day: string) => `Uit het gesprek van ${day}.`,
     tab: 'Gesprekken',
     title: 'Gesprekken',
     todayLabel: 'Vandaag',

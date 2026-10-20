@@ -14,7 +14,8 @@ import { supabase } from '@/lib/supabase';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
 /** Bump when the text below changes, so people accept the new version. */
-const CONSENT_VERSION = '2026-10-v1';
+// v2 (20 oct): one sentence for the family about what she talked about
+const CONSENT_VERSION = '2026-10-v2';
 const KINDS = ['terms', 'voice_recording', 'life_story', 'health_data'] as const;
 
 const POINTS = t.consent.points;
