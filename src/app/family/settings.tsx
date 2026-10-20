@@ -66,22 +66,27 @@ export default function SettingsScreen() {
   const [relinkError, setRelinkError] = useState<string | null>(null);
 
   // Again when coming back from editing the talk, the pills or the phone
-  useFocusEffect(
-    useCallback(() => {
-      supabase
-        .from('people')
-        .select('id, display_name, talk_time, locale, city, memory, user_id, medications(count)')
-        .eq('role', 'senior')
-        .limit(1)
-        .maybeSingle()
-        .then(({ data }) => setSenior(data as Senior | null));
-      supabase
-        .from('people')
-        .select('id', { count: 'exact', head: true })
-        .eq('role', 'member')
-        .then(({ count }) => setMembers(count ?? 0));
-    }, []),
-  );
+  const load = useCallback(() => {
+    supabase
+      .from('people')
+      .select('id, display_name, talk_time, locale, city, memory, user_id, medications(count)')
+      .eq('role', 'senior')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setSenior(data as Senior | null));
+    supabase
+      .from('people')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'member')
+      .then(({ count }) => setMembers(count ?? 0));
+  }, []);
+
+  useFocusEffect(load);
+
+  // The tabs are preloaded (lazy: false): load at start too, so this tab is ready before it's opened
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const edit = (pathname: '/onboarding/talk' | '/onboarding/pills' | '/memory') =>
     senior && router.push({ pathname, params: { seniorId: senior.id, seniorName: senior.display_name, from: 'settings' } });

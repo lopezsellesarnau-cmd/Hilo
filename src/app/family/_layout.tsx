@@ -69,6 +69,9 @@ export default function FamilyLayout() {
         tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
         sceneStyle: { backgroundColor: colors.background },
         // No tab animation and no entering animations in the tab screens: both left blank tabs
+        // All tabs are created at the start and load their data in the background, so switching shows
+        // a ready screen instead of an empty one that fills in (safe now that there are no entering animations)
+        lazy: false,
       }}>
       <Tabs.Screen name="today" options={{ title: t.today.title, tabBarIcon: icon('sun.max') }} />
       <Tabs.Screen
