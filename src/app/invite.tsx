@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -18,6 +19,8 @@ const text = t.invite;
 export default function InviteScreen() {
   const [code, setCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Inviting is part of the Familia plan: on Básico, this screen offers the upgrade instead
+  const [needsPlan, setNeedsPlan] = useState(false);
   const [members, setMembers] = useState<string[]>([]);
   const [seniorName, setSeniorName] = useState('');
 
@@ -27,7 +30,7 @@ export default function InviteScreen() {
         setError(null);
         setCode(c);
       })
-      .catch(() => setError(text.createFailed));
+      .catch((e: Error) => (e.message === 'plan' ? setNeedsPlan(true) : setError(text.createFailed)));
   }, []);
 
   useEffect(newCode, [newCode]);
@@ -46,6 +49,17 @@ export default function InviteScreen() {
 
   const send = () => code && Share.share({ message: text.message(seniorName, showInviteCode(code)) });
 
+  if (needsPlan) {
+    return (
+      <OnboardingStep
+        question={text.title}
+        hint={text.planOnly}
+        footer={<BigButton scale="family" label={text.seePlan} onPress={() => router.push('/paywall')} />}>
+        {members.length ? <Text style={styles.note}>{text.already(members.join(', '))}</Text> : null}
+      </OnboardingStep>
+    );
+  }
+
   return (
     <OnboardingStep
       question={text.title}
@@ -61,7 +75,10 @@ export default function InviteScreen() {
         {code ? <QRCode value={inviteLink(code)} size={176} color={colors.ink} backgroundColor={colors.background} /> : null}
       </View>
 
-      <View style={styles.codeBox} accessible accessibilityLabel={code ? t.pair.codeA11y(code.split('').join(' ')) : t.pair.creating}>
+      <View
+        style={styles.codeBox}
+        accessible
+        accessibilityLabel={code ? t.pair.codeA11y(code.split('').join(' ')) : t.pair.creating}>
         <Text style={styles.code}>{code ? showInviteCode(code) : '···· ····'}</Text>
       </View>
       <Text style={styles.note}>{text.expires}</Text>

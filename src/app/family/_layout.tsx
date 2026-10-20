@@ -41,6 +41,7 @@ export default function FamilyLayout() {
         // No tab animation and no entering animations in the tab screens: both left blank tabs
       }}>
       <Tabs.Screen name="today" options={{ title: t.today.title, tabBarIcon: icon('sun.max') }} />
+      <Tabs.Screen name="talks" options={{ title: t.talks.tab, tabBarIcon: icon('bubble.left.and.bubble.right') }} />
       <Tabs.Screen name="book" options={{ title: t.familyBook.tab, tabBarIcon: icon('book.closed') }} />
       <Tabs.Screen name="settings" options={{ title: t.settings.title, tabBarIcon: icon('gearshape') }} />
     </Tabs>

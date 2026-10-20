@@ -116,6 +116,7 @@ const SAY = {
     memory: (notes: string) =>
       `[Lo que sabes de charlas anteriores. Úsalo con naturalidad, como alguien que se acuerda: pregunta por algo de aquí si encaja, sin recitarlo ni decir que lo tienes apuntado.\n${notes}]`,
     stories: (titles: string) => `[Historias que ya te ha contado para su libro: ${titles}. Busca un recuerdo nuevo o un detalle que faltó, no repitas la misma.]`,
+    askFamily: '[Hace días que no consta que nadie de su familia haya hablado con ella. En algún momento de la charla, con naturalidad y sin insistir, pregúntale si ha hablado últimamente con alguien de su familia y qué le contaron.]',
     pillOne: (time: string, name: string) => `Por cierto, a las ${time} te tocaba esto: ${name}. ¿Te lo has tomado?`,
     pillMany: (list: string) => `Por cierto, hoy te tocaba esto: ${list}. ¿Te lo has tomado todo?`,
     and: 'y',
@@ -153,6 +154,7 @@ const SAY = {
     memory: (notes: string) =>
       `[Wat je weet uit eerdere gesprekken. Gebruik het natuurlijk, zoals iemand die het onthouden heeft: vraag ernaar als het past, zonder het op te sommen of te zeggen dat je het hebt opgeschreven.\n${notes}]`,
     stories: (titles: string) => `[Verhalen die al verteld zijn voor het boek: ${titles}. Zoek een nieuwe herinnering of een detail dat ontbrak, herhaal niet hetzelfde verhaal.]`,
+    askFamily: '[Al een paar dagen is niet bekend dat iemand van de familie met de persoon heeft gesproken. Vraag op een natuurlijk moment, zonder aan te dringen, of de persoon de laatste tijd iemand van de familie heeft gesproken en wat ze vertelden.]',
     pillOne: (time: string, name: string) => `Trouwens, om ${time} was het tijd voor ${name}. Heeft u die genomen?`,
     pillMany: (list: string) => `Trouwens, vandaag was het tijd voor ${list}. Heeft u alles genomen?`,
     and: 'en',
@@ -190,6 +192,7 @@ const SAY = {
     memory: (notes: string) =>
       `[What you know from earlier chats. Use it naturally, like someone who remembers: ask about something here if it fits, without reciting it or saying you wrote it down.\n${notes}]`,
     stories: (titles: string) => `[Stories already told for their book: ${titles}. Look for a new memory or a missing detail, don't repeat the same one.]`,
+    askFamily: "[For a few days there's no record of anyone in their family talking with them. At some point in the chat, naturally and without insisting, ask whether they've spoken with anyone in their family lately and what they talked about.]",
     pillOne: (time: string, name: string) => `By the way, at ${time} it was time for ${name}. Have you taken it?`,
     pillMany: (list: string) => `By the way, today it was time for ${list}. Have you taken everything?`,
     and: 'and',
@@ -696,23 +699,62 @@ Reglas:
 - Salud: solo lo justo para preguntar con cariño (por ejemplo "le dolía la rodilla"), sin diagnósticos ni medicinas.
 - Quita lo que ya no sirve, como un plan que ya pasó y ya se comentó.
 - Una idea por línea, empezando por "- ". Máximo 15 líneas. Nada más: sin títulos ni comentarios.
-- Escribe las notas en el idioma de la charla.`;
+- Escribe las notas en el idioma de la charla.
+
+Además, en "llamadas": los familiares de la lista que te doy con los que ella dice que ha hablado hoy o ayer (por teléfono, videollamada o en persona). Escribe el nombre exactamente como está en la lista. Si dice "mi hijo" y por las notas sabes cuál de la lista es, pon ese nombre. Si no está claro o no lo ha dicho, deja la lista vacía. No cuentes lo que solo tiene previsto hacer.`;
+
+/** Her notes, and the family members she says she talked with (for "Llama a la abuela") */
+const MEMORY_SCHEMA = {
+  type: 'object',
+  properties: {
+    notas: { type: 'string' },
+    llamadas: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['notas', 'llamadas'],
+  additionalProperties: false,
+};
+
+/** Days without any family call after which Hilo asks her about her family in the talk */
+const ASK_FAMILY_DAYS = 2;
+
+/**
+ * At the start of a talk: if nobody in the family is known to have talked with her for a couple of days,
+ * a line that asks Hilo to bring it up. Saved with the talk's context, so every turn sends the same opening.
+ */
+async function familyHint(admin: SupabaseClient, me: Senior, line: string): Promise<string | null> {
+  const { data } = await admin
+    .from('family_calls')
+    .select('called_at')
+    .eq('senior_id', me.id)
+    .order('called_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (data && Date.now() - Date.parse(data.called_at) < ASK_FAMILY_DAYS * 86_400_000) return null;
+  return line;
+}
 
 /** Rewrites her notes with what she said today. Runs after the goodbye, like the chapter */
 async function updateMemory(admin: SupabaseClient, me: Senior, transcript: Turn[]) {
   const hers = transcript.filter((t) => t.speaker === 'senior').map((t) => t.text).join(' ');
   if (hers.length < MIN_MEMORY_CHARS) return;
+  // Her family in Hilo, so what she says ("hablé con Laura") can be matched to a person
+  const { data: members } = await admin
+    .from('people')
+    .select('id, display_name')
+    .eq('family_id', me.family_id)
+    .eq('role', 'member');
   try {
     const res = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 800,
-      output_config: { effort: 'low' },
+      max_tokens: 1000,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: MEMORY_SCHEMA } },
       system: MEMORY_WRITER,
       messages: [
         {
           role: 'user',
           content:
-            `Se llama ${me.display_name}. Hoy es ${localNow(me.timezone).date}.\n\n` +
+            `Se llama ${me.display_name}. Hoy es ${localNow(me.timezone).date}.\n` +
+            `Su familia en Hilo: ${(members ?? []).map((m) => m.display_name).join(', ') || '(nadie)'}\n\n` +
             `Notas que había:\n${me.memory?.trim() || '(ninguna, es la primera vez)'}\n\n` +
             `La charla de hoy:\n` +
             transcript.map((t) => `${t.speaker === 'hilo' ? 'Hilo' : me.display_name}: ${t.text}`).join('\n'),
@@ -726,16 +768,28 @@ async function updateMemory(admin: SupabaseClient, me: Senior, transcript: Turn[
       output_tokens: res.usage.output_tokens,
       characters: 0,
     });
-    const notes = res.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
-      .trim();
     // A cut answer could drop half of what she told: keep the old notes
-    if (res.stop_reason !== 'end_turn' || !notes) {
+    if (res.stop_reason !== 'end_turn') {
       console.error('memory skipped:', res.stop_reason);
       return;
     }
+    const raw = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    const out = JSON.parse(raw) as { notas: string; llamadas: string[] };
+    const notes = out.notas.trim();
+
+    // Only names that are really in her family, each once
+    const said = new Set(out.llamadas.map((n) => bare(n)));
+    const called = (members ?? []).filter((m) => said.has(bare(m.display_name)));
+    if (called.length) {
+      const { error } = await admin
+        .from('family_calls')
+        .insert(called.map((m) => ({ family_id: me.family_id, senior_id: me.id, member_id: m.id, source: 'talk' })));
+      if (error) console.error('family calls', error.message);
+    }
+    if (!notes) return;
     const { error } = await admin
       .from('people')
       .update({ memory: notes.slice(0, MEMORY_MAX), memory_updated_at: new Date().toISOString() })
@@ -845,7 +899,7 @@ Deno.serve(async (req) => {
 
     // Weather and holidays: fetched once, when the talk really starts, and saved on it so every turn
     // sends the same opening message
-    context = contextPromise ? await contextPromise : null;
+    context = [contextPromise ? await contextPromise : null, await familyHint(admin, me, say.askFamily)].filter(Boolean).join('\n\n') || null;
     const { data, error } = await db
       .from('talk_sessions')
       .insert({ family_id: me.family_id, person_id: me.id, locale: me.locale, context })

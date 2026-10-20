@@ -276,6 +276,29 @@ export const es = {
     connect: 'Conectar su móvil',
   },
 
+  // Charlas: her talks and the family's calls
+  talks: {
+    tab: 'Charlas',
+    title: 'Charlas',
+    todayLabel: 'Hoy',
+    liveNow: 'Está charlando con Hilo ahora',
+    talked: (time: string, minutes: number | null, count: number) =>
+      `Ha charlado a las ${time}` + (minutes !== null ? ` · ${minutes} min` : '') + (count > 1 ? ` · ${count} charlas` : ''),
+    notYet: 'Aún no ha charlado hoy',
+    calls: 'Llamadas de la familia',
+    calledButton: (name: string) => `He hablado hoy con ${name}`,
+    calledDone: '✓ Apuntado: has hablado hoy',
+    you: 'Tú',
+    toldHilo: (name: string) => `${name} se lo contó a Hilo`,
+    noCalls: (name: string) => `Aún no consta ninguna llamada a ${name}.`,
+    callsHint: 'Si nadie de la familia habla con ella en 3 días, Hilo avisará a uno de vosotros.',
+    history: 'Últimas charlas',
+    story: (title: string) => `Historia: «${title}»`,
+    noTalks: 'Aquí verás sus charlas en cuanto empiece a charlar con Hilo.',
+    today: 'hoy',
+    yesterday: 'ayer',
+  },
+
   todayPills: {
     title: 'Pastillas',
     summary: (taken: number, total: number) => `Pastillas: ${taken} de ${total} tomadas`,
@@ -323,6 +346,7 @@ export const es = {
 
   // A new family member, invited by someone already in Hilo
   join: {
+    noPlan: 'Esta familia ya no tiene el plan Familia. Pide a quien te invitó que lo active.',
     question: 'Escribe el código de tu familia',
     hint: 'Son 8 números. Te los ha mandado quien ya usa Hilo, o escanea su código QR.',
     label: 'Código de invitación',
@@ -335,6 +359,8 @@ export const es = {
   },
 
   invite: {
+    planOnly: 'Invitar a hermanos, hijos o nietos es parte del plan Familia. Con él, todos veis cómo está, su libro y los avisos.',
+    seePlan: 'Ver el plan Familia',
     title: 'Invita a tu familia',
     hint: (name: string) =>
       `Tus hermanos, hijos o nietos verán cómo está ${name || 'tu familiar'}, su libro y los avisos. La suscripción ya les incluye.`,
