@@ -27,10 +27,16 @@ const text = {
 };
 
 const callText = {
-  es: (name: string, days: number) => `Hace ${days} días que nadie de la familia habla con ${name}. ¿Una llamada hoy?`,
-  en: (name: string, days: number) => `Nobody in the family has talked with ${name} for ${days} days. A call today?`,
-  nl: (name: string, days: number) => `Al ${days} dagen heeft niemand van de familie met ${name} gesproken. Vandaag even bellen?`,
+  es: (name: string, days: number, note: string | null) =>
+    `Hace ${days} días que nadie de la familia habla con ${name}.` + (note ? ` ${note}` : ' ¿Una llamada hoy?'),
+  en: (name: string, days: number, note: string | null) =>
+    `Nobody in the family has talked with ${name} for ${days} days.` + (note ? ` ${note}` : ' A call today?'),
+  nl: (name: string, days: number, note: string | null) =>
+    `Al ${days} dagen heeft niemand van de familie met ${name} gesproken.` + (note ? ` ${note}` : ' Vandaag even bellen?'),
 };
+
+/** "De qué hablar con ella" from her talks of the last days: gives the nudge something to call about */
+const NOTE_DAYS = 4;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -225,6 +231,17 @@ Deno.serve(async (req) => {
     const days = daysBetween(localNow(s.timezone, new Date(since)).date, now.date);
     if (!test && days < CALL_DAYS) continue;
 
+    const { data: noted } = await admin
+      .from('talk_sessions')
+      .select('family_note')
+      .eq('person_id', s.id)
+      .not('family_note', 'is', null)
+      .gte('started_at', new Date(Date.now() - NOTE_DAYS * 86_400_000).toISOString())
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const note = (noted?.family_note as string | undefined) ?? null;
+
     // Whoever called least recently (or never), among those with Hilo on a phone
     const { data: members } = await admin
       .from('people')
@@ -242,7 +259,7 @@ Deno.serve(async (req) => {
         admin,
         jwt,
         tokens,
-        (locale) => (callText[locale as keyof typeof callText] ?? callText.es)(s.display_name, Math.max(days, CALL_DAYS)),
+        (locale) => (callText[locale as keyof typeof callText] ?? callText.es)(s.display_name, Math.max(days, CALL_DAYS), note),
         // Straight to Charlas, where the "He hablado hoy con…" button is
         '/family/talks',
       );

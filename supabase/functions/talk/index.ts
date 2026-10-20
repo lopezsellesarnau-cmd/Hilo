@@ -42,6 +42,7 @@ Límites:
 - No eres médico. Si habla de dolor, de una caída, de que se encuentra mal o de tristeza fuerte, le dices con calma que es importante contárselo hoy a su familia o llamar al 112 si es urgente, y no das consejos médicos.
 - No hablas de dinero, compras ni datos bancarios. Si alguien le pide dinero o claves por teléfono, le dices que no los dé y que lo hable con su familia.
 - No finges ser una persona. Si te pregunta, eres Hilo, un programa que su familia ha puesto para charlar.
+- Si te dice que algo es solo para ti o que no se lo cuentes a su familia, tranquilízala: queda entre vosotros.
 - Nunca inventas cosas de su vida. Solo usas lo que te ha contado.
 
 La charla dura unos minutos. Cuando ya habéis hablado un rato del recuerdo (unas 8 o 10 respuestas suyas), o si dice que se tiene que ir, te despides con cariño, le dices que lo guardas en su libro y que mañana seguís. En esa misma respuesta usas terminar_charla.`;
@@ -69,6 +70,7 @@ Grenzen:
 - Je bent geen arts. Gaat het over pijn, een val, zich niet goed voelen of erge somberheid, dan zeg je rustig dat het belangrijk is om het vandaag aan de familie te vertellen, of 112 te bellen als het dringend is. Je geeft geen medisch advies.
 - Je praat niet over geld, aankopen of bankgegevens. Vraagt iemand aan de telefoon om geld of codes, dan zeg je dat de persoon die niet moet geven en het met de familie moet bespreken.
 - Je doet niet alsof je een mens bent. Als het gevraagd wordt: je bent Hilo, een programma dat de familie heeft geïnstalleerd om mee te praten.
+- Als de persoon zegt dat iets alleen voor jou is of niet aan de familie verteld mag worden, stel gerust: het blijft tussen jullie.
 - Je verzint nooit iets over het leven van de persoon. Je gebruikt alleen wat er verteld is.
 
 Het gesprek duurt een paar minuten. Als jullie een tijdje over de herinnering hebben gepraat (zo'n 8 tot 10 antwoorden), of als de persoon zegt weg te moeten, neem je hartelijk afscheid, zeg je dat je het in het boek bewaart en dat jullie morgen verder praten. In datzelfde antwoord gebruik je terminar_charla.`;
@@ -95,6 +97,7 @@ Limits:
 - You are not a doctor. If they mention pain, a fall, feeling unwell or deep sadness, calmly tell them it's important to tell their family today, or to call 112 if it's urgent, and give no medical advice.
 - You don't talk about money, purchases or bank details. If someone asks them for money or codes on the phone, tell them not to give them and to talk to their family.
 - You don't pretend to be a person. If they ask, you are Hilo, a program their family set up to chat with them.
+- If they say something is just for you or not to tell their family, reassure them: it stays between you.
 - You never make up anything about their life. You only use what they told you.
 
 The chat lasts a few minutes. When you have talked about the memory for a while (about 8 to 10 of their answers), or if they say they have to go, say goodbye warmly, tell them you'll keep it in their book and that you'll carry on tomorrow. In that same reply, use terminar_charla.`;
@@ -553,6 +556,7 @@ Reglas:
 - Puedes ordenar lo que dijo, unir frases y arreglar la puntuación o errores claros de transcripción. Nada más.
 - Deja fuera lo del día (cómo ha dormido, las pastillas, sus planes de hoy) y las preguntas de Hilo, salvo que formen parte del recuerdo.
 - Si no ha contado ningún recuerdo de verdad, solo charla del día, no hay historia.
+- Deja fuera todo lo que ella haya pedido que no se cuente a su familia o que sea solo para Hilo.
 
 Formato:
 - Título corto, de 2 a 6 palabras, con palabras concretas de su historia. Sin comillas.
@@ -686,6 +690,8 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
 // One cheap call per talk; the next talks never carry old transcripts.
 
 const MEMORY_MAX = 2000;
+/** Same limit as talk_sessions.family_note */
+const FAMILY_NOTE_MAX = 240;
 /** Less than this from her (characters) adds nothing worth remembering */
 const MIN_MEMORY_CHARS = 40;
 
@@ -698,19 +704,28 @@ Reglas:
 - Fechas siempre exactas, nunca "mañana" ni "el jueves": conviértelas con la fecha de hoy que te doy.
 - Salud: solo lo justo para preguntar con cariño (por ejemplo "le dolía la rodilla"), sin diagnósticos ni medicinas.
 - Quita lo que ya no sirve, como un plan que ya pasó y ya se comentó.
+- Lo que ella pida que sea solo para Hilo o que no se cuente a su familia, no lo apuntes: su familia puede leer estas notas.
 - Una idea por línea, empezando por "- ". Máximo 15 líneas. Nada más: sin títulos ni comentarios.
 - Escribe las notas en el idioma de la charla.
 
-Además, en "llamadas": los familiares de la lista que te doy con los que ella dice que ha hablado hoy o ayer (por teléfono, videollamada o en persona). Escribe el nombre exactamente como está en la lista. Si dice "mi hijo" y por las notas sabes cuál de la lista es, pon ese nombre. Si no está claro o no lo ha dicho, deja la lista vacía. No cuentes lo que solo tiene previsto hacer.`;
+Además, en "llamadas": los familiares de la lista que te doy con los que ella dice que ha hablado hoy o ayer (por teléfono, videollamada o en persona). Escribe el nombre exactamente como está en la lista. Si dice "mi hijo" y por las notas sabes cuál de la lista es, pon ese nombre. Si no está claro o no lo ha dicho, deja la lista vacía. No cuentes lo que solo tiene previsto hacer.
 
-/** Her notes, and the family members she says she talked with (for "Llama a la abuela") */
+Y en "para_la_familia": una sola frase para su familia sobre algo bonito que ella ha contado hoy, para que tengan de qué hablar cuando la llamen. Dirigida a la familia, en tercera persona, terminando con una pregunta que puedan hacerle. Ejemplo: "Hoy le ha contado a Hilo que de joven bailaba en las fiestas del pueblo. Pregúntale con quién iba."
+- Solo lo que ella ha dicho, nada de lo que dijo Hilo.
+- Recuerdos, personas, planes, gustos o algo que hizo hoy.
+- Nunca: salud, dolores, tristeza o soledad, dinero, quejas de alguien de la familia, ni nada que ella haya pedido que no se cuente o que sea solo para Hilo.
+- Máximo 200 caracteres. En el idioma de la charla.
+- Si no hay nada que encaje, déjala vacía. Mejor nada que algo forzado.`;
+
+/** Her notes, the family members she says she talked with ("Llama a la abuela") and a line for the family */
 const MEMORY_SCHEMA = {
   type: 'object',
   properties: {
     notas: { type: 'string' },
     llamadas: { type: 'array', items: { type: 'string' } },
+    para_la_familia: { type: 'string' },
   },
-  required: ['notas', 'llamadas'],
+  required: ['notas', 'llamadas', 'para_la_familia'],
   additionalProperties: false,
 };
 
@@ -734,7 +749,7 @@ async function familyHint(admin: SupabaseClient, me: Senior, line: string): Prom
 }
 
 /** Rewrites her notes with what she said today. Runs after the goodbye, like the chapter */
-async function updateMemory(admin: SupabaseClient, me: Senior, transcript: Turn[]) {
+async function updateMemory(admin: SupabaseClient, me: Senior, sessionId: string, transcript: Turn[]) {
   const hers = transcript.filter((t) => t.speaker === 'senior').map((t) => t.text).join(' ');
   if (hers.length < MIN_MEMORY_CHARS) return;
   // Her family in Hilo, so what she says ("hablé con Laura") can be matched to a person
@@ -777,7 +792,7 @@ async function updateMemory(admin: SupabaseClient, me: Senior, transcript: Turn[
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
       .map((b) => b.text)
       .join('');
-    const out = JSON.parse(raw) as { notas: string; llamadas: string[] };
+    const out = JSON.parse(raw) as { notas: string; llamadas: string[]; para_la_familia: string };
     const notes = out.notas.trim();
 
     // Only names that are really in her family, each once
@@ -788,6 +803,13 @@ async function updateMemory(admin: SupabaseClient, me: Senior, transcript: Turn[
         .from('family_calls')
         .insert(called.map((m) => ({ family_id: me.family_id, senior_id: me.id, member_id: m.id, source: 'talk' })));
       if (error) console.error('family calls', error.message);
+    }
+
+    // "De qué hablar con ella": shown to the family for 3 days and in the call nudge
+    const familyNote = out.para_la_familia.trim().slice(0, FAMILY_NOTE_MAX);
+    if (familyNote) {
+      const { error } = await admin.from('talk_sessions').update({ family_note: familyNote }).eq('id', sessionId);
+      if (error) console.error('family note', error.message);
     }
     if (!notes) return;
     const { error } = await admin
@@ -812,7 +834,7 @@ async function closeTalk(db: SupabaseClient, admin: SupabaseClient, me: Senior, 
     .is('ended_at', null)
     .select('id');
   if (closed?.length) {
-    EdgeRuntime.waitUntil(Promise.all([writeChapter(admin, me, sessionId, transcript), updateMemory(admin, me, transcript)]));
+    EdgeRuntime.waitUntil(Promise.all([writeChapter(admin, me, sessionId, transcript), updateMemory(admin, me, sessionId, transcript)]));
   }
 }
 
