@@ -43,7 +43,9 @@ export default function FamilyBookScreen() {
         <ScrollView contentContainerStyle={styles.screen}>
           <View style={styles.head}>
             {/* The space is kept while loading, so the title never jumps */}
-            <View style={styles.cover}>{book && 'name' in book ? <BookCover width={COVER} title={t.book.cover(book.name)} /> : null}</View>
+            <View style={styles.cover}>
+              {book && 'name' in book ? <BookCover width={COVER} title={t.book.cover(book.name)} /> : null}
+            </View>
             <Text style={styles.title} accessibilityRole="header">
               {text.title}
             </Text>
@@ -89,7 +91,8 @@ export default function FamilyBookScreen() {
   );
 }
 
-const COVER = 132;
+// Large, like the cover of a real book: it is the first thing the family sees here
+const COVER = 220;
 
 const styles = StyleSheet.create({
   safe: {
