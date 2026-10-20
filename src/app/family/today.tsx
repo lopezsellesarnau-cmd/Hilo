@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Bot } from '@/components/bot';
@@ -51,47 +51,63 @@ export default function TodayScreen() {
     registerFamilyPush();
   }, []);
 
+  // Until her first talk: a short checklist instead of empty screens (null once she has talked)
+  const [firstDay, setFirstDay] = useState<{ pills: boolean; family: boolean } | null>(null);
+  // Pull to refresh; the key also reloads the week and the pills, which load on their own
+  const [refreshing, setRefreshing] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const load = useCallback(async () => {
+    const { data, error: e } = await supabase
+      .from('people')
+      .select('id, display_name, talk_time, user_id, timezone')
+      .eq('role', 'senior')
+      .limit(1)
+      .maybeSingle();
+    if (e) return setError(t.common.loadFailed);
+    setError(null);
+    setSenior(data as Senior | null);
+    if (!data) return;
+    const [{ data: rows }, { data: stories }, calls, { count: everTalked }, { count: pills }, { count: members }] =
+      await Promise.all([
+        // Enough to cover today even with several talks
+        supabase
+          .from('talk_sessions')
+          .select('started_at, ended_at')
+          .eq('person_id', data.id)
+          .order('started_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('chapters')
+          .select('id, title')
+          .eq('person_id', data.id)
+          .eq('status', 'draft')
+          .order('created_at', { ascending: false }),
+        data.user_id ? loadCalls(data.id, 1) : Promise.resolve(null),
+        supabase.from('talk_sessions').select('id', { count: 'exact', head: true }).eq('person_id', data.id),
+        supabase.from('medications').select('id', { count: 'exact', head: true }).eq('person_id', data.id).eq('active', true),
+        supabase.from('people').select('id', { count: 'exact', head: true }).eq('role', 'member'),
+      ]);
+    setTalks(talkedToday(rows ?? [], data.timezone));
+    setDrafts(stories ?? []);
+    // Same rule as the evening nudge: 3 days since the last call (or since her phone was connected)
+    setCallDue(Boolean(calls && (!calls.length || Date.now() - Date.parse(calls[0].at) >= CALL_DAYS * 86_400_000)));
+    setFirstDay(everTalked ? null : { pills: Boolean(pills), family: (members ?? 0) > 1 });
+  }, []);
+
   // Reload when coming back to the tab, e.g. after pairing their phone
   useFocusEffect(
     useCallback(() => {
-      supabase
-        .from('people')
-        .select('id, display_name, talk_time, user_id, timezone')
-        .eq('role', 'senior')
-        .limit(1)
-        .maybeSingle()
-        .then(({ data, error: e }) => {
-          if (e) {
-            setError(t.common.loadFailed);
-            return;
-          }
-          setError(null);
-          setSenior(data as Senior | null);
-          if (!data) return;
-          // Enough to cover today even with several talks
-          supabase
-            .from('talk_sessions')
-            .select('started_at, ended_at')
-            .eq('person_id', data.id)
-            .order('started_at', { ascending: false })
-            .limit(10)
-            .then(({ data: rows }) => setTalks(talkedToday(rows ?? [], data.timezone)));
-          supabase
-            .from('chapters')
-            .select('id, title')
-            .eq('person_id', data.id)
-            .eq('status', 'draft')
-            .order('created_at', { ascending: false })
-            .then(({ data: rows }) => setDrafts(rows ?? []));
-          // Same rule as the evening nudge: 3 days since the last call (or since her phone was connected)
-          if (data.user_id) {
-            loadCalls(data.id, 1).then((calls) =>
-              setCallDue(!calls.length || Date.now() - Date.parse(calls[0].at) >= CALL_DAYS * 86_400_000),
-            );
-          }
-        });
-    }, []),
+      load();
+    }, [load]),
   );
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load();
+    setReloadKey((k) => k + 1);
+    setRefreshing(false);
+  };
 
   const pair = () =>
     senior && router.push({ pathname: '/onboarding/pair', params: { seniorId: senior.id, seniorName: senior.display_name } });
@@ -112,7 +128,9 @@ export default function TodayScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
-        <ScrollView contentContainerStyle={styles.screen}>
+        <ScrollView
+          contentContainerStyle={styles.screen}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.ink} />}>
           {/* Like the senior's Home: the bot and a centred title */}
           <View style={styles.head}>
             <Bot size={84} look="left" />
@@ -133,12 +151,46 @@ export default function TodayScreen() {
                 detail={!lastTalk && senior.talk_time ? text.talkAt(showTime(senior.talk_time)) : undefined}
                 onPress={() => router.push('/family/talks')}
               />
-              <WeekStrip seniorId={senior.id} timezone={senior.timezone} />
+              <WeekStrip key={reloadKey} seniorId={senior.id} timezone={senior.timezone} />
+            </View>
+          ) : null}
+
+          {/* Before her first talk: the few steps that make Hilo work, ticked as they are done */}
+          {senior && firstDay ? (
+            <View style={styles.list}>
+              <Text style={styles.label}>{text.firstDay.toUpperCase()}</Text>
+              <ListRow left={<DayDot state="done" size={40} />} title={text.stepAccount} />
+              <ListRow
+                left={<DayDot state={senior.user_id ? 'done' : 'now'} size={40} />}
+                title={text.stepPhone(senior.display_name)}
+                onPress={senior.user_id ? undefined : pair}
+              />
+              <ListRow
+                left={<DayDot state={firstDay.pills ? 'done' : 'later'} size={40} />}
+                title={text.stepPills}
+                detail={firstDay.pills ? undefined : text.optional}
+                onPress={
+                  firstDay.pills
+                    ? undefined
+                    : () =>
+                        router.push({
+                          pathname: '/onboarding/pills',
+                          params: { seniorId: senior.id, seniorName: senior.display_name, from: 'today' },
+                        })
+                }
+              />
+              <ListRow
+                left={<DayDot state={firstDay.family ? 'done' : 'later'} size={40} />}
+                title={text.stepFamily}
+                detail={firstDay.family ? undefined : text.optional}
+                onPress={firstDay.family ? undefined : () => router.push('/invite')}
+              />
+              <Text style={styles.note}>{text.firstDayHint(senior.display_name)}</Text>
             </View>
           ) : null}
 
           {/* Only what needs the family today; nothing when all is well */}
-          {senior && (!senior.user_id || drafts.length || callDue) ? (
+          {senior && !firstDay && (!senior.user_id || drafts.length || callDue) ? (
             <View style={styles.list}>
               <Text style={styles.label}>{text.toDo.toUpperCase()}</Text>
               {!senior.user_id ? (
@@ -170,7 +222,7 @@ export default function TodayScreen() {
 
           {senior ? (
             <View>
-              <TodayPills seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
+              <TodayPills key={reloadKey} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
             </View>
           ) : null}
         </ScrollView>
@@ -211,6 +263,11 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 10,
+  },
+  note: {
+    fontSize: family.fontSize.note,
+    lineHeight: 21,
+    color: colors.muted,
   },
   label: {
     fontSize: 13,

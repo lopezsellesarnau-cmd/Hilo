@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
@@ -48,8 +48,10 @@ export default function TalksScreen() {
   // When the data was loaded: "talking now" is decided against this, not during render
   const [loadedAt, setLoadedAt] = useState(0);
 
-  useFocusEffect(
-    useCallback(() => {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(
+    () =>
       supabase
         .from('people')
         .select('id, display_name, talk_time, timezone')
@@ -85,9 +87,26 @@ export default function TalksScreen() {
                 note: r.family_note,
               })),
           );
-        });
-    }, []),
+        }),
+    [],
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  // The tabs are preloaded (lazy: false): load at start too, so this tab is ready before it's opened
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
 
   const called = async () => {
     if (!senior) return;
@@ -123,7 +142,9 @@ export default function TalksScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
-        <ScrollView contentContainerStyle={styles.screen}>
+        <ScrollView
+          contentContainerStyle={styles.screen}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.ink} />}>
           <View style={styles.head}>
             <Text style={styles.title} accessibilityRole="header">
               {text.title}

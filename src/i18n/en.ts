@@ -251,6 +251,13 @@ export const en: Strings = {
   },
 
   today: {
+    firstDay: 'Getting started',
+    stepAccount: 'Your account',
+    stepPhone: (name: string) => `Connect ${name}'s phone`,
+    stepPills: 'Their pills',
+    stepFamily: 'Invite the family',
+    optional: 'Optional',
+    firstDayHint: (name: string) => `As soon as ${name} has their first chat, you'll see here how their day is going.`,
     toDo: 'To do',
     callKicker: 'Call',
     callDue: (name: string) => `Nobody has talked with ${name} for days`,

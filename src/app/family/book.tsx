@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,6 +23,11 @@ const open = (chapter: Draft) => router.push({ pathname: '/review/[id]', params:
  */
 export default function FamilyBookScreen() {
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadFamilyBook>> | null>(null);
+
+  // The tabs are preloaded (lazy: false): load at start too, so this tab is ready before it's opened
+  useEffect(() => {
+    loadFamilyBook().then(setBook);
+  }, []);
 
   // Again when coming back from a review
   useFocusEffect(

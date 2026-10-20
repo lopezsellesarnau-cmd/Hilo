@@ -255,6 +255,13 @@ export const nl: Strings = {
   },
 
   today: {
+    firstDay: 'Om te beginnen',
+    stepAccount: 'Je account',
+    stepPhone: (name: string) => `De telefoon van ${name} koppelen`,
+    stepPills: 'De pillen',
+    stepFamily: 'Familie uitnodigen',
+    optional: 'Optioneel',
+    firstDayHint: (name: string) => `Zodra ${name} het eerste gesprek heeft gehad, zie je hier hoe de dag gaat.`,
     toDo: 'Te doen',
     callKicker: 'Bellen',
     callDue: (name: string) => `Al dagen heeft niemand met ${name} gesproken`,

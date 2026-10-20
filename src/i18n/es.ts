@@ -256,6 +256,13 @@ export const es = {
   },
 
   today: {
+    firstDay: 'Para empezar',
+    stepAccount: 'Tu cuenta',
+    stepPhone: (name: string) => `Conectar el móvil de ${name}`,
+    stepPills: 'Sus pastillas',
+    stepFamily: 'Invitar a la familia',
+    optional: 'Opcional',
+    firstDayHint: (name: string) => `En cuanto ${name} tenga su primera charla, aquí verás cómo va su día.`,
     toDo: 'Para hacer',
     callKicker: 'Llamada',
     callDue: (name: string) => `Hace días que nadie habla con ${name}`,
