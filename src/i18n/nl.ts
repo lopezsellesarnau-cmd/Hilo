@@ -65,6 +65,7 @@ export const nl: Strings = {
   },
 
   name: {
+    invited: 'Ik ben uitgenodigd',
     question: 'Hoe heet je?',
     hint: 'Zo ziet de rest van de familie je in Hilo.',
     label: 'Je naam',
@@ -318,6 +319,33 @@ export const nl: Strings = {
     error: 'Het opslaan is niet gelukt. Controleer je verbinding en probeer het opnieuw.',
   },
 
+  join: {
+    question: 'Typ de code van je familie',
+    hint: 'Het zijn 8 cijfers. Je kreeg ze van wie Hilo al gebruikt, of scan hun QR-code.',
+    label: 'Uitnodigingscode',
+    join: 'Meedoen',
+    joining: 'Bezig…',
+    scanSubtitle: 'Richt op de QR-code op de telefoon van je familielid.',
+    badCode: 'Die code werkt niet of is verlopen. Vraag je familie om een nieuwe.',
+    already: 'Dit account zit al in een Hilo-familie.',
+    tooMany: 'Te veel pogingen. Wacht een uur en probeer het opnieuw.',
+  },
+
+  invite: {
+    title: 'Nodig je familie uit',
+    hint: (name: string) =>
+      `Je broers, zussen, kinderen of kleinkinderen zien hoe het met ${name || 'je familielid'} gaat, het boek en de meldingen. Het abonnement geldt ook voor hen.`,
+    step1: '1. Ze installeren Hilo uit de App Store.',
+    step2: '2. Ze tikken op „Ik ben familie", loggen in met hun e-mail en tikken op „Ik ben uitgenodigd".',
+    step3: '3. Ze scannen deze QR-code of typen de cijfers.',
+    expires: 'Werkt 7 dagen voor de hele familie.',
+    send: 'Code versturen',
+    message: (name: string, code: string) =>
+      `Doe mee met Hilo om ${name || 'de familie'} te volgen. Installeer Hilo, tik op „Ik ben familie" en dan „Ik ben uitgenodigd". Code: ${code}`,
+    already: (names: string) => `Al op Hilo: ${names}`,
+    createFailed: 'We konden de code niet maken. Controleer je verbinding en probeer het opnieuw.',
+  },
+
   memory: {
     title: (name: string) => `Wat Hilo onthoudt${name ? ` over ${name}` : ''}`,
     hint: 'Na elk praatje schrijft Hilo op wat belangrijk is, om het de volgende keer te onthouden. Je kunt alles verbeteren of wissen.',
@@ -354,6 +382,9 @@ export const nl: Strings = {
     weatherCredit: 'Weergegevens: MET Norway',
     memory: 'Wat Hilo onthoudt',
     memoryValue: (has: boolean) => (has ? 'Bekijken en verbeteren' : 'Nog niets'),
+    familyLabel: 'JE FAMILIE',
+    invite: 'Familie uitnodigen',
+    membersValue: (n: number) => (n > 1 ? `${n} op Hilo` : 'Alleen jij'),
   },
 
   paywall: {

@@ -65,6 +65,7 @@ export const es = {
   },
 
   name: {
+    invited: 'Me han invitado',
     question: '¿Cómo te llamas?',
     hint: 'Así aparecerás en Hilo para el resto de la familia.',
     label: 'Tu nombre',
@@ -320,6 +321,34 @@ export const es = {
     error: 'No se ha podido guardar. Comprueba tu conexión y vuelve a probar.',
   },
 
+  // A new family member, invited by someone already in Hilo
+  join: {
+    question: 'Escribe el código de tu familia',
+    hint: 'Son 8 números. Te los ha mandado quien ya usa Hilo, o escanea su código QR.',
+    label: 'Código de invitación',
+    join: 'Unirme',
+    joining: 'Uniéndote…',
+    scanSubtitle: 'Apunta al código QR del móvil de tu familiar.',
+    badCode: 'Ese código no sirve o ha caducado. Pide uno nuevo a tu familia.',
+    already: 'Esta cuenta ya está en una familia de Hilo.',
+    tooMany: 'Demasiados intentos. Espera una hora y vuelve a probar.',
+  },
+
+  invite: {
+    title: 'Invita a tu familia',
+    hint: (name: string) =>
+      `Tus hermanos, hijos o nietos verán cómo está ${name || 'tu familiar'}, su libro y los avisos. La suscripción ya les incluye.`,
+    step1: '1. Que instalen Hilo desde la App Store.',
+    step2: '2. Que toquen «Soy familiar», entren con su email y toquen «Me han invitado».',
+    step3: '3. Que escaneen este código QR o escriban los números.',
+    expires: 'Sirve para toda la familia durante 7 días.',
+    send: 'Enviar el código',
+    message: (name: string, code: string) =>
+      `Únete a Hilo para estar al tanto de ${name || 'la familia'}. Instala Hilo, toca «Soy familiar» y luego «Me han invitado». Código: ${code}`,
+    already: (names: string) => `Ya están en Hilo: ${names}`,
+    createFailed: 'No hemos podido crear el código. Comprueba tu conexión y vuelve a probar.',
+  },
+
   memory: {
     title: (name: string) => `Lo que Hilo recuerda${name ? ` de ${name}` : ''}`,
     hint: 'Después de cada charla, Hilo apunta lo importante para acordarse la próxima vez. Puedes corregir o borrar lo que quieras.',
@@ -356,6 +385,9 @@ export const es = {
     weatherCredit: 'Datos del tiempo: MET Norway',
     memory: 'Lo que Hilo recuerda',
     memoryValue: (has: boolean): string => (has ? 'Ver y corregir' : 'Aún nada'),
+    familyLabel: 'TU FAMILIA',
+    invite: 'Invitar a la familia',
+    membersValue: (n: number): string => (n > 1 ? `${n} en Hilo` : 'Solo tú'),
   },
 
   paywall: {

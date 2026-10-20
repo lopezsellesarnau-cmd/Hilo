@@ -1,5 +1,5 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,11 +8,17 @@ import { BigButton } from '@/components/big-button';
 import { ScreenHeader } from '@/components/screen-header';
 import { Bot } from '@/components/bot';
 import { t } from '@/i18n';
+import { codeFromInviteQr, JOIN_MESSAGES, joinFamily } from '@/lib/invite';
 import { codeFromQr, pair, PAIR_MESSAGES } from '@/lib/pairing';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
-/** The senior's phone reads the QR on the family's screen, then pairs like a typed code. */
+/**
+ * The senior's phone reads the QR on the family's screen, then pairs like a typed code.
+ * With mode=join, a new family member reads another member's invite QR instead and joins that family.
+ */
 export default function PairScanScreen() {
+  const { mode, memberName = '' } = useLocalSearchParams<{ mode?: 'join'; memberName?: string }>();
+  const joining = mode === 'join';
   const [permission, requestPermission] = useCameraPermissions();
   // The camera reports the same QR many times per second: only the first one counts
   const busy = useRef(false);
@@ -20,17 +26,24 @@ export default function PairScanScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const scanned = async (data: string) => {
-    const code = codeFromQr(data);
+    const code = joining ? codeFromInviteQr(data) : codeFromQr(data);
     if (!code || busy.current) return;
     busy.current = true;
     setConnecting(true);
     setError(null);
     try {
-      const personId = await pair(code);
-      router.replace({ pathname: '/consent', params: { personId } });
+      if (joining) {
+        await joinFamily(code, memberName);
+        router.dismissAll();
+        router.replace('/family/today');
+      } else {
+        const personId = await pair(code);
+        router.replace({ pathname: '/consent', params: { personId } });
+      }
     } catch (e) {
       setConnecting(false);
-      setError(PAIR_MESSAGES[(e as Error).message] ?? PAIR_MESSAGES.offline);
+      const messages = joining ? JOIN_MESSAGES : PAIR_MESSAGES;
+      setError(messages[(e as Error).message] ?? messages.offline);
       // Let them try again after reading the message
       setTimeout(() => (busy.current = false), 2500);
     }
@@ -39,7 +52,11 @@ export default function PairScanScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.screen}>
-        <ScreenHeader title={t.pairScan.title} subtitle={t.pairScan.subtitle} backLabel={t.common.back} />
+        <ScreenHeader
+          title={t.pairScan.title}
+          subtitle={joining ? t.join.scanSubtitle : t.pairScan.subtitle}
+          backLabel={t.common.back}
+        />
 
         <View style={styles.body}>
           {connecting ? (

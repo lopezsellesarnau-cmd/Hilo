@@ -15,12 +15,20 @@ export default function NameStep() {
     router.push({ pathname: '/onboarding/senior', params: { memberName: name.trim() } });
   };
 
+  // Someone else in the family already set Hilo up and sent them a code
+  const join = () => router.push({ pathname: '/onboarding/join', params: { memberName: name.trim() } });
+
   return (
     <OnboardingStep
       step={2}
       question={t.name.question}
       hint={t.name.hint}
-      footer={<BigButton scale="family" label={t.common.continue} onPress={ready ? next : undefined} />}>
+      footer={
+        <>
+          <BigButton scale="family" label={t.common.continue} onPress={ready ? next : undefined} />
+          <BigButton scale="family" variant="outline" label={t.name.invited} onPress={ready ? join : undefined} />
+        </>
+      }>
       <TextField
         label={t.name.label}
         value={name}
