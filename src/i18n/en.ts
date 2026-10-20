@@ -250,6 +250,9 @@ export const en: Strings = {
   },
 
   today: {
+    toDo: 'To do',
+    callKicker: 'Call',
+    callDue: (name: string) => `Nobody has talked with ${name} for days`,
     title: 'Today',
     with: (name: string) => `With ${name}`,
     talk: 'The chat',
@@ -291,6 +294,12 @@ export const en: Strings = {
     noTalks: "You'll see their chats here as soon as they start chatting with Hilo.",
     today: 'today',
     yesterday: 'yesterday',
+  },
+
+  week: {
+    talk: 'Chat',
+    pills: 'Pills',
+    a11y: (talks: number, days: number) => `This week they chatted ${talks} of ${days} days.`,
   },
 
   todayPills: {

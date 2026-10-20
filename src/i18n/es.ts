@@ -255,6 +255,9 @@ export const es = {
   },
 
   today: {
+    toDo: 'Para hacer',
+    callKicker: 'Llamada',
+    callDue: (name: string) => `Hace días que nadie habla con ${name}`,
     title: 'Hoy',
     with: (name: string) => `Con ${name}`,
     talk: 'La charla',
@@ -297,6 +300,12 @@ export const es = {
     noTalks: 'Aquí verás sus charlas en cuanto empiece a charlar con Hilo.',
     today: 'hoy',
     yesterday: 'ayer',
+  },
+
+  week: {
+    talk: 'Charla',
+    pills: 'Pastillas',
+    a11y: (talks: number, days: number) => `Esta semana ha charlado ${talks} de ${days} días.`,
   },
 
   todayPills: {
