@@ -440,7 +440,7 @@ export const nl: Strings = {
     basic: 'Basis',
     basicPoints: '1 praatje per dag · De pillen · Het boek van zijn of haar leven',
     family: 'Familie',
-    familyPoints: 'Tot 3 praatjes per dag · De pillen · Het boek van zijn of haar leven',
+    familyPoints: 'Tot 3 praatjes per dag · De pillen · Het boek van zijn of haar leven · De hele familie in Hilo',
     perMonth: (price: string) => `${price} per maand`,
     perYear: (price: string) => `${price} per jaar`,
     startTrial: '14 dagen gratis starten',

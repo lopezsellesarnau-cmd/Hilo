@@ -444,7 +444,7 @@ export const es = {
     basic: 'Básico',
     basicPoints: '1 charla al día · Sus pastillas · El libro de su vida',
     family: 'Familia',
-    familyPoints: 'Hasta 3 charlas al día · Sus pastillas · El libro de su vida',
+    familyPoints: 'Hasta 3 charlas al día · Sus pastillas · El libro de su vida · Toda la familia en Hilo',
     perMonth: (price: string) => `${price} al mes`,
     perYear: (price: string) => `${price} al año`,
     startTrial: 'Empezar 14 días gratis',

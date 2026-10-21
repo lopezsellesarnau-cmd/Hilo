@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { PurchasesPackage } from 'react-native-purchases';
 
 import { BigButton } from '@/components/big-button';
@@ -107,9 +107,12 @@ export default function PaywallScreen() {
             <Text style={styles.small}>{trial ? text.after(price(chosen)) : text.afterNoTrial(price(chosen))}</Text>
           ) : null}
           <View style={styles.links}>
-            <Pressable onPress={restoreNow} accessibilityRole="button" hitSlop={8}>
-              <Text style={styles.link}>{text.restore}</Text>
-            </Pressable>
+            {/* Apple asks for "Restaurar compras"; on the web a family that paid is already signed in with it */}
+            {Platform.OS === 'web' ? null : (
+              <Pressable onPress={restoreNow} accessibilityRole="button" hitSlop={8}>
+                <Text style={styles.link}>{text.restore}</Text>
+              </Pressable>
+            )}
             <Pressable onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} accessibilityRole="link" hitSlop={8}>
               <Text style={styles.link}>{t.agree.terms}</Text>
             </Pressable>

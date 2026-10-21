@@ -436,7 +436,7 @@ export const en: Strings = {
     basic: 'Basic',
     basicPoints: '1 chat a day · Their pills · The book of their life',
     family: 'Family',
-    familyPoints: 'Up to 3 chats a day · Their pills · The book of their life',
+    familyPoints: 'Up to 3 chats a day · Their pills · The book of their life · The whole family in Hilo',
     perMonth: (price: string) => `${price} a month`,
     perYear: (price: string) => `${price} a year`,
     startTrial: 'Start 14 days free',
