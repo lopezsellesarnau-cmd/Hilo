@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import Purchases, { type PurchasesPackage } from 'react-native-purchases';
 
 import { supabase } from '@/lib/supabase';
@@ -6,9 +7,10 @@ import { supabase } from '@/lib/supabase';
  * Subscriptions through RevenueCat. The family pays, not the person: the RevenueCat user is the family_id,
  * so any family member's phone sees the same subscription, and the webhook saves it in Supabase for the senior's phone.
  * Entitlements in RevenueCat: "basic" and "family" (Familia includes everything in Básico).
+ * On the web the same calls go to RevenueCat Web Billing (Stripe): same family, same entitlements, same webhook.
  */
 
-const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
+const KEY = Platform.OS === 'web' ? process.env.EXPO_PUBLIC_REVENUECAT_WEB_KEY : process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY;
 
 export type Plan = 'basic' | 'family';
 export type Period = 'monthly' | 'annual';
@@ -33,8 +35,8 @@ export async function myFamilyId(): Promise<string | null> {
 
 /** RevenueCat, signed in as the family. Safe to call more than once. */
 async function ready(familyId: string) {
-  if (!IOS_KEY) throw new Error('Missing EXPO_PUBLIC_REVENUECAT_IOS_KEY');
-  if (!(await Purchases.isConfigured())) Purchases.configure({ apiKey: IOS_KEY, appUserID: familyId });
+  if (!KEY) throw new Error(`Missing the RevenueCat key for ${Platform.OS}`);
+  if (!(await Purchases.isConfigured())) Purchases.configure({ apiKey: KEY, appUserID: familyId });
   else if ((await Purchases.getAppUserID()) !== familyId) await Purchases.logIn(familyId);
 }
 
@@ -43,7 +45,7 @@ const hasEntitlement = (info: Awaited<ReturnType<typeof Purchases.getCustomerInf
 
 /**
  * Can this family use Hilo? Yes with a trial or a subscription, in Supabase (also given by hand) or in RevenueCat
- * (right after buying, before the webhook arrives). Offline counts as yes: never lock a family out for a bad signal.
+ * (right after buying, before the webhook arrives). On the phone, offline counts as yes: never lock a family out for a bad signal.
  */
 export async function familyHasAccess(familyId: string): Promise<boolean> {
   try {
@@ -54,7 +56,8 @@ export async function familyHasAccess(familyId: string): Promise<boolean> {
     return hasEntitlement(await Purchases.getCustomerInfo());
   } catch (e) {
     if (__DEV__) console.warn('familyHasAccess', e);
-    return true;
+    // On the web a family that has paid is already in Supabase (checked first): an error here is not a reason to open the app
+    return Platform.OS !== 'web';
   }
 }
 

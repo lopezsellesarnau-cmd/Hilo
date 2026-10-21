@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Platform, StyleSheet, Text } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
@@ -46,12 +46,15 @@ export default function JoinStep() {
             label={joining ? text.joining : text.join}
             onPress={code.length === 8 && !joining ? () => submit(code) : undefined}
           />
-          <BigButton
-            scale="family"
-            variant="outline"
-            label={t.pairCode.scan}
-            onPress={() => router.push({ pathname: '/pair-scan', params: { mode: 'join', memberName } })}
-          />
+          {/* No camera scan in the browser: the 8 digits are enough */}
+          {Platform.OS === 'web' ? null : (
+            <BigButton
+              scale="family"
+              variant="outline"
+              label={t.pairCode.scan}
+              onPress={() => router.push({ pathname: '/pair-scan', params: { mode: 'join', memberName } })}
+            />
+          )}
         </>
       }>
       <TextField

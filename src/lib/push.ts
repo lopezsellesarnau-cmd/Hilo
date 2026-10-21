@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 import { lang } from '@/i18n';
 import { askForReminders } from '@/lib/reminders';
@@ -11,6 +12,8 @@ import { supabase } from '@/lib/supabase';
 
 /** Asks for notifications (once) and saves this phone's token. Quiet if it can't: the app works without it. */
 export async function registerFamilyPush() {
+  // The pushes go to Apple (APNs): a browser would only get a permission prompt that leads nowhere
+  if (Platform.OS === 'web') return;
   try {
     if (!(await askForReminders())) return;
     const { data: token } = await Notifications.getDevicePushTokenAsync();
@@ -23,6 +26,7 @@ export async function registerFamilyPush() {
 
 /** Before signing out: this phone stops getting the family's alerts. */
 export async function forgetFamilyPush() {
+  if (Platform.OS === 'web') return;
   try {
     if (!(await Notifications.getPermissionsAsync()).granted) return;
     const { data: token } = await Notifications.getDevicePushTokenAsync();

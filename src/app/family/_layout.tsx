@@ -9,13 +9,14 @@ import { familyHasAccess, myFamilyId } from '@/lib/purchases';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme';
 
-// SF Symbols for the tab icons (Hoy / Libro / Ajustes)
-function TabIcon({ name, color }: { name: SymbolViewProps['name']; color: ColorValue }) {
+// SF Symbols for the tab icons on iPhone; on the web, the Material Symbol with the same meaning
+type Icon = Extract<SymbolViewProps['name'], object>;
+function TabIcon({ name, color }: { name: Icon; color: ColorValue }) {
   return <SymbolView name={name} tintColor={color} size={26} />;
 }
-const icon = (name: SymbolViewProps['name']) =>
-  function Icon({ color }: { color: ColorValue }) {
-    return <TabIcon name={name} color={color} />;
+const icon = (ios: Icon['ios'], web: Icon['web']) =>
+  function TabBarIcon({ color }: { color: ColorValue }) {
+    return <TabIcon name={{ ios, web }} color={color} />;
   };
 
 /** Same as quiet-alert and Hoy */
@@ -73,12 +74,12 @@ export default function FamilyLayout() {
         // a ready screen instead of an empty one that fills in (safe now that there are no entering animations)
         lazy: false,
       }}>
-      <Tabs.Screen name="today" options={{ title: t.today.title, tabBarIcon: icon('sun.max') }} />
+      <Tabs.Screen name="today" options={{ title: t.today.title, tabBarIcon: icon('sun.max', 'light_mode') }} />
       <Tabs.Screen
         name="talks"
         options={{
           title: t.talks.tab,
-          tabBarIcon: icon('bubble.left.and.bubble.right'),
+          tabBarIcon: icon('bubble.left.and.bubble.right', 'forum'),
           tabBarBadge: badges.callDue ? '!' : undefined,
         }}
       />
@@ -86,11 +87,11 @@ export default function FamilyLayout() {
         name="book"
         options={{
           title: t.familyBook.tab,
-          tabBarIcon: icon('book.closed'),
+          tabBarIcon: icon('book.closed', 'menu_book'),
           tabBarBadge: badges.stories || undefined,
         }}
       />
-      <Tabs.Screen name="settings" options={{ title: t.settings.title, tabBarIcon: icon('gearshape') }} />
+      <Tabs.Screen name="settings" options={{ title: t.settings.title, tabBarIcon: icon('gearshape', 'settings') }} />
     </Tabs>
   );
 }

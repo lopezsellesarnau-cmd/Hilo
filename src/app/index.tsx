@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -60,8 +60,13 @@ export default function WelcomeScreen() {
   const buttons = (
     <Animated.View entering={FadeInDown.duration(500).delay(400)} style={styles.buttons}>
       <BigButton scale="family" label={t.welcome.family} onPress={() => router.push('/onboarding/email')} />
-      <BigButton scale="family" variant="outline" label={t.welcome.haveCode} onPress={() => router.push('/pair-code')} />
-      <Text style={styles.note}>{t.welcome.codeNote}</Text>
+      {/* Her side needs the phone (voice, reminders): on the web, only the family's */}
+      {Platform.OS === 'web' ? null : (
+        <>
+          <BigButton scale="family" variant="outline" label={t.welcome.haveCode} onPress={() => router.push('/pair-code')} />
+          <Text style={styles.note}>{t.welcome.codeNote}</Text>
+        </>
+      )}
     </Animated.View>
   );
 
