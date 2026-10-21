@@ -71,7 +71,8 @@ export const size = {
 export const spacing = {
   screenX: 18,
   screenTop: 28,
-  screenBottom: 32,
+  // A browser has no home bar under the buttons (iPhone adds ~34 safe area): the same air, by hand
+  screenBottom: Platform.OS === 'web' ? 64 : 32,
   buttonGap: 16,
   /** On iPad and large screens the content stays this wide, centred, like a big iPhone. No effect on phones */
   contentMax: 560,

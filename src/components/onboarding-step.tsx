@@ -194,7 +194,8 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     paddingHorizontal: spacing.screenX,
     paddingTop: 12,
-    paddingBottom: 12,
+    // In a browser there is no home bar below: lift the buttons off the edge
+    paddingBottom: Platform.OS === 'web' ? 44 : 12,
     gap: 12,
   },
   // Already inside the right half, which has its own side padding
