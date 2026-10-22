@@ -12,10 +12,20 @@ const BATCH = 100;
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** Compares secrets in constant time (hashing first hides the length too). False if either is empty. */
+async function sameSecret(given: string | null | undefined, expected: string | null | undefined) {
+  if (!given || !expected) return false;
+  const digest = async (s: string) => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+  const [a, b] = await Promise.all([digest(given), digest(expected)]);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
   // Only Supabase Cron (or Arnau testing) knows this secret
-  if (req.headers.get('x-cron-secret') !== Deno.env.get('CRON_SECRET')) return json({ error: 'auth' }, 401);
+  if (!(await sameSecret(req.headers.get('x-cron-secret'), Deno.env.get('CRON_SECRET')))) return json({ error: 'auth' }, 401);
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const { data: paths, error } = await admin.rpc('orphan_chapter_audio');
