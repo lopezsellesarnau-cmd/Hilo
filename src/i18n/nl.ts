@@ -132,6 +132,7 @@ export const nl: Strings = {
     connecting: 'Verbinden…',
     badCode: 'Die code werkt niet. Vraag uw familie om een nieuwe.',
     alreadyPaired: 'Deze telefoon is al verbonden.',
+    tooMany: 'Te veel pogingen. Wacht een uur of vraag je familie om een nieuwe code.',
   },
 
   pairScan: {

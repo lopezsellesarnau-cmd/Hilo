@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { TextInputProps } from 'react-native';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import type { TextInputProps, TextStyle } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors, family, fontWeight } from '@/theme';
 
@@ -57,6 +57,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.surface,
     backgroundColor: colors.surface,
+    // The browser's own blue focus ring would sit on top of our black outline ('none' works on the web, RN's types only list solid/dotted/dashed)
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null),
   },
   code: {
     fontSize: 30,

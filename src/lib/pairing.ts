@@ -20,12 +20,18 @@ export async function pair(code: string) {
     if (error) throw new Error('offline');
   }
   const { data, error } = await supabase.rpc('claim_pairing_code', { pairing_code: code });
-  if (error) throw new Error(error.message.includes('Already paired') ? 'paired' : 'code');
+  if (error) {
+    if (error.message.includes('Already paired')) throw new Error('paired');
+    throw new Error(error.message.includes('Too many attempts') ? 'tooMany' : 'code');
+  }
+  // null: a wrong or expired code
+  if (!data) throw new Error('code');
   return data as string;
 }
 
 export const PAIR_MESSAGES: Record<string, string> = {
   code: t.pairCode.badCode,
   paired: t.pairCode.alreadyPaired,
+  tooMany: t.pairCode.tooMany,
   offline: t.common.offline,
 };

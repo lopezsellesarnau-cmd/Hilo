@@ -132,6 +132,7 @@ export const es = {
     connecting: 'Conectando…',
     badCode: 'Ese código no sirve. Pide a tu familia uno nuevo.',
     alreadyPaired: 'Este móvil ya está conectado.',
+    tooMany: 'Demasiados intentos. Espera una hora o pide a tu familia un código nuevo.',
   },
 
   pairScan: {
