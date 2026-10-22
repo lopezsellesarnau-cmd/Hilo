@@ -8,6 +8,16 @@ import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** Compares secrets in constant time (hashing first hides the length too). False if either is empty. */
+async function sameSecret(given: string | null | undefined, expected: string | null | undefined) {
+  if (!given || !expected) return false;
+  const digest = async (s: string) => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+  const [a, b] = await Promise.all([digest(given), digest(expected)]);
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type Entitlement = { expires_date: string | null; product_identifier: string };
@@ -20,7 +30,7 @@ Deno.serve(async (req) => {
   // The value set in RevenueCat → Integrations → Webhooks → Authorization header, with or without "Bearer "
   const bare = (v: string | null | undefined) => (v ?? '').trim().replace(/^Bearer\s+/i, '');
   const expected = bare(Deno.env.get('REVENUECAT_WEBHOOK_SECRET'));
-  if (!expected || bare(req.headers.get('Authorization')) !== expected) {
+  if (!(await sameSecret(bare(req.headers.get('Authorization')), expected))) {
     console.error('auth: the Authorization header does not match REVENUECAT_WEBHOOK_SECRET');
     return json({ error: 'auth' }, 401);
   }
