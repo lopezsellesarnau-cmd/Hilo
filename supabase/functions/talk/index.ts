@@ -443,6 +443,8 @@ const AUDIO_BUCKET = 'chapter-audio';
 const AUDIO_LINK_SECONDS = 60 * 60;
 /** A chapter is a few minutes; this stops one very long text from costing a lot */
 const MAX_READ_CHARS = 12_000;
+/** A talk left open (she put the phone down) can go on for a while, not for days */
+const MAX_TALK_AGE_MS = 6 * 60 * 60 * 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -933,11 +935,15 @@ Deno.serve(async (req) => {
 
   const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }] = await Promise.all([
     db.from('turns').select('seq, speaker, text').eq('session_id', sessionId).order('seq'),
-    db.from('talk_sessions').select('pills_asked_at, context').eq('id', sessionId).single(),
+    db.from('talk_sessions').select('pills_asked_at, context, started_at, ended_at').eq('id', sessionId).single(),
     // Titles only (drafts too): enough for Hilo not to ask for the same story twice
     admin.from('chapters').select('title').eq('person_id', me.id).order('created_at', { ascending: false }).limit(12),
   ]);
   if (turnsError || !talk) return json({ error: 'session' }, 404);
+  // Only an open talk from the last hours: an old session id must not skip the subscription and the daily limit
+  if (session_id && !body.leave && (talk.ended_at || Date.now() - Date.parse(talk.started_at) > MAX_TALK_AGE_MS)) {
+    return json({ error: 'ended' }, 409);
+  }
 
   if (body.leave) {
     if (session_id) await closeTalk(db, admin, me, sessionId, turns);

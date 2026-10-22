@@ -66,7 +66,7 @@ export default function TalksScreen() {
           const [{ data: rows }, latest] = await Promise.all([
             supabase
               .from('talk_sessions')
-              .select('id, started_at, ended_at, family_note, turns(count), chapters(id, title)')
+              .select('id, started_at, ended_at, family_note, answers, chapters(id, title)')
               .eq('person_id', data.id)
               .order('started_at', { ascending: false })
               .limit(HISTORY * 2),
@@ -77,7 +77,7 @@ export default function TalksScreen() {
           setTalks(
             (rows ?? [])
               // Only talks where she answered, not just Hilo's greeting
-              .filter((r) => ((r.turns as { count: number }[])[0]?.count ?? 0) > 1)
+              .filter((r) => r.answers > 0)
               .slice(0, HISTORY)
               .map((r) => ({
                 id: r.id,

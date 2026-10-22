@@ -40,7 +40,7 @@ export function WeekStrip({ seniorId, timezone }: Props) {
         const [{ data: talks }, { data: meds }] = await Promise.all([
           supabase
             .from('talk_sessions')
-            .select('started_at, turns(count)')
+            .select('started_at, answers')
             .eq('person_id', seniorId)
             .gte('started_at', new Date(Date.now() - (DAYS + 1) * 86_400_000).toISOString()),
           supabase.from('medications').select('id, name, times, weekdays').eq('person_id', seniorId).eq('active', true),
@@ -54,10 +54,10 @@ export function WeekStrip({ seniorId, timezone }: Props) {
               .gte('scheduled_date', week[0].date)
           : { data: [] };
 
-        // Days where she really talked: more than Hilo's greeting
+        // Days where she really talked: she answered Hilo at least once
         const talked = new Set(
           (talks ?? [])
-            .filter((k) => ((k.turns as { count: number }[])[0]?.count ?? 0) > 1)
+            .filter((k) => k.answers > 0)
             .map((k) => localNow(timezone, new Date(k.started_at)).date),
         );
         setHasPills(ids.length > 0);

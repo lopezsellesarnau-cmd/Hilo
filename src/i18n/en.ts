@@ -128,6 +128,7 @@ export const en: Strings = {
     connecting: 'Connecting…',
     badCode: "That code doesn't work. Ask your family for a new one.",
     alreadyPaired: 'This phone is already connected.',
+    tooMany: 'Too many tries. Wait an hour, or ask your family for a new code.',
   },
 
   pairScan: {
