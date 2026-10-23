@@ -48,16 +48,20 @@ const hasEntitlement = (info: Awaited<ReturnType<typeof Purchases.getCustomerInf
  * (right after buying, before the webhook arrives). On the phone, offline counts as yes: never lock a family out for a bad signal.
  */
 export async function familyHasAccess(familyId: string): Promise<boolean> {
+  // Supabase answered and this family has never had a subscription (a new family): nothing to protect from a bad signal
+  let neverSubscribed = false;
   try {
     const { data, error } = await supabase.from('subscriptions').select('status, expires_at').eq('family_id', familyId).maybeSingle();
     if (error) return true;
     if (data && data.status !== 'expired' && (!data.expires_at || Date.parse(data.expires_at) > Date.now())) return true;
+    neverSubscribed = !data;
     await ready(familyId);
     return hasEntitlement(await Purchases.getCustomerInfo());
   } catch (e) {
     if (__DEV__) console.warn('familyHasAccess', e);
+    // A new family goes to the paywall, which shows its own error if RevenueCat is still failing.
     // On the web a family that has paid is already in Supabase (checked first): an error here is not a reason to open the app
-    return Platform.OS !== 'web';
+    return !neverSubscribed && Platform.OS !== 'web';
   }
 }
 
