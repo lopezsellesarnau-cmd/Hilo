@@ -7,6 +7,7 @@ import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
 import { nextFamilyRoute } from '@/lib/onboarding';
+import { isReviewEmail } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
 
@@ -15,11 +16,16 @@ export default function CodeStep() {
   const [code, setCode] = useState('');
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  // App Store review account: a password instead of the emailed code
+  const review = isReviewEmail(email);
+  const ready = review ? code.length >= 8 : code.length === 6;
 
   const verify = async (token: string) => {
     setChecking(true);
     setMessage(null);
-    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    const { data, error } = review
+      ? await supabase.auth.signInWithPassword({ email, password: token })
+      : await supabase.auth.verifyOtp({ email, token, type: 'email' });
     if (error || !data.user) {
       setChecking(false);
       setMessage({ text: t.code.wrong, error: true });
@@ -59,30 +65,50 @@ export default function CodeStep() {
         <BigButton
           scale="family"
           label={checking ? t.code.checking : t.common.continue}
-          onPress={code.length === 6 && !checking ? () => verify(code) : undefined}
+          onPress={ready && !checking ? () => verify(code) : undefined}
         />
       }>
-      <TextField
-        label={t.code.label}
-        code
-        value={code}
-        onChangeText={(v) => {
-          const digits = v.replace(/\D/g, '').slice(0, 6);
-          setCode(digits);
-          setMessage(null);
-          if (digits.length === 6) verify(digits);
-        }}
-        placeholder="······"
-        keyboardType="number-pad"
-        autoComplete="one-time-code"
-        textContentType="oneTimeCode"
-        maxLength={6}
-        autoFocus
-      />
+      {review ? (
+        <TextField
+          label={t.code.label}
+          value={code}
+          onChangeText={(v) => {
+            setCode(v);
+            setMessage(null);
+          }}
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="password"
+          returnKeyType="go"
+          onSubmitEditing={ready ? () => verify(code) : undefined}
+          autoFocus
+        />
+      ) : (
+        <TextField
+          label={t.code.label}
+          code
+          value={code}
+          onChangeText={(v) => {
+            const digits = v.replace(/\D/g, '').slice(0, 6);
+            setCode(digits);
+            setMessage(null);
+            if (digits.length === 6) verify(digits);
+          }}
+          placeholder="······"
+          keyboardType="number-pad"
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          maxLength={6}
+          autoFocus
+        />
+      )}
       {message ? <Text style={[styles.message, message.error && styles.error]}>{message.text}</Text> : null}
-      <Pressable onPress={resend} accessibilityRole="button" hitSlop={8} style={styles.resend}>
-        <Text style={styles.resendText}>{t.code.resend}</Text>
-      </Pressable>
+      {review ? null : (
+        <Pressable onPress={resend} accessibilityRole="button" hitSlop={8} style={styles.resend}>
+          <Text style={styles.resendText}>{t.code.resend}</Text>
+        </Pressable>
+      )}
     </OnboardingStep>
   );
 }

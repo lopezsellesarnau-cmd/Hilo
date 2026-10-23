@@ -7,6 +7,7 @@ import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
+import { isReviewEmail } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
 import { family } from '@/theme';
 
@@ -25,6 +26,11 @@ export default function EmailStep() {
     }
     if (!looksLikeEmail(email)) {
       setError(t.email.invalid);
+      return;
+    }
+    // The review account types a password on the next step, no email is sent
+    if (isReviewEmail(email)) {
+      router.push({ pathname: '/onboarding/code', params: { email: email.trim().toLowerCase() } });
       return;
     }
     setSending(true);
