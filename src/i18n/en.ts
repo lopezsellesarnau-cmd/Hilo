@@ -189,6 +189,8 @@ export const en: Strings = {
     pillsYesHint: "I've taken it",
     pillsNoHint: "I haven't taken it yet",
     tooLong: "We've chatted a lot today. I'll keep it in your book. See you tomorrow!",
+    unpaired: 'This phone is no longer connected. Ask your family for a new code.',
+    pairAgain: 'Connect again',
     failed: 'Something went wrong. Tap the button and try again.',
     notHeard: "I didn't hear you well. Tap the button and talk again.",
     noMic: "Hilo can't use the microphone. Turn it on in Settings > Hilo.",

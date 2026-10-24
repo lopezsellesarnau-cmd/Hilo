@@ -193,6 +193,8 @@ export const nl: Strings = {
     pillsYesHint: 'Ik heb hem al genomen',
     pillsNoHint: 'Ik heb hem nog niet genomen',
     tooLong: 'We hebben vandaag al veel gepraat. Ik bewaar het in uw boek. Tot morgen!',
+    unpaired: 'Deze telefoon is niet meer verbonden. Vraag uw familie om een nieuwe code.',
+    pairAgain: 'Opnieuw verbinden',
     failed: 'Er ging iets mis. Tik op de knop en probeer het opnieuw.',
     notHeard: 'Ik heb u niet goed gehoord. Tik op de knop en praat nog een keer.',
     noMic: 'Hilo kan de microfoon niet gebruiken. Zet hem aan in Instellingen > Hilo.',

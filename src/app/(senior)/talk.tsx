@@ -16,6 +16,7 @@ import { WideSplit } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
+import { supabase } from '@/lib/supabase';
 import { leaveTalk, sendTurn } from '@/lib/talk';
 import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
 
@@ -54,6 +55,8 @@ export default function TalkScreen() {
   const [say, setSay] = useState('');
   const [reply, setReply] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
+  // The family connected another phone: this one can only pair again
+  const [unpaired, setUnpaired] = useState(false);
   // Hilo just asked about her pills: she answers with Sí / No, not by voice, so it's recorded right
   const [askPills, setAskPills] = useState(false);
   // What she is saying right now, live while she talks
@@ -122,6 +125,13 @@ export default function TalkScreen() {
         show(t.talk.tooLong, null);
         return;
       }
+      if (result.error === 'unpaired') {
+        closed.current = true;
+        setUnpaired(true);
+        setEnded(true);
+        show(t.talk.unpaired, null);
+        return;
+      }
       setMood('idle');
       setHint(
         result.error === 'offline'
@@ -137,6 +147,12 @@ export default function TalkScreen() {
       setEnded(true);
     }
     show(result.reply, result.audio);
+  };
+
+  // Forget this phone's old account and start from Welcome, where she scans the family's new code
+  const pairAgain = async () => {
+    await supabase.auth.signOut({ scope: 'local' });
+    router.replace('/');
   };
 
   const turn = (text: string) => {
@@ -349,7 +365,13 @@ export default function TalkScreen() {
           />
         ) : null}
 
-        {ended && mood === 'idle' ? <BigButton label={t.talk.backHome} onPress={() => router.back()} /> : null}
+        {ended && mood === 'idle' ? (
+          unpaired ? (
+            <BigButton label={t.talk.pairAgain} onPress={pairAgain} />
+          ) : (
+            <BigButton label={t.talk.backHome} onPress={() => router.back()} />
+          )
+        ) : null}
       </Animated.View>
     </>
   );

@@ -445,6 +445,8 @@ const AUDIO_LINK_SECONDS = 60 * 60;
 const MAX_READ_CHARS = 12_000;
 /** A talk left open (she put the phone down) can go on for a while, not for days */
 const MAX_TALK_AGE_MS = 6 * 60 * 60 * 1000;
+/** talk_sessions.context check: a longer context is cut, never a failed talk */
+const MAX_CONTEXT = 2000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
@@ -923,13 +925,16 @@ Deno.serve(async (req) => {
 
     // Weather and holidays: fetched once, when the talk really starts, and saved on it so every turn
     // sends the same opening message
-    context = [contextPromise ? await contextPromise : null, await familyHint(admin, me, say.askFamily)].filter(Boolean).join('\n\n') || null;
+    context = [contextPromise ? await contextPromise : null, await familyHint(admin, me, say.askFamily)].filter(Boolean).join('\n\n').slice(0, MAX_CONTEXT) || null;
     const { data, error } = await db
       .from('talk_sessions')
       .insert({ family_id: me.family_id, person_id: me.id, locale: me.locale, context })
       .select('id')
       .single();
-    if (error) return json({ error: 'session' }, 500);
+    if (error) {
+      console.error('session insert', error.code, error.message);
+      return json({ error: 'session' }, 500);
+    }
     sessionId = data.id;
   }
 

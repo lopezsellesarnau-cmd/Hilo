@@ -2,7 +2,8 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 
 import { supabase } from '@/lib/supabase';
 
-export type TalkError = 'offline' | 'too_long' | 'other';
+/** unpaired: this phone's account is no longer linked to her (the family connected another phone) */
+export type TalkError = 'offline' | 'too_long' | 'unpaired' | 'other';
 
 /**
  * One turn of the daily talk (Edge Function `talk`): send what the senior said,
@@ -25,6 +26,7 @@ export async function sendTurn(
   });
   if (error) {
     if (error instanceof FunctionsHttpError) {
+      if (error.context.status === 403) return { error: 'unpaired' };
       const body = await error.context.json().catch(() => ({}));
       return { error: body.error === 'too_long' ? 'too_long' : 'other' };
     }

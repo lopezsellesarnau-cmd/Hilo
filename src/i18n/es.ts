@@ -194,6 +194,8 @@ export const es = {
     pillsYesHint: 'Ya me lo he tomado',
     pillsNoHint: 'Todavía no me lo he tomado',
     tooLong: 'Hoy ya hemos charlado mucho. Lo guardo en tu libro. ¡Hasta mañana!',
+    unpaired: 'Este móvil ya no está conectado. Pide a tu familia un código nuevo.',
+    pairAgain: 'Conectar otra vez',
     failed: 'Algo ha fallado. Toca el botón y prueba otra vez.',
     notHeard: 'No te he oído bien. Toca el botón y habla otra vez.',
     noMic: 'Hilo no puede usar el micrófono. Actívalo en Ajustes > Hilo.',
