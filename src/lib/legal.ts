@@ -7,4 +7,4 @@ export const PRIVACY_URL = 'https://hilo-web.vercel.app/privacidad';
 export const SUPPORT_URL = 'https://hilo-web.vercel.app/soporte';
 
 /** Bump when the terms change, so people accept the new version. */
-export const TERMS_VERSION = '2026-10-15';
+export const TERMS_VERSION = '2026-10-23';
