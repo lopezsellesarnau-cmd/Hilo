@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useStaffPeople, type StaffPerson } from '@/staff/data';
+import { signalText, useStaffPeople, useStaffSignals, type StaffPerson, type StaffSignal } from '@/staff/data';
 import { BotMark } from '@/staff/icons';
 import { useStaff } from '@/staff/session';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
@@ -12,14 +12,24 @@ const since = (iso: string) =>
   new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 /**
- * Today: who to call. Step 3 lists the organisation's people; the alerts (no talk for 2 days, missed pills,
- * "bad" answers…) come with the nightly signals job, and then fill "Needs a call".
+ * Today: who to call. Seniors with an alert (staff_signals) go to "Needs a call", everyone else below.
+ * Alerts are worked out when the page loads, so someone who talked this morning is already off the list.
  */
 export default function Today() {
   const me = useStaff();
-  const { data, error, reload } = useStaffPeople();
+  const people = useStaffPeople();
+  const signals = useStaffSignals();
+  const data = people.data && signals.data ? people.data : null;
+  const error = people.error || signals.error;
+  const reload = () => {
+    people.reload();
+    signals.reload();
+  };
 
+  const alertsFor = (id: string) => (signals.data ?? []).filter((s) => s.person_id === id);
   const seniors = (data ?? []).filter((p) => p.role === 'senior');
+  const toCall = seniors.filter((p) => alertsFor(p.id).length);
+  const fine = seniors.filter((p) => !alertsFor(p.id).length);
   const familyCount = (familyId: string) =>
     (data ?? []).filter((p) => p.role === 'member' && p.family_id === familyId).length;
 
@@ -35,16 +45,17 @@ export default function Today() {
         {seniors.length ? (
           <View style={styles.headerRight}>
             <View style={styles.stack} accessibilityLabel={`${seniors.length} people`}>
-              {seniors.slice(0, 5).map((p, i) => (
+              {/* Who needs a call first */}
+              {[...toCall, ...fine].slice(0, 5).map((p, i) => (
                 <View key={p.id} style={[styles.stackItem, { marginLeft: i ? -14 : 0, zIndex: 10 - i }]}>
                   <BotMark size={52} />
                 </View>
               ))}
             </View>
             <View>
-              <Text style={styles.headerCount}>0 to call</Text>
+              <Text style={styles.headerCount}>{toCall.length} to call</Text>
               <Text style={staffText.note}>
-                List from 08:00 · {seniors.length} {seniors.length === 1 ? 'person' : 'people'}
+                Updated now · {seniors.length} {seniors.length === 1 ? 'person' : 'people'}
               </Text>
             </View>
           </View>
@@ -64,21 +75,27 @@ export default function Today() {
         <>
           <View style={styles.section}>
             <Text style={styles.h2}>Needs a call</Text>
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No alerts yet</Text>
-              <Text style={staffText.note}>
-                Every morning at 08:00 Hilo lists who needs a call: no talk for 2 days, a pill not confirmed, or
-                &ldquo;not well&rdquo; three times in a week.
-              </Text>
-            </View>
+            {toCall.length ? (
+              toCall.map((p) => (
+                <Row key={p.id} person={p} family={familyCount(p.family_id)} alerts={alertsFor(p.id)} />
+              ))
+            ) : (
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>Nobody needs a call today</Text>
+                <Text style={staffText.note}>
+                  Someone shows up here after 2 days without talking to Hilo, a pill not confirmed yesterday, or 5
+                  days without a family call.
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.section}>
             <Text style={styles.h2}>
-              {me.orgName} · {seniors.length} {seniors.length === 1 ? 'person' : 'people'}
+              No alerts · {fine.length} of {seniors.length} at {me.orgName}
             </Text>
             {seniors.length ? (
-              seniors.map((p) => <Row key={p.id} person={p} family={familyCount(p.family_id)} />)
+              fine.map((p) => <Row key={p.id} person={p} family={familyCount(p.family_id)} alerts={[]} />)
             ) : (
               <View style={styles.empty}>
                 <Text style={styles.emptyTitle}>Nobody here yet</Text>
@@ -92,9 +109,9 @@ export default function Today() {
   );
 }
 
-function Row({ person, family }: { person: StaffPerson; family: number }) {
+function Row({ person, family, alerts }: { person: StaffPerson; family: number; alerts: StaffSignal[] }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, alerts.length > 0 && styles.rowAlert]}>
       <View style={styles.avatar}>
         <BotMark size={31} />
       </View>
@@ -104,9 +121,19 @@ function Row({ person, family }: { person: StaffPerson; family: number }) {
           Since {since(person.created_at)} · {family ? `${family} in family` : 'No family yet'}
         </Text>
       </View>
-      <View style={[styles.chip, !person.paired && styles.chipWarn]}>
-        <Text style={styles.chipText}>{person.paired ? 'Phone paired' : 'Phone not paired'}</Text>
-      </View>
+      {alerts.length ? (
+        <View style={styles.chips}>
+          {alerts.map((a) => (
+            <View key={a.kind} style={styles.chipAlert}>
+              <Text style={styles.chipText}>{signalText(a)}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={[styles.chip, !person.paired && styles.chipWarn]}>
+          <Text style={styles.chipText}>{person.paired ? 'Phone paired' : 'Phone not paired'}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -148,6 +175,9 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1, minWidth: 160, gap: 2 },
   name: { fontFamily: staffFont, fontSize: 17, fontWeight: '500', color: staffColors.ink },
+  rowAlert: { backgroundColor: staffColors.block, borderColor: staffColors.block },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chipAlert: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e3e3e3' },
   chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, borderWidth: 1, borderColor: '#e3e3e3' },
   chipWarn: { backgroundColor: staffColors.block, borderColor: staffColors.block },
   chipText: { fontFamily: staffFont, fontSize: 14, color: staffColors.ink },

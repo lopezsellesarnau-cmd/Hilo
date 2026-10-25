@@ -14,28 +14,53 @@ export type StaffPerson = {
   created_at: string;
 };
 
+/** One row of staff_signals(): one alert for one person (rules in the staff_signals migration). */
+export type StaffSignal = {
+  person_id: string;
+  kind: 'no_talk' | 'pills' | 'no_family';
+  /** no_talk / no_family: days; pills: doses not confirmed yesterday */
+  value: number;
+  /** pills: doses due yesterday */
+  total: number | null;
+  /** no_talk / no_family: the last talk or call (null if there never was one) */
+  since: string | null;
+};
+
 type Loaded<T> = { data: T | null; error: boolean; reload: () => void };
 
-/** Everyone in the signed-in staff member's organisation: seniors and their family members. */
-export function useStaffPeople(): Loaded<StaffPerson[]> {
-  const [data, setData] = useState<StaffPerson[] | null>(null);
+/** Calls a staff function (security definer, RLS-safe) and keeps its rows; "Try again" calls it again. */
+function useStaffRpc<T>(fn: 'staff_people' | 'staff_signals'): Loaded<T[]> {
+  const [data, setData] = useState<T[] | null>(null);
   const [error, setError] = useState(false);
   // "Try again" bumps this, which runs the effect again
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let live = true;
-    supabase.rpc('staff_people').then(({ data: rows, error: e }) => {
+    supabase.rpc(fn).then(({ data: rows, error: e }) => {
       if (!live) return;
       setError(!!e);
-      if (!e) setData((rows ?? []) as StaffPerson[]);
+      if (!e) setData((rows ?? []) as T[]);
     });
     return () => {
       live = false;
     };
-  }, [attempt]);
+  }, [fn, attempt]);
 
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
 
   return { data, error, reload };
+}
+
+/** Everyone in the signed-in staff member's organisation: seniors and their family members. */
+export const useStaffPeople = () => useStaffRpc<StaffPerson>('staff_people');
+
+/** Today's alerts for the organisation's seniors. */
+export const useStaffSignals = () => useStaffRpc<StaffSignal>('staff_signals');
+
+/** The words on an alert chip. */
+export function signalText(s: StaffSignal): string {
+  if (s.kind === 'no_talk') return `No talk · ${s.value} days`;
+  if (s.kind === 'no_family') return `No family call · ${s.value} days`;
+  return s.total && s.total > 1 ? `${s.value} of ${s.total} pills not confirmed` : 'Pill not confirmed';
 }
