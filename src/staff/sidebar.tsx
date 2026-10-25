@@ -158,7 +158,13 @@ const styles = StyleSheet.create({
   orgLetter: { fontFamily: staffFont, fontSize: 13, fontWeight: '700', color: '#fff' },
   orgName: { flex: 1, fontFamily: staffFont, fontSize: 15, color: staffColors.ink },
   group: { gap: 2 },
-  groupTitle: { paddingHorizontal: 12, paddingBottom: 6, fontFamily: staffFont, fontSize: 13, color: staffColors.muted },
+  groupTitle: {
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+    fontFamily: staffFont,
+    fontSize: 13,
+    color: staffColors.muted,
+  },
   item: {
     flexDirection: 'row',
     alignItems: 'center',

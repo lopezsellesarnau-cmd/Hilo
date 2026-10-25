@@ -94,9 +94,7 @@ export default function StaffLogin() {
           onPress={busy ? undefined : step === 'email' ? send : () => code.length === 6 && verify(code)}
           style={[styles.button, busy && styles.busy]}
           accessibilityRole="button">
-          <Text style={styles.buttonText}>
-            {busy ? 'One moment…' : step === 'email' ? 'Send code' : 'Sign in'}
-          </Text>
+          <Text style={styles.buttonText}>{busy ? 'One moment…' : step === 'email' ? 'Send code' : 'Sign in'}</Text>
         </Pressable>
 
         {step === 'code' ? (

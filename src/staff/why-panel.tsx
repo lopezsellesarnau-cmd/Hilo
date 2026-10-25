@@ -1,36 +1,30 @@
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import { Link } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import {
-  clock,
-  type StaffAction,
-  type StaffPerson,
-  type StaffSignal,
-} from "./data";
-import { staffColors, staffFont } from "./theme";
+import { clock, type StaffAction, type StaffPerson, type StaffSignal } from './data';
+import { staffColors, staffFont } from './theme';
 
 const day = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
+  new Date(iso).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
   });
 
 /** Each alert in plain words, and where the fact comes from. Never anything she said. */
 function evidence(s: StaffSignal): { what: string; source: string } {
-  if (s.kind === "no_talk") {
+  if (s.kind === 'no_talk') {
     return {
       what: `She hasn't talked with Hilo for ${s.value} days.`,
-      source: s.since
-        ? `Last talk ${day(s.since)}, ${clock(s.since)}`
-        : "Joined, no talk yet",
+      source: s.since ? `Last talk ${day(s.since)}, ${clock(s.since)}` : 'Joined, no talk yet',
     };
   }
-  if (s.kind === "no_family") {
+  if (s.kind === 'no_family') {
     return {
       what: `No family call for ${s.value} days.`,
-      source: s.since ? `Last call ${day(s.since)}` : "No family call yet",
+      source: s.since ? `Last call ${day(s.since)}` : 'No family call yet',
     };
   }
   return {
@@ -38,7 +32,7 @@ function evidence(s: StaffSignal): { what: string; source: string } {
       s.total && s.total > 1
         ? `Yesterday she didn't confirm ${s.value} of ${s.total} pills.`
         : "Yesterday she didn't confirm her pill.",
-    source: "Pill reminders on her phone (she or the family confirm)",
+    source: 'Pill reminders on her phone (she or the family confirm)',
   };
 }
 
@@ -54,16 +48,8 @@ type Props = {
 };
 
 /** Right side of Today: why someone is on the list, and "Save · done" with a note for the team. */
-export function WhyPanel({
-  person,
-  family,
-  alerts,
-  done,
-  mine,
-  onDone,
-  onUndo,
-}: Props) {
-  const [note, setNote] = useState("");
+export function WhyPanel({ person, family, alerts, done, mine, onDone, onUndo }: Props) {
+  const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const name = person.display_name;
@@ -73,15 +59,12 @@ export function WhyPanel({
     setFailed(false);
     const ok = await fn();
     setBusy(false);
-    if (ok) setNote("");
+    if (ok) setNote('');
     else setFailed(true);
   };
 
   return (
-    <View
-      style={styles.aside}
-      accessibilityLabel={`Why ${name} is on the list`}
-    >
+    <View style={styles.aside} accessibilityLabel={`Why ${name} is on the list`}>
       <View style={styles.card}>
         <View style={styles.icon}>
           <Svg
@@ -91,24 +74,20 @@ export function WhyPanel({
             fill="none"
             stroke="#fff"
             strokeWidth={1.8}
-            strokeLinecap="round"
-          >
+            strokeLinecap="round">
             <Path d="M12 8v5M12 16.5v.5" />
             <Circle cx={12} cy={12} r={8.5} />
           </Svg>
         </View>
         <View style={styles.titleBox}>
-          <Text style={styles.title}>
-            {alerts.length
-              ? `Why ${name} is on the list`
-              : `${name} has no alerts`}
-          </Text>
+          <Text style={styles.title}>{alerts.length ? `Why ${name} is on the list` : `${name} has no alerts`}</Text>
           <Text style={styles.muted}>
-            {family.length
-              ? `Family in Hilo: ${family.map((f) => f.display_name).join(", ")}`
-              : "No family in Hilo"}
+            {family.length ? `Family in Hilo: ${family.map((f) => f.display_name).join(', ')}` : 'No family in Hilo'}
           </Text>
         </View>
+        <Link href={{ pathname: '/staff/person/[id]', params: { id: person.id } }} style={styles.open}>
+          Open profile →
+        </Link>
         {alerts.length ? (
           <View style={styles.list}>
             {alerts.map((a) => {
@@ -122,9 +101,7 @@ export function WhyPanel({
             })}
           </View>
         ) : (
-          <Text style={styles.what}>
-            She talks with Hilo, takes her pills and hears from her family.
-          </Text>
+          <Text style={styles.what}>She talks with Hilo, takes her pills and hears from her family.</Text>
         )}
       </View>
 
@@ -135,18 +112,13 @@ export function WhyPanel({
             <Text style={styles.darkText}>
               {clock(done.created_at)} · {done.by}
             </Text>
-            {done.note ? (
-              <Text style={styles.darkNote}>{done.note}</Text>
-            ) : null}
+            {done.note ? <Text style={styles.darkNote}>{done.note}</Text> : null}
             {mine ? (
               <Pressable
                 onPress={busy ? undefined : () => run(onUndo)}
                 style={styles.lightButton}
-                accessibilityRole="button"
-              >
-                <Text style={styles.lightButtonText}>
-                  {busy ? "One moment…" : "Undo"}
-                </Text>
+                accessibilityRole="button">
+                <Text style={styles.lightButtonText}>{busy ? 'One moment…' : 'Undo'}</Text>
               </Pressable>
             ) : null}
           </>
@@ -163,24 +135,17 @@ export function WhyPanel({
               style={styles.input}
             />
             <View style={styles.darkFoot}>
-              <Text style={styles.darkHint}>
-                The team sees this note. Staff never see what she said to Hilo.
-              </Text>
+              <Text style={styles.darkHint}>The team sees this note. Staff never see what she said to Hilo.</Text>
               <Pressable
                 onPress={busy ? undefined : () => run(() => onDone(note))}
                 style={styles.lightButton}
-                accessibilityRole="button"
-              >
-                <Text style={styles.lightButtonText}>
-                  {busy ? "Saving…" : "Save · done"}
-                </Text>
+                accessibilityRole="button">
+                <Text style={styles.lightButtonText}>{busy ? 'Saving…' : 'Save · done'}</Text>
               </Pressable>
             </View>
           </>
         )}
-        {failed ? (
-          <Text style={styles.error}>{"That didn't save. Try again."}</Text>
-        ) : null}
+        {failed ? <Text style={styles.error}>{"That didn't save. Try again."}</Text> : null}
       </View>
     </View>
   );
@@ -189,15 +154,15 @@ export function WhyPanel({
 const styles = StyleSheet.create({
   aside: { gap: 16 },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: "#ececec",
+    borderColor: '#ececec',
     borderRadius: 24,
     paddingTop: 28,
     paddingHorizontal: 24,
     paddingBottom: 22,
     gap: 18,
-    shadowColor: "#141310",
+    shadowColor: '#141310',
     shadowOpacity: 0.08,
     shadowRadius: 32,
     shadowOffset: { width: 0, height: 12 },
@@ -207,18 +172,19 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 99,
     backgroundColor: staffColors.ink,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   titleBox: { gap: 8 },
   title: {
     fontFamily: staffFont,
     fontSize: 22,
-    fontWeight: "500",
+    fontWeight: '500',
     letterSpacing: -0.4,
     color: staffColors.ink,
   },
   muted: { fontFamily: staffFont, fontSize: 14, color: staffColors.muted },
+  open: { fontFamily: staffFont, fontSize: 14, fontWeight: '500', color: staffColors.ink },
   list: { gap: 14 },
   item: { gap: 3 },
   what: {
@@ -240,15 +206,15 @@ const styles = StyleSheet.create({
     fontFamily: staffFont,
     fontSize: 12,
     letterSpacing: 0.5,
-    textTransform: "uppercase",
-    color: "#bdbdbd",
+    textTransform: 'uppercase',
+    color: '#bdbdbd',
   },
-  darkText: { fontFamily: staffFont, fontSize: 15, color: "#fff" },
+  darkText: { fontFamily: staffFont, fontSize: 15, color: '#fff' },
   darkNote: {
     fontFamily: staffFont,
     fontSize: 15,
     lineHeight: 22,
-    color: "#fff",
+    color: '#fff',
   },
   input: {
     minHeight: 84,
@@ -259,29 +225,29 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: staffColors.soft,
-    backgroundColor: "#1f1e1b",
-    color: "#fff",
+    backgroundColor: '#1f1e1b',
+    color: '#fff',
   },
   darkFoot: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  darkHint: { flex: 1, fontFamily: staffFont, fontSize: 12, color: "#bdbdbd" },
+  darkHint: { flex: 1, fontFamily: staffFont, fontSize: 12, color: '#bdbdbd' },
   lightButton: {
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     minHeight: 40,
     paddingHorizontal: 18,
     borderRadius: 99,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   lightButtonText: {
     fontFamily: staffFont,
     fontSize: 14,
     color: staffColors.ink,
   },
-  error: { fontFamily: staffFont, fontSize: 13, color: "#ff8a80" },
+  error: { fontFamily: staffFont, fontSize: 13, color: '#ff8a80' },
 });

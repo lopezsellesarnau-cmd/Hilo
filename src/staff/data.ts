@@ -98,9 +98,7 @@ export function useStaffActionsToday(): Loaded<StaffAction[]> {
       setError(!!e);
       if (e) return;
       const names = new Map((team.data ?? []).map((m) => [m.user_id, m.display_name as string]));
-      setData(
-        (actions.data ?? []).map((a) => ({ ...a, by: (a.user_id && names.get(a.user_id)) || 'Someone' })),
-      );
+      setData((actions.data ?? []).map((a) => ({ ...a, by: (a.user_id && names.get(a.user_id)) || 'Someone' })));
     });
     return () => {
       live = false;
@@ -122,5 +120,49 @@ export async function undoDone(actionId: string): Promise<boolean> {
   return !error;
 }
 
-export const clock = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+export const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+/** staff_person_week(): her last 7 days as counts (oldest first), never content. */
+export type PersonWeek = {
+  days: { day: string; talks: number; due: number; taken: number; calls: number }[];
+  last_talk: string | null;
+  last_call: string | null;
+};
+
+/** One person's week and the team's notes about her (newest first). */
+export function usePersonPage(personId: string): Loaded<{ week: PersonWeek; notes: StaffAction[] }> {
+  const [data, setData] = useState<{ week: PersonWeek; notes: StaffAction[] } | null>(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([
+      supabase.rpc('staff_person_week', { person: personId }),
+      supabase
+        .from('staff_actions')
+        .select('id, person_id, user_id, note, created_at')
+        .eq('person_id', personId)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase.from('org_members').select('user_id, display_name'),
+    ]).then(([week, actions, team]) => {
+      if (!live) return;
+      const e = week.error || actions.error || team.error;
+      setError(!!e);
+      if (e) return;
+      const names = new Map((team.data ?? []).map((m) => [m.user_id, m.display_name as string]));
+      setData({
+        week: week.data as PersonWeek,
+        notes: (actions.data ?? []).map((a) => ({ ...a, by: (a.user_id && names.get(a.user_id)) || 'Someone' })),
+      });
+    });
+    return () => {
+      live = false;
+    };
+  }, [personId, attempt]);
+
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { data, error, reload };
+}
