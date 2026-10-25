@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export type StaffMember = {
+  userId: string;
   orgId: string;
   orgName: string;
   role: 'admin' | 'carer';
@@ -36,6 +37,7 @@ async function load(): Promise<StaffSession> {
   return {
     status: 'staff',
     member: {
+      userId: user.id,
       orgId: row.org_id,
       orgName: (Array.isArray(org) ? org[0]?.name : org?.name) ?? '',
       role: row.role,
