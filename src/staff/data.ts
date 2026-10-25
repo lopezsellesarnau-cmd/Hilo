@@ -166,3 +166,26 @@ export function usePersonPage(personId: string): Loaded<{ week: PersonWeek; note
 
   return { data, error, reload };
 }
+
+const shortDay = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+
+/** An alert as a headline and the fact behind it, e.g. "No talk for 3 days" / "Last one Wednesday 22 Oct, 10:34". */
+export function signalLines(s: StaffSignal): { title: string; detail: string } {
+  if (s.kind === 'no_talk') {
+    return {
+      title: `No talk for ${s.value} days`,
+      detail: s.since ? `Last one ${shortDay(s.since)}, ${clock(s.since)}` : 'No talk since she joined',
+    };
+  }
+  if (s.kind === 'no_family') {
+    return {
+      title: `No family call for ${s.value} days`,
+      detail: s.since ? `Last one ${shortDay(s.since)}` : 'No family call yet',
+    };
+  }
+  return {
+    title: s.total && s.total > 1 ? `${s.value} of ${s.total} pills not confirmed` : 'Pill not confirmed',
+    detail: 'Yesterday',
+  };
+}
