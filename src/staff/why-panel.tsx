@@ -85,8 +85,10 @@ export function WhyPanel({ person, family, alerts, done, mine, onDone, onUndo }:
             {family.length ? `Family in Hilo: ${family.map((f) => f.display_name).join(', ')}` : 'No family in Hilo'}
           </Text>
         </View>
-        <Link href={{ pathname: '/staff/person/[id]', params: { id: person.id } }} style={styles.open}>
-          Open profile →
+        <Link href={{ pathname: '/staff/person/[id]', params: { id: person.id } }} asChild>
+          <Pressable style={styles.open} accessibilityRole="link">
+            <Text style={styles.openText}>Open profile →</Text>
+          </Pressable>
         </Link>
         {alerts.length ? (
           <View style={styles.list}>
@@ -184,7 +186,17 @@ const styles = StyleSheet.create({
     color: staffColors.ink,
   },
   muted: { fontFamily: staffFont, fontSize: 14, color: staffColors.muted },
-  open: { fontFamily: staffFont, fontSize: 14, fontWeight: '500', color: staffColors.ink },
+  // A single style object: Link asChild warns about style arrays
+  open: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    paddingHorizontal: 18,
+    borderRadius: 99,
+    backgroundColor: staffColors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openText: { fontFamily: staffFont, fontSize: 14, fontWeight: '500', color: '#fff' },
   list: { gap: 14 },
   item: { gap: 3 },
   what: {
