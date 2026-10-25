@@ -1,9 +1,10 @@
 import { Redirect, Slot, usePathname } from 'expo-router';
 import Head from 'expo-router/head';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { StaffContext, useStaffSession } from '@/staff/session';
+import { Sidebar } from '@/staff/sidebar';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
 
 /**
@@ -13,6 +14,7 @@ import { staffColors, staffFont, staffText } from '@/staff/theme';
 export default function StaffLayout() {
   const session = useStaffSession();
   const pathname = usePathname();
+  const { width } = useWindowDimensions();
 
   // The phone app never shows the staff pages (App Review included)
   if (Platform.OS !== 'web') return <Redirect href="/" />;
@@ -58,13 +60,21 @@ export default function StaffLayout() {
   return (
     <StaffContext.Provider value={session.member}>
       {head}
-      <Slot />
+      <View style={styles.shell}>
+        {/* Below 900 px the menu keeps only its icons */}
+        <Sidebar me={session.member} compact={width < 900} />
+        <View style={styles.main}>
+          <Slot />
+        </View>
+      </View>
     </StaffContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: staffColors.page },
+  shell: { flex: 1, flexDirection: 'row', backgroundColor: staffColors.page },
+  main: { flex: 1, minWidth: 0 },
   center: { alignItems: 'center', justifyContent: 'center', padding: 16 },
   box: { width: '100%', maxWidth: 440 },
   gap: { marginTop: 16, color: staffColors.soft },
