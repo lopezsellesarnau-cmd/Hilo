@@ -1,5 +1,5 @@
 import { Link, usePathname, type Href } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
@@ -31,6 +31,45 @@ const initials = (name: string) =>
     .map((w) => w[0]?.toUpperCase())
     .join('');
 
+/**
+ * One menu row. Hover lives in state, not in a style function: Link asChild drops a function style,
+ * and the row lost its icon-left layout.
+ */
+function NavItem({ item, active, compact }: { item: Item; active: boolean; compact: boolean }) {
+  const [hovered, setHovered] = useState(false);
+  const row = (
+    <Pressable
+      disabled={!item.href}
+      accessibilityLabel={item.label}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      // Flattened: Link asChild (expo-router's Slot) warns about style arrays
+      style={StyleSheet.flatten([
+        styles.item,
+        compact && styles.itemCompact,
+        active && styles.itemActive,
+        hovered && item.href && !active && styles.itemHover,
+      ])}>
+      <View style={!item.href && styles.soon}>{item.icon}</View>
+      {compact ? null : (
+        <>
+          <Text style={[styles.itemText, active && styles.itemTextActive, !item.href && styles.soon]}>
+            {item.label}
+          </Text>
+          {item.href ? null : <Text style={styles.soonTag}>Soon</Text>}
+        </>
+      )}
+    </Pressable>
+  );
+  return item.href ? (
+    <Link href={item.href} asChild>
+      {row}
+    </Link>
+  ) : (
+    row
+  );
+}
+
 export function Sidebar({ me, compact }: { me: StaffMember; compact: boolean }) {
   const pathname = usePathname();
 
@@ -55,37 +94,9 @@ export function Sidebar({ me, compact }: { me: StaffMember; compact: boolean }) 
       {groups.map((g, gi) => (
         <View key={gi} style={styles.group}>
           {g.title && !compact ? <Text style={styles.groupTitle}>{g.title}</Text> : null}
-          {g.items.map((item) => {
-            const active = item.href === pathname;
-            const row = (
-              <Pressable
-                disabled={!item.href}
-                accessibilityLabel={item.label}
-                style={({ hovered }) => [
-                  styles.item,
-                  compact && styles.itemCompact,
-                  active && styles.itemActive,
-                  hovered && item.href && !active && styles.itemHover,
-                ]}>
-                <View style={!item.href && styles.soon}>{item.icon}</View>
-                {compact ? null : (
-                  <>
-                    <Text style={[styles.itemText, active && styles.itemTextActive, !item.href && styles.soon]}>
-                      {item.label}
-                    </Text>
-                    {item.href ? null : <Text style={styles.soonTag}>Soon</Text>}
-                  </>
-                )}
-              </Pressable>
-            );
-            return item.href ? (
-              <Link key={item.label} href={item.href} asChild>
-                {row}
-              </Link>
-            ) : (
-              <View key={item.label}>{row}</View>
-            );
-          })}
+          {g.items.map((item) => (
+            <NavItem key={item.label} item={item} active={item.href === pathname} compact={compact} />
+          ))}
         </View>
       ))}
 
