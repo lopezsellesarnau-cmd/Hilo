@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,9 @@ import { colors, fontSize, fontWeight, spacing } from '@/theme';
 export default function PairCodeScreen() {
   // iPad on its side: the bot on the left, the code on the right
   const wide = useWide();
-  const [code, setCode] = useState('');
+  // Filled in when the QR was scanned with the Camera (see pair.tsx)
+  const params = useLocalSearchParams<{ code?: string }>();
+  const [code, setCode] = useState(() => (params.code ?? '').replace(/\D/g, '').slice(0, 6));
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
