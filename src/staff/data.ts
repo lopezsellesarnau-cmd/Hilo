@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import type { Place } from '@/lib/place';
 import { supabase } from '@/lib/supabase';
 
 /** One row of staff_people(): only the safe columns (see the organizations migration). */
@@ -188,4 +189,41 @@ export function signalLines(s: StaffSignal): { title: string; detail: string } {
     title: s.total && s.total > 1 ? `${s.value} of ${s.total} pills not confirmed` : 'Pill not confirmed',
     detail: 'Yesterday',
   };
+}
+
+/** A pill as staff type it on New person: a name and its times ("09:00"). */
+export type NewPill = { name: string; times: string[] };
+
+export type NewPerson = {
+  name: string;
+  locale: 'es' | 'en' | 'nl';
+  talkTime: string;
+  timezone: string;
+  place: Place | null;
+  pills: NewPill[];
+};
+
+/** Adds her to the organisation (family, subscription and pills in one go). Her person id, or null if it failed. */
+export async function createPerson(orgId: string, p: NewPerson): Promise<string | null> {
+  const { data, error } = await supabase.rpc('staff_create_person', {
+    org: orgId,
+    name: p.name,
+    locale: p.locale,
+    talk_time: p.talkTime,
+    timezone: p.timezone,
+    city: p.place?.city ?? null,
+    latitude: p.place?.latitude ?? null,
+    longitude: p.place?.longitude ?? null,
+    country_code: p.place?.country_code ?? null,
+    region_code: p.place?.region_code ?? null,
+    pills: p.pills,
+  });
+  if (error && __DEV__) console.warn('staff_create_person', error);
+  return error ? null : (data as string);
+}
+
+/** A fresh 15-minute code for her phone (replaces any older one). Null if it failed. */
+export async function pairingCode(personId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('staff_pairing_code', { senior: personId });
+  return error ? null : (data as string);
 }

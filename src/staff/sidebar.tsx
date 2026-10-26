@@ -17,7 +17,7 @@ const groups: { title?: string; items: Item[] }[] = [
     title: 'Care',
     items: [
       { label: 'People', icon: <BotMark size={20} /> },
-      { label: 'New person', icon: <AddPersonIcon /> },
+      { label: 'New person', icon: <AddPersonIcon />, href: '/staff/new' },
     ],
   },
   { title: 'Measure', items: [{ label: 'Reports', icon: <ReportsIcon /> }] },

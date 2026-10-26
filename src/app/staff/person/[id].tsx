@@ -13,6 +13,7 @@ import {
   type StaffAction,
 } from '@/staff/data';
 import { BellIcon, BotMark, NoteIcon, PillIcon } from '@/staff/icons';
+import { PairCard } from '@/staff/pair-card';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
 
 const date = (iso: string, withYear = false) =>
@@ -90,6 +91,8 @@ export default function PersonPage() {
           </View>
         )}
       </View>
+
+      {person.paired ? null : <PairCard personId={person.id} name={person.display_name} />}
 
       <View style={styles.wrap}>
         {/* Two-half card: name on white, the big bot on black, faded at the bottom (Arnau's blur) */}
