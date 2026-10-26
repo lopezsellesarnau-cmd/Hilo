@@ -13,7 +13,9 @@ import {
   type StaffAction,
 } from '@/staff/data';
 import { BellIcon, BotMark, NoteIcon, PillIcon } from '@/staff/icons';
+import { LonelinessCard } from '@/staff/loneliness-card';
 import { PairCard } from '@/staff/pair-card';
+import { useStaff } from '@/staff/session';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
 
 const date = (iso: string, withYear = false) =>
@@ -32,6 +34,7 @@ const daysAgo = (iso: string) => {
  */
 export default function PersonPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const me = useStaff();
   const people = useStaffPeople();
   const signals = useStaffSignals();
   const page = usePersonPage(id);
@@ -219,6 +222,10 @@ export default function PersonPage() {
             </View>
           </View>
         </View>
+      </View>
+
+      <View style={styles.wrap}>
+        <LonelinessCard personId={person.id} locale={person.locale} me={me.userId} />
       </View>
 
       <View style={styles.wrap}>

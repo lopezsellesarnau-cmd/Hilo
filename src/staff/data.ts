@@ -285,3 +285,135 @@ export async function voiceSample(locale: string, speed: number, name: string): 
   if (error && __DEV__) console.warn('voice-sample', error);
   return error || !data?.audio ? null : (data as { text: string; audio: string });
 }
+
+/** staff_report(): every number on Reports for a period (totals only; see the staff_reports migration). */
+export type Report = {
+  first_day: string | null;
+  people: number;
+  joined: number;
+  paired: number;
+  talk_days: number;
+  paired_days: number;
+  doses_due: number;
+  doses_taken: number;
+  alerts: number;
+  alerts_same_day: number;
+  alerts_by_kind: Partial<Record<'no_talk' | 'pills' | 'no_family', number>>;
+  weeks: { monday: string; people: number; engaged: number; partial: boolean }[];
+  carers: { user_id: string; name: string; people: number; alerts: number; same_day: number; calls: number }[];
+  loneliness: { people: number; followed: number; start: number | null; now: number | null; first_only: number | null };
+};
+
+/** The report for [from, to] (local days, 'YYYY-MM-DD') and, when given, the period before it to compare. */
+export function useReport(
+  orgId: string,
+  from: string,
+  to: string,
+  before: { from: string; to: string } | null,
+): Loaded<{ now: Report; before: Report | null }> {
+  // Tagged with its period, so another period shows "Loading…" instead of the old numbers
+  const [loaded, setLoaded] = useState<{ key: string; value: { now: Report; before: Report | null } } | null>(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const beforeFrom = before?.from;
+  const beforeTo = before?.to;
+  const key = [orgId, from, to, beforeFrom, beforeTo].join('|');
+
+  useEffect(() => {
+    let live = true;
+    Promise.all([
+      supabase.rpc('staff_report', { org: orgId, from_day: from, to_day: to }),
+      beforeFrom && beforeTo
+        ? supabase.rpc('staff_report', { org: orgId, from_day: beforeFrom, to_day: beforeTo })
+        : Promise.resolve({ data: null, error: null }),
+    ]).then(([a, b]) => {
+      if (!live) return;
+      const e = a.error || b.error;
+      if (e && __DEV__) console.warn('staff_report', e);
+      setError(!!e);
+      if (!e) setLoaded({ key, value: { now: a.data as Report, before: (b.data as Report | null) ?? null } });
+    });
+    return () => {
+      live = false;
+    };
+  }, [key, orgId, from, to, beforeFrom, beforeTo, attempt]);
+
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { data: loaded?.key === key ? loaded.value : null, error, reload };
+}
+
+/** One UCLA-3 check: three answers from 1 (hardly ever) to 3 (often), score 3-9. */
+export type LonelinessCheck = {
+  id: string;
+  user_id: string | null;
+  companionship: number;
+  left_out: number;
+  isolated: number;
+  score: number;
+  taken_at: string;
+};
+
+/** Her loneliness checks, newest first. */
+export function useLoneliness(personId: string): Loaded<LonelinessCheck[]> {
+  const [data, setData] = useState<LonelinessCheck[] | null>(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    supabase
+      .from('loneliness_checks')
+      .select('id, user_id, companionship, left_out, isolated, score, taken_at')
+      .eq('person_id', personId)
+      .order('taken_at', { ascending: false })
+      .then(({ data: rows, error: e }) => {
+        if (!live) return;
+        setError(!!e);
+        if (!e) setData((rows ?? []) as LonelinessCheck[]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [personId, attempt]);
+
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { data, error, reload };
+}
+
+export async function addLoneliness(personId: string, a: { companionship: number; left_out: number; isolated: number }) {
+  const { error } = await supabase.rpc('staff_add_loneliness', { person: personId, ...a });
+  return !error;
+}
+
+export async function deleteLoneliness(checkId: string) {
+  const { error } = await supabase.rpc('staff_delete_loneliness', { check_id: checkId });
+  return !error;
+}
+
+/** The organisation's first day (when its first person was added), as a local 'YYYY-MM-DD'; null until loaded. */
+export function useFirstDay(orgId: string): string | null {
+  const [day, setDay] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    supabase
+      .from('families')
+      .select('created_at')
+      .eq('org_id', orgId)
+      .order('created_at')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!live || !data) return;
+        const d = new Date(data.created_at);
+        setDay(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      });
+    return () => {
+      live = false;
+    };
+  }, [orgId]);
+
+  return day;
+}

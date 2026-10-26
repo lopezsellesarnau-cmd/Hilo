@@ -20,7 +20,7 @@ const groups: { title?: string; items: Item[] }[] = [
       { label: 'New person', icon: <AddPersonIcon />, href: '/staff/new' },
     ],
   },
-  { title: 'Measure', items: [{ label: 'Reports', icon: <ReportsIcon /> }] },
+  { title: 'Measure', items: [{ label: 'Reports', icon: <ReportsIcon />, href: '/staff/reports' }] },
 ];
 
 const initials = (name: string) =>
