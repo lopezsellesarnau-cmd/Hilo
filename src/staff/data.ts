@@ -199,6 +199,10 @@ export type NewPerson = {
   locale: 'es' | 'en' | 'nl';
   talkTime: string;
   timezone: string;
+  /** Hilo's voice speed, 0.7-1.2 */
+  voiceSpeed: number;
+  /** user_id of her carer in the team, or null */
+  carerId: string | null;
   place: Place | null;
   pills: NewPill[];
 };
@@ -211,6 +215,8 @@ export async function createPerson(orgId: string, p: NewPerson): Promise<string 
     locale: p.locale,
     talk_time: p.talkTime,
     timezone: p.timezone,
+    voice_speed: p.voiceSpeed,
+    carer: p.carerId,
     city: p.place?.city ?? null,
     latitude: p.place?.latitude ?? null,
     longitude: p.place?.longitude ?? null,
@@ -226,4 +232,38 @@ export async function createPerson(orgId: string, p: NewPerson): Promise<string 
 export async function pairingCode(personId: string): Promise<string | null> {
   const { data, error } = await supabase.rpc('staff_pairing_code', { senior: personId });
   return error ? null : (data as string);
+}
+
+/** The organisation's team (for "Carer"), by name. */
+export function useTeam(): Loaded<{ user_id: string; display_name: string; role: 'admin' | 'carer' }[]> {
+  const [data, setData] = useState<{ user_id: string; display_name: string; role: 'admin' | 'carer' }[] | null>(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let live = true;
+    supabase
+      .from('org_members')
+      .select('user_id, display_name, role')
+      .order('display_name')
+      .then(({ data: rows, error: e }) => {
+        if (!live) return;
+        setError(!!e);
+        if (!e) setData(rows ?? []);
+      });
+    return () => {
+      live = false;
+    };
+  }, [attempt]);
+
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { data, error, reload };
+}
+
+/** A sample sentence in Hilo's talk voice (voice-sample function): its words and the mp3 in base64. */
+export async function voiceSample(locale: string, speed: number, name: string): Promise<{ text: string; audio: string } | null> {
+  const { data, error } = await supabase.functions.invoke('voice-sample', { body: { locale, speed, name } });
+  if (error && __DEV__) console.warn('voice-sample', error);
+  return error || !data?.audio ? null : (data as { text: string; audio: string });
 }

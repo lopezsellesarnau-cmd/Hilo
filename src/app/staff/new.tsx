@@ -1,25 +1,23 @@
 import { Link } from 'expo-router';
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { findPlace, type Place } from '@/lib/place';
-import { createPerson, type NewPerson, type NewPill } from '@/staff/data';
+import { createPerson, useTeam, type NewPerson, type NewPill } from '@/staff/data';
+import { BotMark } from '@/staff/icons';
 import { PairCard } from '@/staff/pair-card';
 import { useStaff } from '@/staff/session';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
+import { VoiceCard } from '@/staff/voice-card';
 
-// The same choices as the family app's onboarding (talk.tsx)
 const LANGUAGES = [
   { value: 'es', label: 'Spanish' },
   { value: 'en', label: 'English' },
   { value: 'nl', label: 'Dutch' },
 ] as const;
-const TIMES = ['09:00', '10:00', '11:00', '12:00', '17:00', '18:00', '19:00'] as const;
 
 // The browser is in the organisation, so its time zone is hers. Pill times are stored in local time.
 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Madrid';
-
-type PillDraft = { key: number; name: string; times: string };
 
 /** "9:00, 21.00 2130" → ["09:00", "21:00", "21:30"]; null if any of them isn't a time. */
 function parseTimes(text: string): string[] | null {
@@ -34,20 +32,24 @@ function parseTimes(text: string): string[] | null {
 }
 
 /**
- * New person, as the "New person" frame of the staff canvas: staff add her, then pair her phone at the visit.
- * Left out until Hilo records them: photo, carer, the voice preview and inviting her family.
+ * New person, as the "New person" frame of the staff canvas: staff add her, hear Hilo's voice and pick its speed,
+ * then pair her phone at the visit. Left out until Hilo records them: photo and inviting her family by email.
  */
 export default function NewPersonPage() {
   const me = useStaff();
+  const team = useTeam();
   const [name, setName] = useState('');
   const [locale, setLocale] = useState<NewPerson['locale']>('es');
-  const [talkTime, setTalkTime] = useState<string>('10:00');
+  const [talkTime, setTalkTime] = useState('10:00');
+  const [speed, setSpeed] = useState(1);
+  // A carer adding someone is usually her carer; a coordinator picks one
+  const [carerId, setCarerId] = useState<string | null>(me.role === 'carer' ? me.userId : null);
   const [town, setTown] = useState('');
   const [place, setPlace] = useState<Place | null>(null);
   const [placeState, setPlaceState] = useState<'idle' | 'searching' | 'notFound'>('idle');
   const searching = useRef<Promise<Place | null | 'notFound'> | null>(null);
-  const nextKey = useRef(1);
-  const [pills, setPills] = useState<PillDraft[]>([]);
+  const [pills, setPills] = useState<NewPill[]>([]);
+  const [draft, setDraft] = useState<{ name: string; times: string } | null>(null);
   const [tried, setTried] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
@@ -70,9 +72,16 @@ export default function NewPersonPage() {
     return searching.current;
   };
 
-  const parsed = pills.map((p) => ({ ...p, list: parseTimes(p.times) }));
-  const pillsOk = parsed.every((p) => p.name.trim() && p.list);
-  const ready = name.trim().length > 0 && pillsOk && !saving;
+  const draftTimes = draft ? parseTimes(draft.times) : null;
+  const draftOk = !!draft && !!draft.name.trim() && !!draftTimes;
+  const addPill = () => {
+    if (!draft || !draftOk) return;
+    setPills((list) => [...list, { name: draft.name.trim(), times: draftTimes as string[] }]);
+    setDraft(null);
+  };
+
+  const timeOk = /^([01]\d|2[0-3]):[0-5]\d$/.test(talkTime);
+  const ready = name.trim().length > 0 && timeOk && !draft && !saving;
 
   const create = async () => {
     setTried(true);
@@ -81,14 +90,15 @@ export default function NewPersonPage() {
     setError(false);
     const found = await lookUp();
     if (found === 'notFound') return setSaving(false);
-    const list: NewPill[] = parsed.map((p) => ({ name: p.name.trim(), times: p.list as string[] }));
     const id = await createPerson(me.orgId, {
       name: name.trim(),
       locale,
       talkTime,
       timezone,
+      voiceSpeed: speed,
+      carerId,
       place: found,
-      pills: list,
+      pills,
     });
     setSaving(false);
     if (!id) return setError(true);
@@ -101,18 +111,17 @@ export default function NewPersonPage() {
     setPlace(null);
     setPlaceState('idle');
     setPills([]);
+    setDraft(null);
+    setSpeed(1);
     setTried(false);
     setCreated(null);
   };
-
-  const editPill = (key: number, change: Partial<PillDraft>) =>
-    setPills((list) => list.map((p) => (p.key === key ? { ...p, ...change } : p)));
 
   return (
     <ScrollView style={styles.page} contentContainerStyle={styles.content}>
       <View style={styles.head}>
         <Text style={staffText.label}>{created ? 'Step 2 of 2 · the home visit' : 'Step 1 of 2 · then the home visit'}</Text>
-        <Text style={staffText.title}>New person</Text>
+        <Text style={styles.title}>New person</Text>
       </View>
 
       <View style={styles.wrap}>
@@ -124,36 +133,132 @@ export default function NewPersonPage() {
             </Text>
             <View style={styles.actions}>
               <Link href={{ pathname: '/staff/person/[id]', params: { id: created.id } }} asChild>
-                <Pressable style={styles.button} accessibilityRole="link">
-                  <Text style={styles.buttonText}>Open her profile →</Text>
+                <Pressable style={linkStyles.open} accessibilityRole="link">
+                  <Text style={styles.primaryText}>Open her profile →</Text>
                 </Pressable>
               </Link>
-              <Pressable onPress={startAgain} style={styles.ghost} accessibilityRole="button">
-                <Text style={styles.ghostText}>Add another person</Text>
+              <Pressable onPress={startAgain} style={styles.secondary} accessibilityRole="button">
+                <Text style={styles.secondaryText}>Add another person</Text>
               </Pressable>
             </View>
           </View>
         ) : (
           <View style={styles.form}>
-            <Field label="Name">
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                maxLength={60}
-                placeholder="Carmen"
-                placeholderTextColor="#8a8a86"
-                style={styles.input}
-              />
-              {tried && !name.trim() ? <Text style={styles.error}>Her name is needed.</Text> : null}
-            </Field>
+            <View style={styles.photoRow}>
+              <View style={styles.avatar}>
+                <BotMark size={70} />
+              </View>
+              <Text style={styles.hint}>No photo yet: Hilo is shown for her.</Text>
+            </View>
 
-            <Field label="Language" hint="Hilo talks to her in it.">
-              <Chips options={LANGUAGES} value={locale} onChange={setLocale} />
-            </Field>
+            <View style={styles.grid}>
+              <Field label="Name">
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  maxLength={60}
+                  placeholder="Carmen Ruiz"
+                  placeholderTextColor="#8a8a86"
+                  style={styles.input}
+                />
+                {tried && !name.trim() ? <Text style={styles.error}>Her name is needed.</Text> : null}
+              </Field>
+              <Field label="Language">
+                <select
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as NewPerson['locale'])}
+                  style={domField}
+                  aria-label="Language">
+                  {LANGUAGES.map((l) => (
+                    <option key={l.value} value={l.value}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Talk time">
+                <input
+                  type="time"
+                  value={talkTime}
+                  onChange={(e) => setTalkTime(e.target.value)}
+                  style={domField}
+                  aria-label="Talk time"
+                />
+                {tried && !timeOk ? <Text style={styles.error}>Pick a time.</Text> : null}
+              </Field>
+              <Field label="Carer">
+                <select
+                  value={carerId ?? ''}
+                  onChange={(e) => setCarerId(e.target.value || null)}
+                  style={domField}
+                  aria-label="Carer">
+                  <option value="">Not assigned</option>
+                  {(team.data ?? []).map((m) => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.display_name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </View>
 
-            <Field label="Talk time" hint="Her phone reminds her then. She can also talk at any other time.">
-              <Chips options={TIMES.map((t) => ({ value: t, label: t }))} value={talkTime} onChange={setTalkTime} />
-            </Field>
+            <View style={styles.box}>
+              <Text style={staffText.label}>Pills</Text>
+              <View style={styles.chips}>
+                {pills.map((p, i) => (
+                  <View key={`${p.name}-${i}`} style={styles.pill}>
+                    <Text style={styles.pillText}>{`${p.name} · ${p.times.join(', ')}`}</Text>
+                    <Pressable
+                      onPress={() => setPills((list) => list.filter((_, j) => j !== i))}
+                      style={styles.remove}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${p.name}`}>
+                      <Text style={styles.removeText}>×</Text>
+                    </Pressable>
+                  </View>
+                ))}
+                {draft || pills.length >= 20 ? null : (
+                  <Pressable onPress={() => setDraft({ name: '', times: '' })} style={styles.add} accessibilityRole="button">
+                    <Text style={styles.addText}>+ Add a pill</Text>
+                  </Pressable>
+                )}
+              </View>
+              {draft ? (
+                <View style={styles.draft}>
+                  <TextInput
+                    value={draft.name}
+                    onChangeText={(v) => setDraft({ ...draft, name: v })}
+                    maxLength={80}
+                    placeholder="Enalapril"
+                    placeholderTextColor="#8a8a86"
+                    style={[styles.draftInput, styles.draftName]}
+                    autoFocus
+                  />
+                  <TextInput
+                    value={draft.times}
+                    onChangeText={(v) => setDraft({ ...draft, times: v })}
+                    onSubmitEditing={addPill}
+                    placeholder="09:00, 21:00"
+                    placeholderTextColor="#8a8a86"
+                    style={[styles.draftInput, styles.draftTimes]}
+                  />
+                  <Pressable
+                    onPress={addPill}
+                    style={[styles.smallPrimary, !draftOk && styles.off]}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !draftOk }}>
+                    <Text style={styles.smallPrimaryText}>Add</Text>
+                  </Pressable>
+                  <Pressable onPress={() => setDraft(null)} accessibilityRole="button" hitSlop={8}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </Pressable>
+                  {draft.times.trim() && !draftTimes ? (
+                    <Text style={[styles.error, styles.full]}>Times like 09:00, several with commas, up to 8.</Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {tried && draft ? <Text style={styles.error}>Add or cancel the pill first.</Text> : null}
+            </View>
 
             <Field label="Town (optional)" hint="For the weather and the local holidays in her talks.">
               <TextInput
@@ -177,58 +282,18 @@ export default function NewPersonPage() {
               ) : null}
             </Field>
 
-            <Field label="Pills" hint="Name as she knows it, and the times. Several times with commas: 09:00, 21:00.">
-              {parsed.map((p) => (
-                <View key={p.key} style={styles.pillRow}>
-                  <TextInput
-                    value={p.name}
-                    onChangeText={(v) => editPill(p.key, { name: v })}
-                    maxLength={80}
-                    placeholder="Enalapril"
-                    placeholderTextColor="#8a8a86"
-                    style={[styles.input, styles.pillName]}
-                  />
-                  <TextInput
-                    value={p.times}
-                    onChangeText={(v) => editPill(p.key, { times: v })}
-                    placeholder="09:00"
-                    placeholderTextColor="#8a8a86"
-                    style={[styles.input, styles.pillTimes]}
-                  />
-                  <Pressable
-                    onPress={() => setPills((list) => list.filter((x) => x.key !== p.key))}
-                    style={styles.remove}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Remove ${p.name || 'this pill'}`}>
-                    <Text style={styles.removeText}>×</Text>
-                  </Pressable>
-                  {tried && (!p.name.trim() || !p.list) ? (
-                    <Text style={[styles.error, styles.pillError]}>
-                      {!p.name.trim() ? 'The pill needs a name.' : 'Times like 09:00, up to 8.'}
-                    </Text>
-                  ) : null}
-                </View>
-              ))}
-              {pills.length < 20 ? (
-                <Pressable
-                  onPress={() => setPills((list) => [...list, { key: nextKey.current++, name: '', times: '' }])}
-                  style={styles.add}
-                  accessibilityRole="button">
-                  <Text style={styles.addText}>+ Add a pill</Text>
-                </Pressable>
-              ) : null}
-            </Field>
-
             <View style={styles.actions}>
               <Pressable
                 onPress={create}
-                style={[styles.button, !ready && styles.buttonOff]}
+                style={[styles.primary, styles.primaryWide, !ready && styles.off]}
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !ready }}>
-                <Text style={styles.buttonText}>{saving ? 'Creating…' : 'Create her'}</Text>
+                <Text style={styles.primaryText}>{saving ? 'Creating…' : 'Create her'}</Text>
               </Pressable>
-              <Link href="/staff" style={styles.cancel}>
-                Cancel
+              <Link href="/staff" asChild>
+                <Pressable style={linkStyles.cancel} accessibilityRole="link">
+                  <Text style={styles.secondaryText}>Cancel</Text>
+                </Pressable>
               </Link>
             </View>
             {error ? <Text style={styles.error}>{"She wasn't created. Check the connection and try again."}</Text> : null}
@@ -236,11 +301,12 @@ export default function NewPersonPage() {
         )}
 
         <View style={styles.side}>
+          {created ? null : <VoiceCard locale={locale} name={name} speed={speed} onSpeed={setSpeed} />}
           {created ? (
             <PairCard personId={created.id} name={created.name} />
           ) : (
             <View style={styles.waiting}>
-              <Text style={styles.hint}>The code to pair her phone appears here once you create her.</Text>
+              <Text style={styles.waitingText}>The code to pair her phone appears here once you create her.</Text>
             </View>
           )}
         </View>
@@ -249,9 +315,10 @@ export default function NewPersonPage() {
   );
 }
 
+/** A grey block with its label on top, as the frame's fields */
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <View style={styles.field}>
+    <View style={styles.box}>
       <Text style={staffText.label}>{label}</Text>
       {children}
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
@@ -259,86 +326,139 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function Chips<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: readonly { value: T; label: string }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <View style={styles.chips}>
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <Pressable
-            key={o.value}
-            onPress={() => onChange(o.value)}
-            style={[styles.chip, on && styles.chipOn]}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: on }}>
-            <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
+// The browser's own select and time picker (the staff pages are web only): styled like the text fields
+const domField: CSSProperties = {
+  border: 0,
+  background: 'transparent',
+  fontFamily: staffFont,
+  fontSize: 17,
+  padding: '4px 0',
+  color: staffColors.ink,
+  outline: 'none',
+  width: '100%',
+};
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: staffColors.page },
-  content: { paddingTop: 40, paddingHorizontal: 56, paddingBottom: 64, gap: 32, maxWidth: 1320 },
+  content: { paddingTop: 48, paddingHorizontal: 56, paddingBottom: 64, gap: 40, maxWidth: 1320 },
   head: { gap: 10 },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 32, alignItems: 'flex-start' },
-  form: { flexGrow: 1, flexShrink: 1, flexBasis: 520, maxWidth: 640, gap: 28 },
-  side: { flexGrow: 1, flexShrink: 1, flexBasis: 360, maxWidth: 560 },
-  field: { gap: 10 },
-  input: {
-    fontFamily: staffFont,
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
+  title: { fontFamily: staffFont, fontSize: 44, lineHeight: 44, fontWeight: '500', letterSpacing: -1.5, color: staffColors.ink },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 40, alignItems: 'flex-start' },
+  form: { flexGrow: 999, flexShrink: 1, flexBasis: 480, minWidth: 0, gap: 16 },
+  side: { flexGrow: 1, flexShrink: 1, flexBasis: 320, minWidth: 0, maxWidth: 380, gap: 28 },
+
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 20, paddingBottom: 8 },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 99,
+    borderWidth: 6,
+    borderColor: staffColors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  box: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 220,
     backgroundColor: staffColors.block,
-    color: staffColors.ink,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    gap: 6,
   },
-  hint: { fontFamily: staffFont, fontSize: 14, lineHeight: 20, color: staffColors.muted },
-  error: { fontFamily: staffFont, fontSize: 14, lineHeight: 20, color: staffColors.error },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingVertical: 9, paddingHorizontal: 16, borderRadius: 99, borderWidth: 1, borderColor: staffColors.line },
-  chipOn: { backgroundColor: staffColors.ink, borderColor: staffColors.ink },
-  chipText: { fontFamily: staffFont, fontSize: 15, color: staffColors.ink, fontVariant: ['tabular-nums'] },
-  chipTextOn: { color: '#fff' },
-  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
-  pillName: { flexGrow: 2, flexShrink: 1, flexBasis: 200 },
-  pillTimes: { flexGrow: 1, flexShrink: 1, flexBasis: 140, fontVariant: ['tabular-nums'] },
-  pillError: { flexBasis: '100%' },
-  remove: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  removeText: { fontFamily: staffFont, fontSize: 22, color: staffColors.muted },
-  add: { alignSelf: 'flex-start', paddingVertical: 8 },
-  addText: { fontFamily: staffFont, fontSize: 15, color: staffColors.ink, textDecorationLine: 'underline' },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 20 },
-  button: {
-    alignSelf: 'flex-start',
-    backgroundColor: staffColors.ink,
-    borderRadius: 999,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
+  input: { fontFamily: staffFont, fontSize: 17, paddingVertical: 4, color: staffColors.ink },
+  hint: { fontFamily: staffFont, fontSize: 13, lineHeight: 18, color: staffColors.muted },
+  error: { fontFamily: staffFont, fontSize: 13, lineHeight: 18, color: staffColors.error },
+
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+    paddingRight: 6,
+    paddingLeft: 16,
+    borderRadius: 99,
+    backgroundColor: '#fff',
   },
-  buttonOff: { opacity: 0.4 },
-  buttonText: { fontFamily: staffFont, fontSize: 15, fontWeight: '500', color: '#fff' },
-  ghost: { borderRadius: 999, borderWidth: 1, borderColor: staffColors.line, paddingHorizontal: 22, paddingVertical: 11 },
-  ghostText: { fontFamily: staffFont, fontSize: 15, color: staffColors.ink },
-  cancel: { fontFamily: staffFont, fontSize: 15, color: staffColors.muted },
-  done: { fontFamily: staffFont, fontSize: 28, lineHeight: 34, fontWeight: '300', color: staffColors.ink },
-  waiting: {
-    borderRadius: 28,
+  pillText: { fontFamily: staffFont, fontSize: 15, color: staffColors.ink, fontVariant: ['tabular-nums'] },
+  remove: {
+    width: 36,
+    height: 36,
+    borderRadius: 99,
+    backgroundColor: staffColors.block,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeText: { fontFamily: staffFont, fontSize: 18, color: staffColors.ink },
+  add: {
+    minHeight: 48,
+    paddingHorizontal: 18,
+    borderRadius: 99,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: staffColors.line,
-    paddingVertical: 40,
-    paddingHorizontal: 28,
+    borderColor: '#8a8a8a',
+    justifyContent: 'center',
   },
+  addText: { fontFamily: staffFont, fontSize: 15, color: staffColors.ink },
+  draft: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 6 },
+  draftInput: {
+    fontFamily: staffFont,
+    fontSize: 15,
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: 99,
+    backgroundColor: '#fff',
+    color: staffColors.ink,
+  },
+  draftName: { flexGrow: 2, flexShrink: 1, flexBasis: 180 },
+  draftTimes: { flexGrow: 1, flexShrink: 1, flexBasis: 130, fontVariant: ['tabular-nums'] },
+  smallPrimary: {
+    minHeight: 48,
+    paddingHorizontal: 20,
+    borderRadius: 99,
+    backgroundColor: staffColors.ink,
+    justifyContent: 'center',
+  },
+  smallPrimaryText: { fontFamily: staffFont, fontSize: 15, fontWeight: '500', color: '#fff' },
+  cancelText: { fontFamily: staffFont, fontSize: 15, color: staffColors.muted, paddingHorizontal: 6 },
+  full: { flexBasis: '100%' },
+
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
+  primary: {
+    minHeight: 52,
+    paddingHorizontal: 24,
+    borderRadius: 99,
+    backgroundColor: staffColors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryWide: { flexGrow: 1, flexShrink: 1, flexBasis: 260 },
+  primaryText: { fontFamily: staffFont, fontSize: 17, color: '#fff' },
+  secondary: {
+    minHeight: 52,
+    paddingHorizontal: 24,
+    borderRadius: 99,
+    borderWidth: 1,
+    borderColor: '#e3e3e3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancel: { flexGrow: 0, flexShrink: 1, flexBasis: 160 },
+  secondaryText: { fontFamily: staffFont, fontSize: 17, color: staffColors.ink },
+  off: { opacity: 0.4 },
+
+  done: { fontFamily: staffFont, fontSize: 28, lineHeight: 34, fontWeight: '300', color: staffColors.ink },
+  waiting: { borderWidth: 1, borderStyle: 'dashed', borderColor: '#c9c9c9', borderRadius: 28, padding: 28 },
+  waitingText: { fontFamily: staffFont, fontSize: 15, lineHeight: 22, color: staffColors.muted },
 });
+
+// <Link asChild> hands its child's style through a Slot, which wants one flat style, not an array
+const linkStyles = {
+  open: StyleSheet.flatten([styles.primary, styles.primaryWide]),
+  cancel: StyleSheet.flatten([styles.secondary, styles.cancel]),
+};
