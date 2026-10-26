@@ -6,7 +6,7 @@ import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
-import { JOIN_MESSAGES, joinFamily } from '@/lib/invite';
+import { getPendingInvite, JOIN_MESSAGES, joinFamily, setPendingInvite } from '@/lib/invite';
 import { family } from '@/theme';
 
 const text = t.join;
@@ -14,7 +14,8 @@ const text = t.join;
 /** Someone invited by their family types the 8 digits (or scans the QR) and joins that family. */
 export default function JoinStep() {
   const { memberName = '' } = useLocalSearchParams<{ memberName: string }>();
-  const [code, setCode] = useState('');
+  // Filled in when they came from an invite QR scanned with the Camera (see app/join.tsx)
+  const [code, setCode] = useState(() => getPendingInvite() ?? '');
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ export default function JoinStep() {
       setError(JOIN_MESSAGES[(e as Error).message] ?? JOIN_MESSAGES.offline);
       return;
     }
+    setPendingInvite(null);
     // Their senior is already set up: straight to the family app, with nothing to go back to
     router.dismissAll();
     router.replace('/family/today');

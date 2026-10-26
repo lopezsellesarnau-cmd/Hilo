@@ -5,6 +5,7 @@ import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
+import { getPendingInvite } from '@/lib/invite';
 
 export default function NameStep() {
   const [name, setName] = useState('');
@@ -12,6 +13,8 @@ export default function NameStep() {
 
   const next = () => {
     if (!ready) return;
+    // They came from an invite QR: joining their family, not starting a new one
+    if (getPendingInvite()) return join();
     router.push({ pathname: '/onboarding/senior', params: { memberName: name.trim() } });
   };
 

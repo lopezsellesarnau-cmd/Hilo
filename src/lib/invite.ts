@@ -8,6 +8,14 @@ export const codeFromInviteQr = (data: string) => data.match(/\d{8}/)?.[0] ?? nu
 /** '12345678' → '1234 5678' */
 export const showInviteCode = (code: string) => `${code.slice(0, 4)} ${code.slice(4)}`;
 
+/**
+ * An invite QR scanned with the Camera (hilo://join, see app/join.tsx) arrives before they have signed in.
+ * The code waits here, in memory, until the join step: signing in with the email code never leaves the app.
+ */
+let pendingInvite: string | null = null;
+export const setPendingInvite = (code: string | null) => (pendingInvite = code);
+export const getPendingInvite = () => pendingInvite;
+
 /** The family's invite code (a new one each time: the old one stops working) */
 export async function createInvite(): Promise<string> {
   const { data, error } = await supabase.rpc('create_family_invite');
