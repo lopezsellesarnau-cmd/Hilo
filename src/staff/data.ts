@@ -30,7 +30,7 @@ export type StaffSignal = {
 type Loaded<T> = { data: T | null; error: boolean; reload: () => void };
 
 /** Calls a staff function (security definer, RLS-safe) and keeps its rows; "Try again" calls it again. */
-function useStaffRpc<T>(fn: 'staff_people' | 'staff_signals'): Loaded<T[]> {
+function useStaffRpc<T>(fn: 'staff_people' | 'staff_signals' | 'staff_people_overview'): Loaded<T[]> {
   const [data, setData] = useState<T[] | null>(null);
   const [error, setError] = useState(false);
   // "Try again" bumps this, which runs the effect again
@@ -58,6 +58,24 @@ export const useStaffPeople = () => useStaffRpc<StaffPerson>('staff_people');
 
 /** Today's alerts for the organisation's seniors. */
 export const useStaffSignals = () => useStaffRpc<StaffSignal>('staff_signals');
+
+/** One row of staff_people_overview(): a senior on the People page, as counts (never content). */
+export type PersonOverview = {
+  id: string;
+  display_name: string;
+  created_at: string;
+  paired: boolean;
+  carer_id: string | null;
+  family_members: number;
+  last_talk: string | null;
+  talks_7d: number;
+  pills_due_7d: number;
+  pills_taken_7d: number;
+  last_call: string | null;
+};
+
+/** Every senior of the organisation with her week in numbers, for People. */
+export const usePeopleOverview = () => useStaffRpc<PersonOverview>('staff_people_overview');
 
 /** The words on an alert chip. */
 export function signalText(s: StaffSignal): string {
