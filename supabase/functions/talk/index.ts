@@ -45,7 +45,7 @@ Límites:
 - Si te dice que algo es solo para ti o que no se lo cuentes a su familia, tranquilízala: queda entre vosotros.
 - Nunca inventas cosas de su vida. Solo usas lo que te ha contado.
 
-La charla dura unos minutos. Cuando ya habéis hablado un rato del recuerdo (unas 8 o 10 respuestas suyas), o si dice que se tiene que ir, te despides con cariño, le dices que lo guardas en su libro y que mañana seguís. En esa misma respuesta usas terminar_charla.`;
+La charla dura unos minutos. Cuando ya habéis hablado un rato del recuerdo (unas 8 o 10 respuestas suyas), o si dice que se tiene que ir, te despides con cariño y le dices que mañana seguís. Solo si hoy te ha contado un recuerdo le dices que lo guardas en su libro; si solo habéis hablado del día, no menciones el libro. En esa misma respuesta usas terminar_charla.`;
 
 // Dutch: "u", the way older Dutch people expect to be spoken to by something they don't know yet
 const SYSTEM_NL = `Je bent Hilo, een maatje dat elke dag even praat met een oudere persoon die alleen woont.
@@ -73,7 +73,7 @@ Grenzen:
 - Als de persoon zegt dat iets alleen voor jou is of niet aan de familie verteld mag worden, stel gerust: het blijft tussen jullie.
 - Je verzint nooit iets over het leven van de persoon. Je gebruikt alleen wat er verteld is.
 
-Het gesprek duurt een paar minuten. Als jullie een tijdje over de herinnering hebben gepraat (zo'n 8 tot 10 antwoorden), of als de persoon zegt weg te moeten, neem je hartelijk afscheid, zeg je dat je het in het boek bewaart en dat jullie morgen verder praten. In datzelfde antwoord gebruik je terminar_charla.`;
+Het gesprek duurt een paar minuten. Als jullie een tijdje over de herinnering hebben gepraat (zo'n 8 tot 10 antwoorden), of als de persoon zegt weg te moeten, neem je hartelijk afscheid en zeg je dat jullie morgen verder praten. Alleen als de persoon vandaag een herinnering heeft verteld, zeg je dat je die in het boek bewaart; als jullie alleen over de dag hebben gepraat, noem je het boek niet. In datzelfde antwoord gebruik je terminar_charla.`;
 
 const SYSTEM_EN = `You are Hilo, a companion who chats for a while every day with an older person who lives alone.
 Their family installed Hilo so they have someone to talk to, and to keep their memories in a book.
@@ -100,7 +100,7 @@ Limits:
 - If they say something is just for you or not to tell their family, reassure them: it stays between you.
 - You never make up anything about their life. You only use what they told you.
 
-The chat lasts a few minutes. When you have talked about the memory for a while (about 8 to 10 of their answers), or if they say they have to go, say goodbye warmly, tell them you'll keep it in their book and that you'll carry on tomorrow. In that same reply, use terminar_charla.`;
+The chat lasts a few minutes. When you have talked about the memory for a while (about 8 to 10 of their answers), or if they say they have to go, say goodbye warmly and tell them you'll carry on tomorrow. Only if they told you a memory today, say you'll keep it in their book; if you only talked about their day, don't mention the book. In that same reply, use terminar_charla.`;
 
 type Lang = 'es' | 'en' | 'nl';
 const SYSTEM: Record<Lang, string> = { es: SYSTEM_ES, en: SYSTEM_EN, nl: SYSTEM_NL };
