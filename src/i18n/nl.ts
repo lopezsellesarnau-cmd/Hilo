@@ -165,6 +165,7 @@ export const nl: Strings = {
     title: 'Begin',
     hello: (name: string | null) => (name ? `Hallo, ${name}!` : 'Hallo!'),
     howAreYou: 'Hoe gaat het met u?',
+    feelings: ['Goed', 'Gaat wel', 'Slecht'],
     talk: 'Praten',
     talkHint: 'Begint het praatje van vandaag',
     tapToTalk: 'Tik om te praten',

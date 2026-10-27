@@ -12,6 +12,9 @@ export type SeniorMe = {
   locale: 'es' | 'en' | 'nl';
 };
 
+/** Her answer to "How are you?" on the Home: 1 good, 2 so-so, 3 bad */
+export type Feeling = 1 | 2 | 3;
+
 type Medication = { id: string; name: string; times: string[]; weekdays: number[] };
 
 /**
@@ -20,7 +23,7 @@ type Medication = { id: string; name: string; times: string[]; weekdays: number[
  * `meds` is the whole schedule, for the reminders.
  */
 export async function loadSeniorDay(): Promise<
-  { me: SeniorMe; doses: Dose[]; meds: Medication[] } | { me: null; error: string }
+  { me: SeniorMe; doses: Dose[]; meds: Medication[]; feeling: Feeling | null } | { me: null; error: string }
 > {
   const {
     data: { session },
@@ -43,6 +46,12 @@ export async function loadSeniorDay(): Promise<
     .eq('person_id', me.id)
     .eq('active', true);
   const ids = (meds ?? []).map((m) => m.id);
+  const { data: checkin } = await supabase
+    .from('checkins')
+    .select('feeling')
+    .eq('person_id', me.id)
+    .eq('day', today.date)
+    .maybeSingle();
   const { data: events } = ids.length
     ? await supabase
         .from('medication_events')
@@ -55,5 +64,16 @@ export async function loadSeniorDay(): Promise<
       me: null,
       error: t.common.offline,
     };
-  return { me, meds, doses: buildDoses(meds, events, me.timezone, today.weekday) };
+  return {
+    me,
+    meds,
+    doses: buildDoses(meds, events, me.timezone, today.weekday),
+    feeling: (checkin?.feeling as Feeling) ?? null,
+  };
+}
+
+/** Saves today's answer; she can change it until midnight in her timezone */
+export async function saveFeeling(feeling: Feeling) {
+  const { error } = await supabase.rpc('i_feel', { feeling });
+  return !error;
 }

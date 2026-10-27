@@ -161,6 +161,7 @@ export const en: Strings = {
     title: 'Home',
     hello: (name: string | null) => (name ? `Hello, ${name}!` : 'Hello!'),
     howAreYou: 'How are you?',
+    feelings: ['Good', 'So-so', 'Bad'],
     talk: 'Talk',
     talkHint: "Starts today's chat",
     tapToTalk: 'Tap to chat',

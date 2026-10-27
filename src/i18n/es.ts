@@ -166,6 +166,7 @@ export const es = {
     title: 'Inicio',
     hello: (name: string | null) => (name ? `¡Hola, ${name}!` : '¡Hola!'),
     howAreYou: '¿Cómo estás?',
+    feelings: ['Bien', 'Regular', 'Mal'],
     talk: 'Hablar',
     talkHint: 'Empieza la charla de hoy',
     tapToTalk: 'Toca para charlar',

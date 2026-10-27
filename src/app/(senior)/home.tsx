@@ -12,7 +12,7 @@ import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadBook } from '@/lib/book';
-import { loadSeniorDay } from '@/lib/senior-day';
+import { loadSeniorDay, saveFeeling, type Feeling } from '@/lib/senior-day';
 import { colors, fontSize, fontWeight, lineHeight, spacing } from '@/theme';
 
 /** When the app opens: greeting, bot and buttons appear one after another, gently.
@@ -29,6 +29,8 @@ export default function HomeScreen() {
   // Name and today's pills, refreshed every time the senior comes back to the home
   const [name, setName] = useState<string | null>(null);
   const [pills, setPills] = useState<{ taken: number; total: number } | null>(null);
+  // Her answer to "How are you?" today: she says it, Hilo never guesses it from the talk
+  const [feeling, setFeeling] = useState<Feeling | null>(null);
   useFocusEffect(
     useCallback(() => {
       // Ready before she taps Mi libro
@@ -36,6 +38,7 @@ export default function HomeScreen() {
       loadSeniorDay().then((day) => {
         if (!day.me) return;
         setName(day.me.display_name);
+        setFeeling(day.feeling);
         setPills({
           taken: day.doses.filter((d) => d.takenAt).length,
           total: day.doses.length,
@@ -53,15 +56,49 @@ export default function HomeScreen() {
     <Animated.View entering={enter(0)} accessibilityRole="header" style={styles.header}>
       <Text style={styles.title}>{t.home.hello(name)}</Text>
       <Text style={styles.subtitle}>{t.home.howAreYou}</Text>
+      {name ? (
+        <View style={styles.feelings} accessibilityRole="radiogroup" accessibilityLabel={t.home.howAreYou}>
+          {t.home.feelings.map((label, i) => {
+            const value = (i + 1) as Feeling;
+            const on = feeling === value;
+            return (
+              <PressScale
+                key={label}
+                onPress={() => feel(value)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                containerStyle={styles.feelingSlot}
+                style={[styles.feeling, on && styles.feelingOn]}>
+                <Text style={[styles.feelingText, on && styles.feelingTextOn]} numberOfLines={1}>
+                  {label}
+                </Text>
+              </PressScale>
+            );
+          })}
+        </View>
+      ) : null}
     </Animated.View>
   );
+
+  // Shown at once; back to the old answer if it couldn't be saved
+  const feel = (value: Feeling) => {
+    const before = feeling;
+    setFeeling(value);
+    saveFeeling(value).then((ok) => {
+      if (!ok) setFeeling(before);
+    });
+  };
 
   const talk = () => router.push('/talk');
 
   // The bot itself opens the talk too: it's the biggest thing on the screen
   const stage = (
     <Animated.View entering={FadeIn.duration(700).delay(150)} style={styles.stage}>
-      <PressScale onPress={talk} accessibilityRole="button" accessibilityLabel={t.home.tapToTalk} accessibilityHint={t.home.talkHint}>
+      <PressScale
+        onPress={talk}
+        accessibilityRole="button"
+        accessibilityLabel={t.home.tapToTalk}
+        accessibilityHint={t.home.talkHint}>
         <Bot size={botSize} mood="idle" />
       </PressScale>
     </Animated.View>
@@ -92,7 +129,11 @@ export default function HomeScreen() {
             </View>
           ) : null}
         </PressScale>
-        <PressScale onPress={() => router.push('/book')} accessibilityRole="button" containerStyle={styles.barSlot} style={styles.barItem}>
+        <PressScale
+          onPress={() => router.push('/book')}
+          accessibilityRole="button"
+          containerStyle={styles.barSlot}
+          style={styles.barItem}>
           <Text style={[styles.barText, styles.barTextOff]} numberOfLines={1}>
             {t.home.book}
           </Text>
@@ -162,6 +203,38 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.regular,
     color: colors.muted,
     textAlign: 'center',
+  },
+  feelings: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+    alignSelf: 'stretch',
+  },
+  // Three the same width, like the pills/book bar
+  feelingSlot: {
+    flex: 1,
+    flexBasis: 0,
+  },
+  feeling: {
+    flexGrow: 1,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+  },
+  feelingOn: {
+    backgroundColor: colors.accent,
+  },
+  feelingText: {
+    flexShrink: 1,
+    fontSize: 21,
+    fontWeight: fontWeight.bold,
+    color: colors.ink,
+  },
+  feelingTextOn: {
+    color: colors.onAccent,
   },
   stage: {
     flexGrow: 1,
