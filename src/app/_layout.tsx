@@ -3,6 +3,7 @@ import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { CaptchaHost } from '@/lib/captcha';
 import { reminderUrl } from '@/lib/reminders';
 import { colors } from '@/theme';
 
@@ -29,6 +30,7 @@ export default function RootLayout() {
           animationDuration: 350,
         }}
       />
+      <CaptchaHost />
     </>
   );
 }

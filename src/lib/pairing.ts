@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { getCaptchaToken } from '@/lib/captcha';
 import { supabase } from '@/lib/supabase';
 
 /** What the family's QR holds. Any 6 digits in a row are read back as the code. */
@@ -16,7 +17,7 @@ export async function pair(code: string) {
   // A family account on this phone (or on the simulator while testing) is signed out first
   if (session && !session.user.is_anonymous) await supabase.auth.signOut();
   if (!session || !session.user.is_anonymous) {
-    const { error } = await supabase.auth.signInAnonymously();
+    const { error } = await supabase.auth.signInAnonymously({ options: { captchaToken: await getCaptchaToken() } });
     if (error) throw new Error('offline');
   }
   const { data, error } = await supabase.rpc('claim_pairing_code', { pairing_code: code });

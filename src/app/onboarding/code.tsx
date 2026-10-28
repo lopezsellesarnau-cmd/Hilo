@@ -7,6 +7,7 @@ import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
 import { nextFamilyRoute } from '@/lib/onboarding';
+import { getCaptchaToken } from '@/lib/captcha';
 import { isReviewEmail } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
@@ -24,7 +25,11 @@ export default function CodeStep() {
     setChecking(true);
     setMessage(null);
     const { data, error } = review
-      ? await supabase.auth.signInWithPassword({ email, password: token })
+      ? await supabase.auth.signInWithPassword({
+          email,
+          password: token,
+          options: { captchaToken: await getCaptchaToken() },
+        })
       : await supabase.auth.verifyOtp({ email, token, type: 'email' });
     if (error || !data.user) {
       setChecking(false);
@@ -41,7 +46,10 @@ export default function CodeStep() {
 
   const resend = async () => {
     setMessage(null);
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true, captchaToken: await getCaptchaToken() },
+    });
     setMessage(
       error
         ? { text: t.code.wait, error: true }

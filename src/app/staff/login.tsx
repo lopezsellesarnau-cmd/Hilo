@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Bot } from '@/components/bot';
+import { getCaptchaToken } from '@/lib/captcha';
 import { supabase } from '@/lib/supabase';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
 
@@ -24,7 +25,7 @@ export default function StaffLogin() {
     setMessage(null);
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: false },
+      options: { shouldCreateUser: false, captchaToken: await getCaptchaToken() },
     });
     setBusy(false);
     if (error?.status === 429) return setMessage('Too many tries. Wait a minute and try again.');

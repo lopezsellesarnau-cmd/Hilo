@@ -7,6 +7,7 @@ import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
+import { getCaptchaToken } from '@/lib/captcha';
 import { isReviewEmail } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
 import { family } from '@/theme';
@@ -37,7 +38,7 @@ export default function EmailStep() {
     setError(null);
     const { error: e } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
-      options: { shouldCreateUser: true },
+      options: { shouldCreateUser: true, captchaToken: await getCaptchaToken() },
     });
     setSending(false);
     if (e) {
