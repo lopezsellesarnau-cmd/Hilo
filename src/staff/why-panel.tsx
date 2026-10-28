@@ -27,6 +27,12 @@ function evidence(s: StaffSignal): { what: string; source: string } {
       source: s.since ? `Last call ${day(s.since)}` : 'No family call yet',
     };
   }
+  if (s.kind === 'feels_bad') {
+    return {
+      what: `She answered "bad" to "How are you?" on ${s.value} of the last 7 days.`,
+      source: s.since ? `Her own answer on her Home, last ${day(s.since)}` : 'Her own answer on her Home',
+    };
+  }
   return {
     what:
       s.total && s.total > 1

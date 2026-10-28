@@ -323,7 +323,7 @@ function LatestNote({ note }: { note: StaffAction | undefined }) {
   );
 }
 
-/** Rows Talk / Pills / Family call, one circle per day, filled when it happened. */
+/** Rows Talk / Pills / Family call, one circle per day, filled when it happened, and her own answer to "How are you?". */
 function Week({ week }: { week: PersonWeek }) {
   const rows: { label: string; on: (d: PersonWeek['days'][number]) => boolean | null }[] = [
     { label: 'Talk', on: (d) => d.talks > 0 },
@@ -360,9 +360,22 @@ function Week({ week }: { week: PersonWeek }) {
           })}
         </View>
       ))}
+      <View style={styles.weekRow}>
+        <Text style={[styles.weekLabelCol, styles.weekLabel]}>How is she?</Text>
+        {week.days.map((d) => (
+          <View key={d.day} style={styles.weekCell}>
+            <Text style={[styles.feeling, d.feeling === 3 && styles.feelingBad]}>
+              {d.feeling ? FEELINGS[d.feeling] : '–'}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
+
+/** Her words on the buttons, in English for the staff */
+const FEELINGS = { 1: 'Good', 2: 'So-so', 3: 'Bad' } as const;
 
 const flex = (grow: number, basis: number): ViewStyle => ({
   flexGrow: grow,
@@ -473,6 +486,8 @@ const styles = StyleSheet.create({
     color: staffColors.muted,
   },
   weekCell: { flex: 1, minWidth: 36, alignItems: 'center' },
+  feeling: { fontFamily: staffFont, fontSize: 13, color: staffColors.soft },
+  feelingBad: { fontWeight: '600', color: staffColors.ink },
   dot: {
     width: 26,
     height: 26,

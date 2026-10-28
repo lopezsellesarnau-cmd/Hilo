@@ -119,6 +119,7 @@ const SAY = {
     memory: (notes: string) =>
       `[Lo que sabes de charlas anteriores. Úsalo con naturalidad, como alguien que se acuerda: pregunta por algo de aquí si encaja, sin recitarlo ni decir que lo tienes apuntado.\n${notes}]`,
     stories: (titles: string) => `[Historias que ya te ha contado para su libro: ${titles}. Busca un recuerdo nuevo o un detalle que faltó, no repitas la misma.]`,
+    feelsBad: '[Hoy, en la pantalla de inicio, ha tocado «Mal» en «¿Cómo estás?». Al empezar, pregúntale con cariño qué tal está, sin insistir: si no quiere hablar de ello, sigue con normalidad.]',
     askFamily: '[Hace días que no consta que nadie de su familia haya hablado con ella. En algún momento de la charla, con naturalidad y sin insistir, pregúntale si ha hablado últimamente con alguien de su familia y qué le contaron.]',
     pillOne: (time: string, name: string) => `Por cierto, a las ${time} te tocaba esto: ${name}. ¿Te lo has tomado?`,
     pillMany: (list: string) => `Por cierto, hoy te tocaba esto: ${list}. ¿Te lo has tomado todo?`,
@@ -157,6 +158,7 @@ const SAY = {
     memory: (notes: string) =>
       `[Wat je weet uit eerdere gesprekken. Gebruik het natuurlijk, zoals iemand die het onthouden heeft: vraag ernaar als het past, zonder het op te sommen of te zeggen dat je het hebt opgeschreven.\n${notes}]`,
     stories: (titles: string) => `[Verhalen die al verteld zijn voor het boek: ${titles}. Zoek een nieuwe herinnering of een detail dat ontbrak, herhaal niet hetzelfde verhaal.]`,
+    feelsBad: '[Vandaag heeft de persoon op het beginscherm bij "Hoe gaat het met u?" op "Slecht" getikt. Vraag aan het begin vriendelijk hoe het gaat, zonder aan te dringen: wil de persoon er niet over praten, ga dan gewoon verder.]',
     askFamily: '[Al een paar dagen is niet bekend dat iemand van de familie met de persoon heeft gesproken. Vraag op een natuurlijk moment, zonder aan te dringen, of de persoon de laatste tijd iemand van de familie heeft gesproken en wat ze vertelden.]',
     pillOne: (time: string, name: string) => `Trouwens, om ${time} was het tijd voor ${name}. Heeft u die genomen?`,
     pillMany: (list: string) => `Trouwens, vandaag was het tijd voor ${list}. Heeft u alles genomen?`,
@@ -195,6 +197,7 @@ const SAY = {
     memory: (notes: string) =>
       `[What you know from earlier chats. Use it naturally, like someone who remembers: ask about something here if it fits, without reciting it or saying you wrote it down.\n${notes}]`,
     stories: (titles: string) => `[Stories already told for their book: ${titles}. Look for a new memory or a missing detail, don't repeat the same one.]`,
+    feelsBad: '[Today, on their Home screen, they tapped "Bad" for "How are you?". At the start, gently ask how they are, without pushing: if they don\'t want to talk about it, carry on as usual.]',
     askFamily: "[For a few days there's no record of anyone in their family talking with them. At some point in the chat, naturally and without insisting, ask whether they've spoken with anyone in their family lately and what they talked about.]",
     pillOne: (time: string, name: string) => `By the way, at ${time} it was time for ${name}. Have you taken it?`,
     pillMany: (list: string) => `By the way, today it was time for ${list}. Have you taken everything?`,
@@ -938,11 +941,13 @@ Deno.serve(async (req) => {
     sessionId = data.id;
   }
 
-  const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }] = await Promise.all([
+  const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }, { data: checkin }] = await Promise.all([
     db.from('turns').select('seq, speaker, text').eq('session_id', sessionId).order('seq'),
     db.from('talk_sessions').select('pills_asked_at, context, started_at, ended_at').eq('id', sessionId).single(),
     // Titles only (drafts too): enough for Hilo not to ask for the same story twice
     admin.from('chapters').select('title').eq('person_id', me.id).order('created_at', { ascending: false }).limit(12),
+    // Her answer to "How are you?" on the Home today: she says it, Hilo doesn't guess it
+    db.from('checkins').select('feeling').eq('person_id', me.id).eq('day', localNow(me.timezone).date).maybeSingle(),
   ]);
   if (turnsError || !talk) return json({ error: 'session' }, 404);
   // Only an open talk from the last hours: an old session id must not skip the subscription and the daily limit
@@ -1001,6 +1006,7 @@ Deno.serve(async (req) => {
     say.start(me.display_name, now),
     me.memory?.trim() ? say.memory(me.memory.trim()) : '',
     chapters?.length ? say.stories(chapters.map((c) => c.title).join('; ')) : '',
+    checkin?.feeling === 3 ? say.feelsBad : '',
     context ?? talk.context ?? '',
   ].filter(Boolean);
   const messages: Anthropic.MessageParam[] = [

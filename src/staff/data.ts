@@ -18,12 +18,12 @@ export type StaffPerson = {
 /** One row of staff_signals(): one alert for one person (rules in the staff_signals migration). */
 export type StaffSignal = {
   person_id: string;
-  kind: 'no_talk' | 'pills' | 'no_family';
-  /** no_talk / no_family: days; pills: doses not confirmed yesterday */
+  kind: 'no_talk' | 'pills' | 'no_family' | 'feels_bad';
+  /** no_talk / no_family: days; pills: doses not confirmed yesterday; feels_bad: days she said "bad" */
   value: number;
-  /** pills: doses due yesterday */
+  /** pills: doses due yesterday; feels_bad: 7 (the days looked at) */
   total: number | null;
-  /** no_talk / no_family: the last talk or call (null if there never was one) */
+  /** no_talk / no_family: the last talk or call (null if there never was one); feels_bad: her last "bad" */
   since: string | null;
 };
 
@@ -81,6 +81,7 @@ export const usePeopleOverview = () => useStaffRpc<PersonOverview>('staff_people
 export function signalText(s: StaffSignal): string {
   if (s.kind === 'no_talk') return `No talk · ${s.value} days`;
   if (s.kind === 'no_family') return `No family call · ${s.value} days`;
+  if (s.kind === 'feels_bad') return `Feels bad · ${s.value} of 7 days`;
   return s.total && s.total > 1 ? `${s.value} of ${s.total} pills not confirmed` : 'Pill not confirmed';
 }
 
@@ -143,7 +144,8 @@ export const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', 
 
 /** staff_person_week(): her last 7 days as counts (oldest first), never content. */
 export type PersonWeek = {
-  days: { day: string; talks: number; due: number; taken: number; calls: number }[];
+  /** feeling: her answer to "How are you?" that day, 1 good · 2 so-so · 3 bad (null = she didn't answer) */
+  days: { day: string; talks: number; due: number; taken: number; calls: number; feeling: 1 | 2 | 3 | null }[];
   last_talk: string | null;
   last_call: string | null;
 };
@@ -201,6 +203,12 @@ export function signalLines(s: StaffSignal): { title: string; detail: string } {
     return {
       title: `No family call for ${s.value} days`,
       detail: s.since ? `Last one ${shortDay(s.since)}` : 'No family call yet',
+    };
+  }
+  if (s.kind === 'feels_bad') {
+    return {
+      title: `Said "bad" ${s.value} of the last 7 days`,
+      detail: s.since ? `Last time ${shortDay(s.since)}` : 'This week',
     };
   }
   return {
