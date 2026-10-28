@@ -220,12 +220,16 @@ export default function TalkScreen() {
   };
 
   useSpeechRecognitionEvent('result', (e) => {
-    const part = e.results[0]?.transcript ?? '';
+    const part = (e.results[0]?.transcript ?? '').trim();
     // The iPad can send one last empty result when recognition stops: it must not wipe what she said
     if (!part && heardRef.current) return;
+    // The same final piece twice must not repeat her words
+    if (e.isFinal && earlier.current.endsWith(part)) return;
     const text = [earlier.current, part].filter(Boolean).join(' ');
     heardRef.current = text;
     setHeard(text);
+    // iOS 18 closes a piece on a short pause ("and… beef") and the next results start from empty: keep the closed piece
+    if (e.isFinal) earlier.current = text;
     // She is still talking: the pause starts counting again
     waitForPause(text ? PAUSE_MS : FIRST_WORDS_MS);
   });
