@@ -119,6 +119,8 @@ const SAY = {
     memory: (notes: string) =>
       `[Lo que sabes de charlas anteriores. Úsalo con naturalidad, como alguien que se acuerda: pregunta por algo de aquí si encaja, sin recitarlo ni decir que lo tienes apuntado.\n${notes}]`,
     stories: (titles: string) => `[Historias que ya te ha contado para su libro: ${titles}. Busca un recuerdo nuevo o un detalle que faltó, no repitas la misma.]`,
+    privateNotes: (lines: string) =>
+      `[Cosas que te ha contado solo a ti, para que no lleguen a su familia: ${lines}. Puedes hablarlas con ella si sale, con naturalidad, pero nunca digas que irán a su libro ni a su familia.]`,
     feelsBad: '[Hoy, en la pantalla de inicio, ha tocado «Mal» en «¿Cómo estás?». Al empezar, pregúntale con cariño qué tal está, sin insistir: si no quiere hablar de ello, sigue con normalidad.]',
     askFamily: '[Hace días que no consta que nadie de su familia haya hablado con ella. En algún momento de la charla, con naturalidad y sin insistir, pregúntale si ha hablado últimamente con alguien de su familia y qué le contaron.]',
     pillOne: (time: string, name: string) => `Por cierto, a las ${time} te tocaba esto: ${name}. ¿Te lo has tomado?`,
@@ -158,6 +160,8 @@ const SAY = {
     memory: (notes: string) =>
       `[Wat je weet uit eerdere gesprekken. Gebruik het natuurlijk, zoals iemand die het onthouden heeft: vraag ernaar als het past, zonder het op te sommen of te zeggen dat je het hebt opgeschreven.\n${notes}]`,
     stories: (titles: string) => `[Verhalen die al verteld zijn voor het boek: ${titles}. Zoek een nieuwe herinnering of een detail dat ontbrak, herhaal niet hetzelfde verhaal.]`,
+    privateNotes: (lines: string) =>
+      `[Dingen die de persoon alleen aan jou heeft verteld, zodat de familie ze niet hoort: ${lines}. Je kunt erover praten als het ter sprake komt, maar zeg nooit dat het in het boek of bij de familie komt.]`,
     feelsBad: '[Vandaag heeft de persoon op het beginscherm bij "Hoe gaat het met u?" op "Slecht" getikt. Vraag aan het begin vriendelijk hoe het gaat, zonder aan te dringen: wil de persoon er niet over praten, ga dan gewoon verder.]',
     askFamily: '[Al een paar dagen is niet bekend dat iemand van de familie met de persoon heeft gesproken. Vraag op een natuurlijk moment, zonder aan te dringen, of de persoon de laatste tijd iemand van de familie heeft gesproken en wat ze vertelden.]',
     pillOne: (time: string, name: string) => `Trouwens, om ${time} was het tijd voor ${name}. Heeft u die genomen?`,
@@ -197,6 +201,8 @@ const SAY = {
     memory: (notes: string) =>
       `[What you know from earlier chats. Use it naturally, like someone who remembers: ask about something here if it fits, without reciting it or saying you wrote it down.\n${notes}]`,
     stories: (titles: string) => `[Stories already told for their book: ${titles}. Look for a new memory or a missing detail, don't repeat the same one.]`,
+    privateNotes: (lines: string) =>
+      `[Things they told only you, so they don't reach their family: ${lines}. You can talk about them with them if it comes up, naturally, but never say they'll go in their book or to their family.]`,
     feelsBad: '[Today, on their Home screen, they tapped "Bad" for "How are you?". At the start, gently ask how they are, without pushing: if they don\'t want to talk about it, carry on as usual.]',
     askFamily: "[For a few days there's no record of anyone in their family talking with them. At some point in the chat, naturally and without insisting, ask whether they've spoken with anyone in their family lately and what they talked about.]",
     pillOne: (time: string, name: string) => `By the way, at ${time} it was time for ${name}. Have you taken it?`,
@@ -346,6 +352,23 @@ const TOOLS: Anthropic.Tool[] = [
         cambio: { type: 'string', enum: ['mas_despacio', 'mas_deprisa', 'normal'] },
       },
       required: ['cambio'],
+    },
+  },
+  {
+    name: 'entre_nosotros',
+    description:
+      'Guarda que algo de lo que ella ha contado queda entre ella y tú: no irá a su libro ni a su familia, pero tú lo recuerdas. ' +
+      'Úsala solo cuando ella lo pida claramente ("esto que quede entre nosotros", "no se lo digas a mi hija", "esto es solo para ti"). ' +
+      'Nunca por tu cuenta, aunque el tema te parezca delicado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        que: {
+          type: 'string',
+          description: 'Qué debe quedar fuera, en pocas palabras y sin contar la historia (por ejemplo "su preocupación por el dinero").',
+        },
+      },
+      required: ['que'],
     },
   },
   {
@@ -622,6 +645,69 @@ function unheardWords(story: string, hers: string): string[] {
   return [...new Set(words(story).filter((w) => !roots.has(root(w))))];
 }
 
+// ── Between us ────────────────────────────────────────────────────────────
+// What she asked Hilo to keep to itself (private_notes, service role only): out of her book, the family note and
+// the notes the family can read. A second cheap check drops anything that still mentions it.
+
+/** Most recent lines first; enough for any talk */
+const PRIVATE_NOTES_MAX = 20;
+
+async function privateNotes(admin: SupabaseClient, personId: string): Promise<string[]> {
+  const { data, error } = await admin
+    .from('private_notes')
+    .select('what')
+    .eq('person_id', personId)
+    .order('created_at', { ascending: false })
+    .limit(PRIVATE_NOTES_MAX);
+  if (error) console.error('private notes', error.message);
+  return (data ?? []).map((n) => n.what);
+}
+
+/** Added to what the writers get, so they leave it out */
+const privateBlock = (lines: string[]) =>
+  lines.length
+    ? `\n\nElla pidió que esto quede solo entre ella y Hilo. Déjalo fuera por completo, sin mencionarlo ni dejarlo entender:\n${lines.map((l) => `- ${l}`).join('\n')}`
+    : '';
+
+const PRIVATE_CHECK = `Te doy un texto que va a leer la familia de una persona mayor y una lista de temas que ella pidió que no llegaran a su familia.
+¿El texto menciona alguno de esos temas o deja entenderlo? Si tienes cualquier duda, responde que sí.`;
+
+const PRIVATE_CHECK_SCHEMA = {
+  type: 'object',
+  properties: { menciona: { type: 'boolean' } },
+  required: ['menciona'],
+  additionalProperties: false,
+};
+
+/** True if the text touches something private, or if it can't be checked: then it isn't shown */
+async function mentionsPrivate(admin: SupabaseClient, me: Senior, text: string, lines: string[]): Promise<boolean> {
+  if (!lines.length || !text.trim()) return false;
+  try {
+    const res = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 100,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: PRIVATE_CHECK_SCHEMA } },
+      system: PRIVATE_CHECK,
+      messages: [{ role: 'user', content: `Temas:\n${lines.map((l) => `- ${l}`).join('\n')}\n\nTexto:\n${text}` }],
+    });
+    await admin.rpc('add_usage', {
+      pid: me.id,
+      usage_day: localNow(me.timezone).date,
+      input_tokens: res.usage.input_tokens,
+      output_tokens: res.usage.output_tokens,
+      characters: 0,
+    });
+    const raw = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    return res.stop_reason !== 'end_turn' || (JSON.parse(raw) as { menciona: boolean }).menciona;
+  } catch (e) {
+    console.error('private check', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
+    return true;
+  }
+}
+
 /** Writes the draft chapter of a finished talk. Runs after the goodbye is sent, so it never slows the talk */
 async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string, transcript: Turn[]) {
   const hers = transcript.filter((t) => t.speaker === 'senior').map((t) => t.text);
@@ -629,6 +715,8 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
     console.log('chapter skipped: she said too little', hers.join(' ').length);
     return;
   }
+  // Includes what she asked to keep private in this talk
+  const secrets = await privateNotes(admin, me.id);
   try {
     const res = await anthropic.messages.create({
       model: WRITER_MODEL,
@@ -641,6 +729,7 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
           content:
             `Se llama ${me.display_name}.\n\nLa charla:\n` +
             transcript.map((t) => `${t.speaker === 'hilo' ? 'Hilo' : me.display_name}: ${t.text}`).join('\n') +
+            privateBlock(secrets) +
             STORY_LANGUAGE[lang(me.locale)],
         },
       ],
@@ -670,6 +759,10 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
     const paragraphs = story.parrafos.map((p) => p.trim()).filter(Boolean).slice(0, 20);
     if (!title || !paragraphs.length) {
       console.error('chapter skipped: empty title or paragraphs');
+      return;
+    }
+    if (await mentionsPrivate(admin, me, [title, ...paragraphs, story.cita].join('\n'), secrets)) {
+      console.log('chapter skipped: it touched something she asked to keep private');
       return;
     }
     // The quote has to be hers word for word: if it isn't in what she said, it's left out
@@ -765,6 +858,7 @@ async function updateMemory(admin: SupabaseClient, me: Senior, sessionId: string
     .select('id, display_name')
     .eq('family_id', me.family_id)
     .eq('role', 'member');
+  const secrets = await privateNotes(admin, me.id);
   try {
     const res = await anthropic.messages.create({
       model: MODEL,
@@ -779,7 +873,8 @@ async function updateMemory(admin: SupabaseClient, me: Senior, sessionId: string
             `Su familia en Hilo: ${(members ?? []).map((m) => m.display_name).join(', ') || '(nadie)'}\n\n` +
             `Notas que había:\n${me.memory?.trim() || '(ninguna, es la primera vez)'}\n\n` +
             `La charla de hoy:\n` +
-            transcript.map((t) => `${t.speaker === 'hilo' ? 'Hilo' : me.display_name}: ${t.text}`).join('\n'),
+            transcript.map((t) => `${t.speaker === 'hilo' ? 'Hilo' : me.display_name}: ${t.text}`).join('\n') +
+            privateBlock(secrets),
         },
       ],
     });
@@ -814,11 +909,12 @@ async function updateMemory(admin: SupabaseClient, me: Senior, sessionId: string
 
     // "De qué hablar con ella": shown to the family for 3 days and in the call nudge
     const familyNote = out.para_la_familia.trim().slice(0, FAMILY_NOTE_MAX);
-    if (familyNote) {
+    if (familyNote && !(await mentionsPrivate(admin, me, familyNote, secrets))) {
       const { error } = await admin.from('talk_sessions').update({ family_note: familyNote }).eq('id', sessionId);
       if (error) console.error('family note', error.message);
     }
-    if (!notes) return;
+    // The family can read these notes: if they touch something private, the old ones stay
+    if (!notes || (await mentionsPrivate(admin, me, notes, secrets))) return;
     const { error } = await admin
       .from('people')
       .update({ memory: notes.slice(0, MEMORY_MAX), memory_updated_at: new Date().toISOString() })
@@ -941,13 +1037,14 @@ Deno.serve(async (req) => {
     sessionId = data.id;
   }
 
-  const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }, { data: checkin }] = await Promise.all([
+  const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }, { data: checkin }, secrets] = await Promise.all([
     db.from('turns').select('seq, speaker, text').eq('session_id', sessionId).order('seq'),
     db.from('talk_sessions').select('pills_asked_at, context, started_at, ended_at').eq('id', sessionId).single(),
     // Titles only (drafts too): enough for Hilo not to ask for the same story twice
     admin.from('chapters').select('title').eq('person_id', me.id).order('created_at', { ascending: false }).limit(12),
     // Her answer to "How are you?" on the Home today: she says it, Hilo doesn't guess it
     db.from('checkins').select('feeling').eq('person_id', me.id).eq('day', localNow(me.timezone).date).maybeSingle(),
+    privateNotes(admin, me.id),
   ]);
   if (turnsError || !talk) return json({ error: 'session' }, 404);
   // Only an open talk from the last hours: an old session id must not skip the subscription and the daily limit
@@ -1007,6 +1104,7 @@ Deno.serve(async (req) => {
     me.memory?.trim() ? say.memory(me.memory.trim()) : '',
     chapters?.length ? say.stories(chapters.map((c) => c.title).join('; ')) : '',
     checkin?.feeling === 3 ? say.feelsBad : '',
+    secrets.length ? say.privateNotes(secrets.join('; ')) : '',
     context ?? talk.context ?? '',
   ].filter(Boolean);
   const messages: Anthropic.MessageParam[] = [
@@ -1048,6 +1146,27 @@ Deno.serve(async (req) => {
         if (call.name === 'terminar_charla') {
           ended = true;
           results.push({ type: 'tool_result', tool_use_id: call.id, content: 'Hecho. Despídete si aún no lo has hecho.' });
+          continue;
+        }
+        if (call.name === 'entre_nosotros') {
+          const what = String((call.input as { que?: unknown }).que ?? '').trim().slice(0, 200);
+          // Already kept (she said it twice, or Hilo asked again): once is enough
+          const kept = secrets.some((s) => s.toLowerCase() === what.toLowerCase());
+          const { error } = !what
+            ? { error: { message: 'empty' } }
+            : kept
+              ? { error: null }
+              : await admin.from('private_notes').insert({ family_id: me.family_id, person_id: me.id, session_id: sessionId, what });
+          if (error) console.error('private note', error.message);
+          else if (!kept) secrets.push(what);
+          results.push({
+            type: 'tool_result',
+            tool_use_id: call.id,
+            content: error
+              ? 'No se ha podido guardar.'
+              : 'Guardado. Dile con cariño que queda entre vosotros. No digas que esto irá a su libro.',
+            is_error: Boolean(error),
+          });
           continue;
         }
         const wanted = nextSpeed(speed, (call.input as { cambio?: unknown }).cambio);
