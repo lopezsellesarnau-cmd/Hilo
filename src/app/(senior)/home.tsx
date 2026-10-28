@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Bot } from '@/components/bot';
@@ -56,31 +56,31 @@ export default function HomeScreen() {
     <Animated.View entering={enter(0)} accessibilityRole="header" style={styles.header}>
       <Text style={styles.title}>{t.home.hello(name)}</Text>
       <Text style={styles.subtitle}>{t.home.howAreYou}</Text>
-      {name ? (
-        <View style={styles.feelings} accessibilityRole="radiogroup" accessibilityLabel={t.home.howAreYou}>
-          {t.home.feelings.map((label, i) => {
-            const value = (i + 1) as Feeling;
-            const on = feeling === value;
-            return (
-              <PressScale
-                key={label}
-                onPress={() => feel(value)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: on }}
-                containerStyle={styles.feelingSlot}
-                style={[styles.feeling, on && styles.feelingOn]}>
-                <Text style={[styles.feelingText, on && styles.feelingTextOn]} numberOfLines={1}>
-                  {label}
-                </Text>
-              </PressScale>
-            );
-          })}
-        </View>
+      {/* Once a day: after she answers the buttons go away, and they come back tomorrow */}
+      {name && !feeling ? (
+        <Animated.View
+          exiting={FadeOut.duration(400)}
+          style={styles.feelings}
+          accessibilityRole="radiogroup"
+          accessibilityLabel={t.home.howAreYou}>
+          {t.home.feelings.map((label, i) => (
+            <PressScale
+              key={label}
+              onPress={() => feel((i + 1) as Feeling)}
+              accessibilityRole="button"
+              containerStyle={styles.feelingSlot}
+              style={styles.feeling}>
+              <Text style={styles.feelingText} numberOfLines={1}>
+                {label}
+              </Text>
+            </PressScale>
+          ))}
+        </Animated.View>
       ) : null}
     </Animated.View>
   );
 
-  // Shown at once; back to the old answer if it couldn't be saved
+  // The buttons go at once; they come back if it couldn't be saved
   const feel = (value: Feeling) => {
     const before = feeling;
     setFeeling(value);
@@ -224,17 +224,11 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.surface,
   },
-  feelingOn: {
-    backgroundColor: colors.accent,
-  },
   feelingText: {
     flexShrink: 1,
     fontSize: 21,
     fontWeight: fontWeight.bold,
     color: colors.ink,
-  },
-  feelingTextOn: {
-    color: colors.onAccent,
   },
   stage: {
     flexGrow: 1,
