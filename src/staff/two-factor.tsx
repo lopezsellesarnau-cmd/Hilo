@@ -44,7 +44,7 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
       await Promise.all(
         factors.all.filter((f) => f.status === 'unverified').map((f) => supabase.auth.mfa.unenroll({ factorId: f.id })),
       );
-      const { data, error: e } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Hilo' });
+      const { data, error: e } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Hilo', issuer: 'Hilo' });
       if (!live) return;
       if (e) return setMessage("We couldn't start the setup. Reload the page.");
       setSetup({
@@ -80,7 +80,7 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
         <Text style={staffText.title}>{mode === 'enroll' ? 'Set up a second step' : 'One more step'}</Text>
         <Text style={[staffText.body, styles.hint]}>
           {mode === 'enroll'
-            ? `Staff see health information, so signing in takes your email code and a code from an authenticator app. Scan this with the app (Passwords on iPhone or Mac, Google Authenticator, Microsoft Authenticator), then type the 6-digit code it shows.`
+            ? `Staff see health information, so signing in takes your email code and a code from an authenticator app. Scan this with Google Authenticator or Microsoft Authenticator, then type the 6-digit code it shows. In Passwords on iPhone or Mac, the code goes inside a saved login: choose to create a new one called Hilo.`
             : `Type the 6-digit code for Hilo from your authenticator app (${email}).`}
         </Text>
 
