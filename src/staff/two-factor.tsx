@@ -8,6 +8,17 @@ import { staffColors, staffFont, staffText } from '@/staff/theme';
 type Setup = { factorId: string; qr: string; secret: string };
 
 /**
+ * Supabase gives the QR as an SVG, raw or as "data:image/svg+xml;utf-8,<svg…" with the SVG not encoded.
+ * The browser can't show that as an image source (the "<", "#" and quotes in it break the URL), so it goes
+ * back to the raw SVG and is sent as base64.
+ */
+function qrSource(qr: string) {
+  const body = qr.startsWith('data:') ? qr.slice(qr.indexOf(',') + 1) : qr;
+  const svg = body.trimStart().startsWith('<') ? body : decodeURIComponent(body);
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+/**
  * The second step of the staff sign-in, after the email code: a 6-digit code from an authenticator app
  * (Passwords on iPhone and Mac, Google Authenticator, Microsoft Authenticator…). Required for every staff
  * member; the database refuses staff data without it (the staff_two_factor migration).
@@ -36,10 +47,9 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
       const { data, error: e } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Hilo' });
       if (!live) return;
       if (e) return setMessage("We couldn't start the setup. Reload the page.");
-      const qr = data.totp.qr_code;
       setSetup({
         factorId: data.id,
-        qr: qr.startsWith('data:') ? qr : `data:image/svg+xml;utf-8,${encodeURIComponent(qr)}`,
+        qr: qrSource(data.totp.qr_code),
         secret: data.totp.secret,
       });
       setFactorId(data.id);
