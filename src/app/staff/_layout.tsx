@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { StaffContext, useStaffSession } from '@/staff/session';
 import { Sidebar } from '@/staff/sidebar';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
+import { TwoFactor } from '@/staff/two-factor';
 
 /**
  * Staff web (organisations). Web only, and only for accounts in org_members: everything below /staff goes
@@ -29,7 +30,8 @@ export default function StaffLayout() {
   if (session.status === 'loading') return <View style={styles.page}>{head}</View>;
 
   if (pathname === '/staff/login') {
-    if (session.status === 'staff') return <Redirect href="/staff" />;
+    // Signed in with the email code: past the login, to the second step or the app
+    if (session.status !== 'signedOut' && session.status !== 'notStaff') return <Redirect href="/staff" />;
     return (
       <>
         {head}
@@ -39,6 +41,15 @@ export default function StaffLayout() {
   }
 
   if (session.status === 'signedOut') return <Redirect href="/staff/login" />;
+
+  if (session.status === 'mfaEnroll' || session.status === 'mfaVerify') {
+    return (
+      <>
+        {head}
+        <TwoFactor mode={session.status === 'mfaEnroll' ? 'enroll' : 'verify'} email={session.email} />
+      </>
+    );
+  }
 
   if (session.status === 'notStaff') {
     return (

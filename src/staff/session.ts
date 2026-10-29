@@ -16,6 +16,9 @@ export type StaffSession =
   | { status: 'signedOut' }
   /** Signed in, but not staff of any organisation (e.g. a family account in the same browser) */
   | { status: 'notStaff'; email: string }
+  /** Staff, signed in with the email code, still without the second step: set it up, or type its code */
+  | { status: 'mfaEnroll'; email: string }
+  | { status: 'mfaVerify'; email: string }
   | { status: 'staff'; member: StaffMember };
 
 async function load(): Promise<StaffSession> {
@@ -32,6 +35,13 @@ async function load(): Promise<StaffSession> {
     .limit(1)
     .maybeSingle();
   if (!row) return { status: 'notStaff', email: user.email ?? '' };
+
+  // Every staff member signs in with a second step; until then the database gives them nothing (not even
+  // the organisation's name: only their own row above)
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.currentLevel !== 'aal2') {
+    return { status: aal?.nextLevel === 'aal2' ? 'mfaVerify' : 'mfaEnroll', email: user.email ?? '' } as StaffSession;
+  }
 
   const org = row.organizations as { name: string } | { name: string }[] | null;
   return {
@@ -56,7 +66,7 @@ export function useStaffSession(): StaffSession {
     const refresh = () => load().then((s) => live && setSession(s));
     refresh();
     const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') refresh();
+      if (['SIGNED_IN', 'SIGNED_OUT', 'USER_UPDATED', 'MFA_CHALLENGE_VERIFIED'].includes(event)) refresh();
     });
     return () => {
       live = false;
