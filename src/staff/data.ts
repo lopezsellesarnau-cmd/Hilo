@@ -159,7 +159,7 @@ export function usePersonPage(personId: string): Loaded<{ week: PersonWeek; note
   useEffect(() => {
     let live = true;
     Promise.all([
-      supabase.rpc('staff_person_week', { person: personId }),
+      supabase.rpc('staff_open_person', { person: personId }),
       supabase
         .from('staff_actions')
         .select('id, person_id, user_id, note, created_at')
@@ -330,9 +330,9 @@ export function useReport(
   useEffect(() => {
     let live = true;
     Promise.all([
-      supabase.rpc('staff_report', { org: orgId, from_day: from, to_day: to }),
+      supabase.rpc('staff_open_report', { org: orgId, from_day: from, to_day: to }),
       beforeFrom && beforeTo
-        ? supabase.rpc('staff_report', { org: orgId, from_day: beforeFrom, to_day: beforeTo })
+        ? supabase.rpc('staff_open_report', { org: orgId, from_day: beforeFrom, to_day: beforeTo })
         : Promise.resolve({ data: null, error: null }),
     ]).then(([a, b]) => {
       if (!live) return;
