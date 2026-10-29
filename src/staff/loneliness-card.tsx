@@ -7,25 +7,28 @@ import { staffColors, staffFont } from './theme';
 
 /**
  * UCLA-3 (Hughes et al. 2004), asked by her carer at sign-up and then monthly, in her language.
- * English is the published wording; the Spanish and Dutch lines are our translations, for reading aloud.
+ * English is the published wording. Spanish is the validated version (Trucharte et al. 2022, Current Psychology,
+ * doi 10.1007/s12144-021-02110-x, table 1, CC BY 4.0), word for word: it uses tú, like Hilo, and the masculine
+ * form, which the carer says in her gender when reading aloud. Dutch is still our translation: no validated Dutch
+ * UCLA-3 found; in the Netherlands loneliness is measured with the De Jong Gierveld scale.
  */
 const QUESTIONS = [
   {
     key: 'companionship',
     en: 'How often do you feel that you lack companionship?',
-    es: '¿Con qué frecuencia siente que le falta compañía?',
+    es: '¿Con qué frecuencia sientes que te falta compañía?',
     nl: 'Hoe vaak heeft u het gevoel dat u gezelschap mist?',
   },
   {
     key: 'left_out',
     en: 'How often do you feel left out?',
-    es: '¿Con qué frecuencia se siente excluido o excluida?',
+    es: '¿Con qué frecuencia te sientes excluido?',
     nl: 'Hoe vaak voelt u zich buitengesloten?',
   },
   {
     key: 'isolated',
     en: 'How often do you feel isolated from others?',
-    es: '¿Con qué frecuencia se siente aislado o aislada de los demás?',
+    es: '¿Con qué frecuencia te sientes aislado de los demás?',
     nl: 'Hoe vaak voelt u zich geïsoleerd van anderen?',
   },
 ] as const;
