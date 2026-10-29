@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,13 +16,14 @@ import { colors, fontSize, fontWeight, spacing } from '@/theme';
 /** Bump when the text below changes, so people accept the new version. */
 // v2 (20 oct): one sentence for the family about what she talked about
 const CONSENT_VERSION = '2026-10-v2';
+// When an organisation signed her up: a text of its own, so its version is recorded apart
+const ORG_CONSENT_VERSION = '2026-10-org-v1';
 const KINDS = ['terms', 'voice_recording', 'life_story', 'health_data'] as const;
-
-const POINTS = t.consent.points;
 
 /**
  * The senior gives their own consent on their own phone, right after pairing.
  * A family member cannot consent for another adult (GDPR).
+ * If an organisation signed her up, the text names it and says what its staff see (it decides about her data).
  */
 export default function ConsentScreen() {
   // iPad on its side: the bot on the left, the text and buttons on the right
@@ -32,9 +33,18 @@ export default function ConsentScreen() {
   const [done, setDone] = useState(false);
   const [declined, setDeclined] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // undefined while loading, null for a family without an organisation
+  const [org, setOrg] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    supabase.rpc('my_organisation_name').then(({ data, error: e }) => setOrg(e ? undefined : ((data as string | null) ?? null)));
+  }, []);
+
+  const points = org ? t.consent.orgPoints(org) : t.consent.points;
 
   const accept = async () => {
-    if (saving) return;
+    // Not until we know which text she is reading
+    if (saving || org === undefined) return;
     setSaving(true);
     setError(null);
     const { data: me, error: meError } = await supabase.from('people').select('family_id').eq('id', personId).single();
@@ -42,7 +52,7 @@ export default function ConsentScreen() {
       ? { error: meError }
       : await supabase
           .from('consents')
-          .insert(KINDS.map((kind) => ({ family_id: me.family_id, person_id: personId, kind, version: CONSENT_VERSION })));
+          .insert(KINDS.map((kind) => ({ family_id: me.family_id, person_id: personId, kind, version: org ? ORG_CONSENT_VERSION : CONSENT_VERSION })));
     setSaving(false);
     if (e) {
       setError(t.common.saveFailed);
@@ -93,7 +103,7 @@ export default function ConsentScreen() {
           <ScreenHeader title={t.consent.title} subtitle={t.consent.subtitle} />
 
           <View style={styles.points}>
-            {POINTS.map((p) => (
+            {points.map((p) => (
               <View key={p} style={styles.point}>
                 <View style={styles.dot} />
                 <Text style={styles.pointText}>{p}</Text>
@@ -102,7 +112,7 @@ export default function ConsentScreen() {
           </View>
 
           {declined ? (
-            <Text style={styles.note}>{t.consent.declined}</Text>
+            <Text style={styles.note}>{org ? t.consent.orgDeclined(org) : t.consent.declined}</Text>
           ) : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 

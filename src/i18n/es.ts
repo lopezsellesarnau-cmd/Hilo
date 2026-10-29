@@ -157,6 +157,15 @@ export const es = {
     agree: 'Estoy de acuerdo',
     notNow: 'Ahora no',
     declined: 'Sin tu permiso, Hilo no puede funcionar. Puedes hablarlo con tu familia y volver aquí.',
+    // When an organisation signed her up: it decides about her data, so the screen names it and says what it sees
+    orgPoints: (org: string) => [
+      'Guarda lo que cuentas en las charlas, para acordarse y escribir tu libro. El texto de cada charla se borra a los 90 días. Tu voz no se guarda.',
+      'Guarda cuándo tomas tus pastillas.',
+      `${org} ve si charlas cada día, si tomas tus pastillas y cómo dices que estás, para saber cuándo llamarte. Nunca lee tus charlas.`,
+      'Si tienes familia en Hilo, le cuenta en una frase de qué habéis hablado. Si algo es solo para ti, díselo a Hilo.',
+      'No lo vendemos a nadie. Puedes pedir que se borre todo cuando quieras.',
+    ],
+    orgDeclined: (org: string) => `Sin tu permiso, Hilo no puede funcionar. Puedes hablarlo con ${org} y volver aquí.`,
     doneTitle: '¡Todo listo!',
     doneText: 'Cada día, Hilo te avisará para charlar un rato.',
     start: 'Empezar',
