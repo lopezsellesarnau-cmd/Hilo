@@ -70,7 +70,11 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
     // On success the session becomes aal2 and the layout opens /staff
     if (error) {
       setCode('');
-      setMessage("That code didn't work. Codes change every 30 seconds: type the one on screen now.");
+      setMessage(
+        mode === 'enroll'
+          ? "That code didn't work. If you reloaded this page, the QR is new: scan this one (remove the old Hilo code from the app first)."
+          : "That code didn't work. Codes change every 30 seconds: type the one on screen now.",
+      );
     }
   };
 
@@ -96,6 +100,7 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
               <Text selectable style={styles.secret}>
                 {setup.secret}
               </Text>
+              <Text style={styles.small}>Reloading this page makes a new QR.</Text>
             </View>
           ) : null}
 
@@ -120,7 +125,7 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
           {message ? <Text style={styles.error}>{message}</Text> : null}
 
           <Pressable
-            onPress={busy ? undefined : () => code.length === 6 && verify(code)}
+            onPress={busy ? undefined : () => (code.length === 6 ? verify(code) : setMessage('Type the 6 digits from the app.'))}
             style={[styles.button, (busy || !factorId) && styles.busy]}
             accessibilityRole="button">
             <Text style={styles.buttonText}>{busy ? 'One moment…' : mode === 'enroll' ? 'Turn on' : 'Continue'}</Text>
