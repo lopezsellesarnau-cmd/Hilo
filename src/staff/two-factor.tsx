@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { Bot } from '@/components/bot';
 import { supabase } from '@/lib/supabase';
@@ -30,6 +30,8 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // On a desktop the setup sits in two columns: why and how on the left, the QR and the code on the right
+  const wide = useWindowDimensions().width >= 900 && mode === 'enroll';
 
   useEffect(() => {
     let live = true;
@@ -74,60 +76,64 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
 
   return (
     <View style={styles.page}>
-      <View style={styles.box}>
-        <Bot size={56} />
-        <Text style={[staffText.label, styles.kicker]}>Hilo for organisations</Text>
-        <Text style={staffText.title}>{mode === 'enroll' ? 'Set up a second step' : 'One more step'}</Text>
-        <Text style={[staffText.body, styles.hint]}>
-          {mode === 'enroll'
-            ? `Staff see health information, so signing in takes your email code and a code from an authenticator app. Scan this with Google Authenticator or Microsoft Authenticator, then type the 6-digit code it shows. In Passwords on iPhone or Mac, the code goes inside a saved login: choose to create a new one called Hilo.`
-            : `Type the 6-digit code for Hilo from your authenticator app (${email}).`}
-        </Text>
+      <View style={[styles.box, wide && styles.wideBox]}>
+        <View style={wide && styles.intro}>
+          <Bot size={56} />
+          <Text style={[staffText.label, styles.kicker]}>Hilo for organisations</Text>
+          <Text style={staffText.title}>{mode === 'enroll' ? 'Set up a second step' : 'One more step'}</Text>
+          <Text style={[staffText.body, styles.hint]}>
+            {mode === 'enroll'
+              ? `Staff see health information, so signing in takes your email code and a code from an authenticator app. Scan this with Google Authenticator or Microsoft Authenticator, then type the 6-digit code it shows. In Passwords on iPhone or Mac, the code goes inside a saved login: choose to create a new one called Hilo.`
+              : `Type the 6-digit code for Hilo from your authenticator app (${email}).`}
+          </Text>
+        </View>
 
-        {setup ? (
-          <View style={styles.qrBlock}>
-            <Image source={{ uri: setup.qr }} style={styles.qr} accessibilityLabel="QR code for your authenticator app" />
-            <Text style={styles.small}>{"Can't scan it? Type this key in the app instead:"}</Text>
-            <Text selectable style={styles.secret}>
-              {setup.secret}
-            </Text>
-          </View>
-        ) : null}
+        <View style={wide && styles.form}>
+          {setup ? (
+            <View style={[styles.qrBlock, wide && styles.qrBlockWide]}>
+              <Image source={{ uri: setup.qr }} style={styles.qr} accessibilityLabel="QR code for your authenticator app" />
+              <Text style={styles.small}>{"Can't scan it? Type this key in the app instead:"}</Text>
+              <Text selectable style={styles.secret}>
+                {setup.secret}
+              </Text>
+            </View>
+          ) : null}
 
-        <TextInput
-          value={code}
-          onChangeText={(v) => {
-            const digits = v.replace(/\D/g, '').slice(0, 6);
-            setCode(digits);
-            setMessage(null);
-            if (digits.length === 6) verify(digits);
-          }}
-          placeholder="······"
-          placeholderTextColor={staffColors.muted}
-          keyboardType="number-pad"
-          autoComplete="one-time-code"
-          maxLength={6}
-          autoFocus
-          editable={!!factorId}
-          style={[styles.input, styles.code]}
-        />
+          <TextInput
+            value={code}
+            onChangeText={(v) => {
+              const digits = v.replace(/\D/g, '').slice(0, 6);
+              setCode(digits);
+              setMessage(null);
+              if (digits.length === 6) verify(digits);
+            }}
+            placeholder="······"
+            placeholderTextColor={staffColors.muted}
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
+            maxLength={6}
+            autoFocus
+            editable={!!factorId}
+            style={[styles.input, styles.code]}
+          />
 
-        {message ? <Text style={styles.error}>{message}</Text> : null}
+          {message ? <Text style={styles.error}>{message}</Text> : null}
 
-        <Pressable
-          onPress={busy ? undefined : () => code.length === 6 && verify(code)}
-          style={[styles.button, (busy || !factorId) && styles.busy]}
-          accessibilityRole="button">
-          <Text style={styles.buttonText}>{busy ? 'One moment…' : mode === 'enroll' ? 'Turn on' : 'Continue'}</Text>
-        </Pressable>
+          <Pressable
+            onPress={busy ? undefined : () => code.length === 6 && verify(code)}
+            style={[styles.button, (busy || !factorId) && styles.busy]}
+            accessibilityRole="button">
+            <Text style={styles.buttonText}>{busy ? 'One moment…' : mode === 'enroll' ? 'Turn on' : 'Continue'}</Text>
+          </Pressable>
 
-        {mode === 'verify' ? (
-          <Text style={styles.small}>{"Lost your phone? Write to Hilo (lopezsellesarnau@gmail.com) to reset your second step."}</Text>
-        ) : null}
+          {mode === 'verify' ? (
+            <Text style={styles.small}>{"Lost your phone? Write to Hilo (lopezsellesarnau@gmail.com) to reset your second step."}</Text>
+          ) : null}
 
-        <Pressable onPress={() => supabase.auth.signOut()} accessibilityRole="button">
-          <Text style={styles.link}>Sign out</Text>
-        </Pressable>
+          <Pressable onPress={() => supabase.auth.signOut()} accessibilityRole="button">
+            <Text style={styles.link}>Sign out</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -136,6 +142,10 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: staffColors.page, alignItems: 'center', justifyContent: 'center', padding: 16 },
   box: { width: '100%', maxWidth: 400 },
+  wideBox: { maxWidth: 920, flexDirection: 'row', alignItems: 'center', gap: 72 },
+  intro: { flex: 1 },
+  form: { width: 380 },
+  qrBlockWide: { marginTop: 0 },
   kicker: { marginTop: 28, marginBottom: 10 },
   hint: { marginTop: 12, color: staffColors.soft },
   qrBlock: { marginTop: 24, padding: 16, borderRadius: 12, backgroundColor: staffColors.block, alignItems: 'center' },
