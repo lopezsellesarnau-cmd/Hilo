@@ -15,7 +15,8 @@ import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
 /** Bump when the text below changes, so people accept the new version. */
 // v2 (20 oct): one sentence for the family about what she talked about
-const CONSENT_VERSION = '2026-10-v2';
+// v3 (30 oct): her voice is never kept (it said it was); the talks' text is deleted after 90 days
+const CONSENT_VERSION = '2026-10-v3';
 // When an organisation signed her up: a text of its own, so its version is recorded apart
 const ORG_CONSENT_VERSION = '2026-10-org-v1';
 const KINDS = ['terms', 'voice_recording', 'life_story', 'health_data'] as const;

@@ -148,7 +148,7 @@ export const es = {
     title: 'Antes de empezar',
     subtitle: 'Esto es lo que hace Hilo con lo que le cuentas.',
     points: [
-      'Guarda tu voz y lo que cuentas en las charlas, para escribir tu libro.',
+      'Guarda lo que cuentas en las charlas, para acordarse y escribir tu libro. El texto de cada charla se borra a los 90 días. Tu voz no se guarda.',
       'Guarda cuándo tomas tus pastillas, para avisar a tu familia si se te olvida.',
       'A tu familia le cuenta, en una frase, de qué habéis hablado, para que te llamen. Si algo es solo para ti, díselo a Hilo.',
       'Solo lo ve tu familia. No lo vendemos a nadie.',

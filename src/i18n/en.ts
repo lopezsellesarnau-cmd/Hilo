@@ -143,7 +143,7 @@ export const en: Strings = {
     title: 'Before we start',
     subtitle: 'This is what Hilo does with what you tell it.',
     points: [
-      'It keeps your voice and what you say in the chats, to write your book.',
+      'It keeps what you say in the chats, to remember it and write your book. The text of each chat is deleted after 90 days. Your voice is not kept.',
       'It keeps when you take your pills, to tell your family if you forget.',
       'It tells your family, in one sentence, what you talked about, so they call you. If something is just for you, tell Hilo.',
       'Only your family sees it. We never sell it to anyone.',

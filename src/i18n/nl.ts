@@ -147,7 +147,7 @@ export const nl: Strings = {
     title: 'Voordat we beginnen',
     subtitle: 'Dit doet Hilo met wat u vertelt.',
     points: [
-      'Hilo bewaart uw stem en wat u vertelt in de gesprekken, om uw boek te schrijven.',
+      'Hilo bewaart wat u vertelt in de gesprekken, om het te onthouden en uw boek te schrijven. De tekst van elk gesprek wordt na 90 dagen gewist. Uw stem wordt niet bewaard.',
       'Hilo bewaart wanneer u uw pillen neemt, om uw familie te laten weten als u er een vergeet.',
       'Hilo vertelt uw familie in één zin waarover u heeft gepraat, zodat ze u bellen. Is iets alleen voor u, zeg het dan tegen Hilo.',
       'Alleen uw familie ziet het. We verkopen het aan niemand.',
