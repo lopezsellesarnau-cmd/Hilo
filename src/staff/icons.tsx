@@ -107,3 +107,17 @@ export function NoteIcon({ size = 20, color = staffColors.ink }: Props) {
     </Svg>
   );
 }
+
+/** A staff badge: the Team page */
+export function TeamIcon({ size = 20, color = staffColors.ink }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        d="M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v13a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V6A1.5 1.5 0 0 1 5 4.5z"
+        {...line(color)}
+      />
+      <Circle cx={12} cy={10.5} r={2.6} {...line(color)} />
+      <Path d="M7.5 17c.7-2 2.4-3 4.5-3s3.8 1 4.5 3" strokeLinecap="round" {...line(color)} />
+    </Svg>
+  );
+}

@@ -260,9 +260,12 @@ export async function pairingCode(personId: string): Promise<string | null> {
   return error ? null : (data as string);
 }
 
-/** The organisation's team (for "Carer"), by name. */
-export function useTeam(): Loaded<{ user_id: string; display_name: string; role: 'admin' | 'carer' }[]> {
-  const [data, setData] = useState<{ user_id: string; display_name: string; role: 'admin' | 'carer' }[] | null>(null);
+/** One staff member of the organisation. */
+export type TeamMember = { user_id: string; display_name: string; role: 'admin' | 'carer'; created_at: string };
+
+/** The organisation's team (for "Carer" and the Team page), by name. */
+export function useTeam(): Loaded<TeamMember[]> {
+  const [data, setData] = useState<TeamMember[] | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
@@ -270,7 +273,7 @@ export function useTeam(): Loaded<{ user_id: string; display_name: string; role:
     let live = true;
     supabase
       .from('org_members')
-      .select('user_id, display_name, role')
+      .select('user_id, display_name, role, created_at')
       .order('display_name')
       .then(({ data: rows, error: e }) => {
         if (!live) return;
@@ -281,6 +284,51 @@ export function useTeam(): Loaded<{ user_id: string; display_name: string; role:
       live = false;
     };
   }, [attempt]);
+
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { data, error, reload };
+}
+
+/** One row of staff_access_log: who on the staff opened a person's page or the reports, and when. */
+export type AccessEntry = {
+  id: string;
+  /** null once that staff member's account is deleted */
+  user_id: string | null;
+  /** null for the reports */
+  person_id: string | null;
+  what: 'person' | 'report';
+  at: string;
+};
+
+/**
+ * The organisation's access log for the last `days` days, newest first. Admins only: for carers RLS returns
+ * nothing, so don't call it for them (`enabled`).
+ */
+export function useAccessLog(orgId: string, days: number, enabled: boolean): Loaded<AccessEntry[]> {
+  const [data, setData] = useState<AccessEntry[] | null>(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let live = true;
+    supabase
+      .from('staff_access_log')
+      .select('id, user_id, person_id, what, at')
+      .eq('org_id', orgId)
+      .gte('at', new Date(Date.now() - days * 86_400_000).toISOString())
+      .order('at', { ascending: false })
+      .limit(1000)
+      .then(({ data: rows, error: e }) => {
+        if (!live) return;
+        setError(!!e);
+        if (!e) setData((rows ?? []) as AccessEntry[]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [orgId, days, enabled, attempt]);
 
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
 

@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
-import { AddPersonIcon, BotMark, ReportsIcon, SignOutIcon, TodayIcon } from './icons';
+import { AddPersonIcon, BotMark, ReportsIcon, SignOutIcon, TeamIcon, TodayIcon } from './icons';
 import type { StaffMember } from './session';
 import { staffColors, staffFont } from './theme';
 
@@ -21,6 +21,7 @@ const groups: { title?: string; items: Item[] }[] = [
     ],
   },
   { title: 'Measure', items: [{ label: 'Reports', icon: <ReportsIcon />, href: '/staff/reports' }] },
+  { title: 'Organisation', items: [{ label: 'Team', icon: <TeamIcon />, href: '/staff/team' }] },
 ];
 
 const initials = (name: string) =>
