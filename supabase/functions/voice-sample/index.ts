@@ -109,6 +109,10 @@ Deno.serve(async (req) => {
   });
   const { data: userData } = await db.auth.getUser(auth.replace('Bearer ', ''));
   if (!userData.user || userData.user.is_anonymous) return json({ error: 'auth' }, 401);
+  // Staff only after the second step, like the database (staff_two_factor). getUser has checked the token,
+  // so its claims can be read; the email code alone gives 'aal1', and the own org_members row is readable then.
+  const claims = JSON.parse(atob(auth.replace('Bearer ', '').split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+  if (claims.aal !== 'aal2') return json({ error: 'two_factor' }, 403);
   const { data: member } = await db.from('org_members').select('org_id').eq('user_id', userData.user.id).limit(1).maybeSingle();
   if (!member) return json({ error: 'not_staff' }, 403);
 
