@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
+import { t } from '@/i18n';
 import { colors, serif } from '@/theme';
 
 // 18 oct prototype: a black hardcover with the pages showing on the right. Drawn on 200 × 250.
@@ -36,6 +37,12 @@ export function BookCover({ width, title, caption }: Props) {
       </View>
     </View>
   );
+}
+
+/** iPad on its side: her book big on the left of Mi libro and of each chapter (282 tall for 230 wide) */
+export function SideCover({ name }: { name: string }) {
+  const { width, height } = useWindowDimensions();
+  return <BookCover width={Math.min(300, width * 0.25, (height * 0.6 * 230) / 282)} title={t.book.cover(name)} />;
 }
 
 const styles = StyleSheet.create({

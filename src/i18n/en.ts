@@ -254,7 +254,6 @@ export const en: Strings = {
     bigger: 'Bigger text',
     normal: 'Normal text',
     next: 'Next',
-    cover: (name: string) => `The life of ${name}`,
     listen: 'Listen to my story',
     listenPreparing: 'Getting it ready…',
     listenPause: 'Pause',

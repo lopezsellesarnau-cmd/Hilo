@@ -258,7 +258,6 @@ export const nl: Strings = {
     bigger: 'Grotere letters',
     normal: 'Normale letters',
     next: 'Volgende',
-    cover: (name: string) => `Het leven van ${name}`,
     listen: 'Luister naar mijn verhaal',
     listenPreparing: 'Even klaarzetten…',
     listenPause: 'Pauzeren',

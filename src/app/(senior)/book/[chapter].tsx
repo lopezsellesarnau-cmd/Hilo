@@ -1,9 +1,9 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BookCover } from '@/components/book-cover';
+import { SideCover } from '@/components/book-cover';
 import { ListenButton } from '@/components/listen-button';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
@@ -16,7 +16,6 @@ const text = t.chapter;
 export default function ChapterScreen() {
   const { chapter: id } = useLocalSearchParams<{ chapter: string }>();
   const fade = useScrollFade();
-  const { width, height } = useWindowDimensions();
   // Opens with the book Mi libro already has, so the page is never blank while it slides in
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(cachedBook);
   // "Aa": bigger letters for this reading, on top of the system text size
@@ -41,9 +40,6 @@ export default function ChapterScreen() {
   if (!chapter) return <SafeAreaView style={styles.safe}>{paper}</SafeAreaView>;
   const next = book.chapters[index + 1];
 
-  // iPad on its side: her book on the left, like in Mi libro (282 tall for 230 wide)
-  const cover = <BookCover width={Math.min(300, width * 0.25, (height * 0.6 * 230) / 282)} title={text.cover(book.name)} />;
-
   const [first, ...rest] = chapter.paragraphs;
   // Her sentence goes in the middle of the story
   const quoteAt = Math.floor(rest.length / 2);
@@ -58,7 +54,7 @@ export default function ChapterScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {paper}
-      <WideFrame side={cover}>
+      <WideFrame side={<SideCover name={book.name} />}>
         <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
           <View style={styles.top}>
             <Pressable

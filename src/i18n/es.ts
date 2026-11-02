@@ -260,7 +260,6 @@ export const es = {
     bigger: 'Letra más grande',
     normal: 'Letra normal',
     next: 'Siguiente',
-    cover: (name: string) => `La vida de ${name}`,
     listen: 'Escuchar mi historia',
     listenPreparing: 'Preparándola…',
     listenPause: 'Pausar',

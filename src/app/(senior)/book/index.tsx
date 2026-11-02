@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-n
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BookCover } from '@/components/book-cover';
+import { BookCover, SideCover } from '@/components/book-cover';
 import { ChevronCircle } from '@/components/icons';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
@@ -37,13 +37,7 @@ export default function BookScreen() {
   const failed = book && 'error' in book ? book.error : null;
   const chapters = ready?.chapters ?? [];
   const coverWidth = Math.min(164, width * 0.42, height * 0.2);
-  // The book is 282 tall for 230 wide (Figma)
-  const bigCover =
-    ready ? (
-      <BookCover width={Math.min(300, width * 0.25, (height * 0.6 * 230) / 282)} title={text.cover(ready.name)} />
-    ) : (
-      <View />
-    );
+  const bigCover = ready ? <SideCover name={ready.name} /> : <View />;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
