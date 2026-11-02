@@ -27,18 +27,33 @@ export default function ChapterScreen() {
 
   const paper = <Stack.Screen options={{ contentStyle: { backgroundColor: colors.paper } }} />;
 
-  if (!book || 'error' in book) {
+  const back = (
+    <Pressable
+      onPress={() => router.back()}
+      accessibilityRole="button"
+      accessibilityLabel={text.backLabel}
+      hitSlop={8}
+      style={styles.back}>
+      <Text style={styles.backText}>{text.back}</Text>
+    </Pressable>
+  );
+
+  const chapters = book && 'chapters' in book ? book.chapters : [];
+  const index = chapters.findIndex((c) => c.id === id);
+  const chapter = chapters[index];
+  // Loading, no connection, or a story the family took back: never a page without a way out
+  if (!book || 'error' in book || !chapter) {
     return (
       <SafeAreaView style={styles.safe}>
         {paper}
-        {book ? <Text style={[styles.paragraph, styles.screen]}>{book.error}</Text> : null}
+        <View style={styles.screen}>
+          <View style={styles.top}>{back}</View>
+          {book && 'error' in book ? <Text style={styles.paragraph}>{book.error}</Text> : null}
+        </View>
       </SafeAreaView>
     );
   }
-  const index = book.chapters.findIndex((c) => c.id === id);
-  const chapter = book.chapters[index];
-  if (!chapter) return <SafeAreaView style={styles.safe}>{paper}</SafeAreaView>;
-  const next = book.chapters[index + 1];
+  const next = chapters[index + 1];
 
   const [first, ...rest] = chapter.paragraphs;
   // Her sentence goes in the middle of the story
@@ -57,14 +72,7 @@ export default function ChapterScreen() {
       <WideFrame side={<SideCover name={book.name} />}>
         <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
           <View style={styles.top}>
-            <Pressable
-              onPress={() => router.back()}
-              accessibilityRole="button"
-              accessibilityLabel={text.backLabel}
-              hitSlop={8}
-              style={styles.back}>
-              <Text style={styles.backText}>{text.back}</Text>
-            </Pressable>
+            {back}
             <Pressable
               onPress={() => setBig((b) => !b)}
               accessibilityRole="button"
