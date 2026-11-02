@@ -15,7 +15,7 @@ import { remindLater } from '@/lib/reminders';
 import { doneFor, dueNow, type DayPill } from '@/lib/pill-queue';
 import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
 import { useWide } from '@/lib/layout';
-import { localNow, showTime } from '@/lib/time';
+import { localNow, msToNextMinute, showTime } from '@/lib/time';
 import { colors, fontSize, fontWeight, seniorScreen } from '@/theme';
 
 /** How long "Recuérdamelo en un rato" waits */
@@ -53,6 +53,20 @@ export default function PillsScreen() {
       })();
     }, []),
   );
+
+  // The screen follows the clock: a pill due at 9:00, or one put off for later, shows up while it's open
+  const [, setMinute] = useState(0);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const wait = () => {
+      timer = setTimeout(() => {
+        setMinute((m) => m + 1);
+        wait();
+      }, msToNextMinute(new Date()));
+    };
+    wait();
+    return () => clearTimeout(timer);
+  }, []);
 
   // After marking, "Hecho" and "Deshacer" stay for a while in case of a wrong tap
   const [undoId, setUndoId] = useState<string | null>(null);

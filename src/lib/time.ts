@@ -28,6 +28,12 @@ export function localNow(timeZone: string, date = new Date()) {
   };
 }
 
+/** Milliseconds until the clock shows the next minute (a whole minute when it's exactly on one) */
+export const msToNextMinute = (date: Date) => 60_000 - (date.getTime() % 60_000);
+
+/** A picked time → 'HH:mm', as medications.times stores it */
+export const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
 /** '09:15' or '09:15:00' → '9:15' */
 export const showTime = (t: string) => t.slice(0, 5).replace(/^0/, '');
 
