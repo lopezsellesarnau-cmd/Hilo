@@ -32,12 +32,15 @@ export default function BookScreen() {
     }, []),
   );
 
-  const chapters = book && 'chapters' in book ? book.chapters : [];
+  // Loaded (her name and stories) or the reason it couldn't load; null while loading
+  const ready = book && 'chapters' in book ? book : null;
+  const failed = book && 'error' in book ? book.error : null;
+  const chapters = ready?.chapters ?? [];
   const coverWidth = Math.min(164, width * 0.42, height * 0.2);
   // The book is 282 tall for 230 wide (Figma)
   const bigCover =
-    book && 'name' in book ? (
-      <BookCover width={Math.min(300, width * 0.25, (height * 0.6 * 230) / 282)} title={text.cover(book.name)} />
+    ready ? (
+      <BookCover width={Math.min(300, width * 0.25, (height * 0.6 * 230) / 282)} title={text.cover(ready.name)} />
     ) : (
       <View />
     );
@@ -52,16 +55,16 @@ export default function BookScreen() {
           {/* The cover's space is kept while loading, so the title never jumps down */}
           {wide ? null : (
             <View style={[styles.cover, { height: (coverWidth * 250) / 200 }]}>
-              {book && 'name' in book ? <BookCover width={coverWidth} title={text.cover(book.name)} /> : null}
+              {ready ? <BookCover width={coverWidth} title={text.cover(ready.name)} /> : null}
             </View>
           )}
           <View accessibilityRole="header" style={styles.titles}>
             <Text style={styles.title}>{text.title}</Text>
-            {book && 'chapters' in book ? <Text style={styles.subtitle}>{text.count(chapters.length)}</Text> : null}
+            {ready ? <Text style={styles.subtitle}>{text.count(chapters.length)}</Text> : null}
           </View>
 
-          {book && 'error' in book ? <Text style={styles.note}>{book.error}</Text> : null}
-          {book && 'chapters' in book && !chapters.length ? <Text style={styles.note}>{text.empty}</Text> : null}
+          {failed ? <Text style={styles.note}>{failed}</Text> : null}
+          {ready && !chapters.length ? <Text style={styles.note}>{text.empty}</Text> : null}
 
           <View style={styles.list}>
             {chapters.map((chapter, i) => (
