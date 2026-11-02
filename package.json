@@ -3,6 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@config-plugins/react-native-callkeep": "^14.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-masked-view/masked-view": "0.3.2",
@@ -29,6 +30,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
+    "react-native-callkeep": "^4.6.1",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-purchases": "^10.13.0",
     "react-native-qrcode-svg": "^6.3.26",

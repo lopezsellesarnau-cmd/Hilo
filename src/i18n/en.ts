@@ -181,6 +181,8 @@ export const en: Strings = {
   },
 
   talk: {
+    // Name on the incoming call (CallKit)
+    caller: 'Hilo, your chat',
     moods: {
       speaking: 'SPEAKING…',
       idle: 'YOUR TURN:',

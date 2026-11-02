@@ -12,6 +12,7 @@ import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadBook } from '@/lib/book';
+import { ringForTest } from '@/lib/call';
 import { loadSeniorDay, saveFeeling, type Feeling } from '@/lib/senior-day';
 import { colors, fontSize, fontWeight, lineHeight, seniorScreen } from '@/theme';
 
@@ -143,6 +144,11 @@ export default function HomeScreen() {
           </Text>
         </PressScale>
       </Animated.View>
+      {__DEV__ ? (
+        <Text onPress={ringForTest} style={styles.devRing}>
+          Test call (5 s)
+        </Text>
+      ) : null}
     </View>
   );
 
@@ -169,6 +175,11 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  devRing: {
+    marginTop: 16,
+    textAlign: 'center',
+    color: colors.muted,
+  },
   // Right column on a wide screen: greeting at the top, buttons at the bottom
   side: {
     flex: 1,

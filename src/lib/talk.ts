@@ -30,6 +30,7 @@ export async function sendTurn(
       const body = await error.context.json().catch(() => ({}));
       return { error: body.error === 'too_long' ? 'too_long' : 'other' };
     }
+    if (__DEV__) console.warn('talk offline', error.message, (error as { context?: unknown }).context);
     return { error: 'offline' };
   }
   return {

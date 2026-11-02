@@ -185,6 +185,8 @@ export const nl: Strings = {
   },
 
   talk: {
+    // Name on the incoming call (CallKit)
+    caller: 'Hilo, je gesprek',
     moods: {
       speaking: 'HILO PRAAT…',
       idle: 'UW BEURT:',

@@ -82,7 +82,9 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "@config-plugins/react-native-callkeep",
+      "./plugins/with-call-icon"
     ],
     "experiments": {
       "typedRoutes": true,
