@@ -87,6 +87,9 @@ export default function PillsScreen() {
   const next = pending.find((p) => p.time > now);
   const undoPill = list.find((p) => p.key === undoId);
 
+  // Each pill's save while it's on its way: Undo waits for it if she taps before it's done
+  const saving = useRef(new Map<string, PromiseLike<string | null>>());
+
   const markTaken = async (dose: DayPill) => {
     if (!me) return;
     setError(null);
@@ -96,7 +99,7 @@ export default function PillsScreen() {
     // With another pill already due, she goes on to it after a moment instead of going back home
     undoTimer.current = setTimeout(() => setUndoId(null), doneFor(list, dose.key, now));
 
-    const { data, error: e } = await supabase
+    const save = supabase
       .from('medication_events')
       .upsert(
         {
@@ -112,14 +115,18 @@ export default function PillsScreen() {
         { onConflict: 'medication_id,scheduled_date,scheduled_time' },
       )
       .select('id')
-      .single();
-    if (e || !data) {
+      .single()
+      .then(({ data }) => data?.id ?? null);
+    saving.current.set(dose.key, save);
+    const id = await save;
+    if (!id) {
       update(dose.key, { takenAt: null });
       setUndoId(null);
       setError(t.common.saveFailed);
       return;
     }
-    update(dose.key, { eventId: data.id });
+    // Not if she already undid it while it was saving
+    setPills((l) => l && l.map((p) => (p.key === dose.key && p.takenAt ? { ...p, eventId: id } : p)));
   };
 
   // Only on this phone: the reminder comes back in a while
@@ -131,10 +138,11 @@ export default function PillsScreen() {
   const undo = async (dose: DayPill) => {
     setUndoId(null);
     update(dose.key, { takenAt: null, eventId: null });
-    if (!dose.eventId) return;
-    const { error: e } = await supabase.from('medication_events').delete().eq('id', dose.eventId);
+    const id = dose.eventId ?? (await saving.current.get(dose.key));
+    if (!id) return;
+    const { error: e } = await supabase.from('medication_events').delete().eq('id', id);
     if (e) {
-      update(dose.key, { takenAt: dose.takenAt, eventId: dose.eventId });
+      update(dose.key, { takenAt: dose.takenAt, eventId: id });
       setError(t.pills.undoFailed);
     }
   };
