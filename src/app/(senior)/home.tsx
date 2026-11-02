@@ -13,7 +13,7 @@ import { useWide, wideBotSize } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadBook } from '@/lib/book';
 import { loadSeniorDay, saveFeeling, type Feeling } from '@/lib/senior-day';
-import { colors, fontSize, fontWeight, lineHeight, spacing } from '@/theme';
+import { colors, fontSize, fontWeight, lineHeight, seniorScreen } from '@/theme';
 
 /** When the app opens: greeting, bot and buttons appear one after another, gently.
  * Skipped automatically when "Reduce Motion" is on. */
@@ -143,8 +143,8 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={[styles.screen, wide && styles.screenWide]} bounces={false}>
+    <SafeAreaView style={seniorScreen.safe}>
+      <ScrollView contentContainerStyle={[seniorScreen.screen, wide && seniorScreen.screenWide]} bounces={false}>
         {wide ? (
           <WideSplit side={stage}>
             <View style={styles.side}>
@@ -165,22 +165,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  screen: {
-    width: '100%',
-    maxWidth: spacing.contentMax,
-    alignSelf: 'center',
-    flexGrow: 1,
-    paddingHorizontal: spacing.screenX,
-    paddingTop: spacing.screenTop,
-    paddingBottom: spacing.screenBottom,
-  },
-  screenWide: {
-    maxWidth: spacing.wideMax,
-  },
   // Right column on a wide screen: greeting at the top, buttons at the bottom
   side: {
     flex: 1,

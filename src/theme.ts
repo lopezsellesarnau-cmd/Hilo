@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 /**
  * Hilo design tokens, taken from the Figma v1 (APP Home, APP speech, APP pills).
@@ -100,3 +100,23 @@ export const family = {
     buttonBorder: 3,
   },
 } as const;
+
+/** The page of Home, Talk and Pills: white, centred, as wide as a big iPhone (wider on an iPad on its side) */
+export const seniorScreen = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  screen: {
+    width: '100%',
+    maxWidth: spacing.contentMax,
+    alignSelf: 'center',
+    flexGrow: 1,
+    paddingHorizontal: spacing.screenX,
+    paddingTop: spacing.screenTop,
+    paddingBottom: spacing.screenBottom,
+  },
+  screenWide: {
+    maxWidth: spacing.wideMax,
+  },
+});

@@ -18,7 +18,7 @@ import { useWide, wideBotSize } from '@/lib/layout';
 import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
 import { supabase } from '@/lib/supabase';
 import { leaveTalk, sendTurn } from '@/lib/talk';
-import { colors, fontSize, fontWeight, size, spacing } from '@/theme';
+import { colors, fontSize, fontWeight, seniorScreen, size } from '@/theme';
 
 const labels: Record<BotMood, string> = t.talk.moods;
 
@@ -381,8 +381,8 @@ export default function TalkScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={[styles.screen, wide && styles.screenWide]} bounces={false}>
+    <SafeAreaView style={seniorScreen.safe}>
+      <ScrollView contentContainerStyle={[seniorScreen.screen, wide && seniorScreen.screenWide]} bounces={false}>
         {wide ? (
           <WideSplit side={stage}>
             <View style={styles.side}>
@@ -403,22 +403,6 @@ export default function TalkScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  screen: {
-    width: '100%',
-    maxWidth: spacing.contentMax,
-    alignSelf: 'center',
-    flexGrow: 1,
-    paddingHorizontal: spacing.screenX,
-    paddingTop: spacing.screenTop,
-    paddingBottom: spacing.screenBottom,
-  },
-  screenWide: {
-    maxWidth: spacing.wideMax,
-  },
   // Right column on a wide screen: greeting at the top, the talk and its buttons at the bottom
   side: {
     flex: 1,
