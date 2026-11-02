@@ -41,6 +41,8 @@ const startRecognition = (locale: SeniorMe['locale']) =>
     // Voice is health-adjacent personal data: keep it on the phone when the phone can do it
     requiresOnDeviceRecognition: ExpoSpeechRecognitionModule.supportsOnDeviceRecognition(),
     iosTaskHint: 'dictation',
+    // Not the library's default "measurement" mode: iOS kept it after she spoke and Hilo's voice came out very quiet
+    iosCategory: { category: 'playAndRecord', categoryOptions: ['defaultToSpeaker', 'allowBluetooth'], mode: 'default' },
   });
 
 export default function TalkScreen() {
