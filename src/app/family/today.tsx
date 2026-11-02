@@ -3,8 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BigButton } from '@/components/big-button';
 import { Bot } from '@/components/bot';
 import { DayDot } from '@/components/day-dot';
+import { PhoneIcon } from '@/components/icons';
 import { ListRow } from '@/components/list-row';
 import { TodayPills } from '@/components/today-pills';
 import { WeekStrip } from '@/components/week-strip';
@@ -45,6 +47,8 @@ export default function TodayScreen() {
   const [error, setError] = useState<string | null>(null);
   // Nobody in the family has talked with her for CALL_DAYS: one of the things to do today
   const [callDue, setCallDue] = useState(false);
+  // "Que Hilo llame ahora" was pressed. Only the look for now: the call to the server comes next
+  const [ringing, setRinging] = useState(false);
 
   // So the server can tell this phone when she hasn't talked in 2 days
   useEffect(() => {
@@ -151,6 +155,18 @@ export default function TodayScreen() {
                 detail={!lastTalk && senior.talk_time ? text.talkAt(showTime(senior.talk_time)) : undefined}
                 onPress={() => router.push('/family/talks')}
               />
+              {/* Her phone has to be connected for Hilo to ring on it */}
+              {senior.user_id ? (
+                <View style={styles.ring}>
+                  <BigButton
+                    scale="family"
+                    icon={<PhoneIcon />}
+                    label={text.ring(senior.display_name)}
+                    onPress={ringing ? undefined : () => setRinging(true)}
+                  />
+                  <Text style={[styles.note, styles.center]}>{ringing ? text.ringing : text.ringHint}</Text>
+                </View>
+              ) : null}
               <WeekStrip key={reloadKey} seniorId={senior.id} timezone={senior.timezone} />
             </View>
           ) : null}
@@ -268,6 +284,13 @@ const styles = StyleSheet.create({
     fontSize: family.fontSize.note,
     lineHeight: 21,
     color: colors.muted,
+  },
+  ring: {
+    marginVertical: 8,
+    gap: 8,
+  },
+  center: {
+    textAlign: 'center',
   },
   label: {
     fontSize: 13,

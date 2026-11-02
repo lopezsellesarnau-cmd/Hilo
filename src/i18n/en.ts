@@ -276,6 +276,10 @@ export const en: Strings = {
     toDo: 'To do',
     callKicker: 'Call',
     callDue: (name: string) => `Nobody has talked with ${name} for days`,
+    // The family makes Hilo ring on her phone, like a call
+    ring: (name: string) => `Call ${name} now`,
+    ringHint: 'Hilo will ring on their phone',
+    ringing: 'Ringing on their phone…',
     title: 'Today',
     with: (name: string) => `With ${name}`,
     talk: 'The chat',

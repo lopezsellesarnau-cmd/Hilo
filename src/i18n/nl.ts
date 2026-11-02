@@ -280,6 +280,10 @@ export const nl: Strings = {
     toDo: 'Te doen',
     callKicker: 'Bellen',
     callDue: (name: string) => `Al dagen heeft niemand met ${name} gesproken`,
+    // The family makes Hilo ring on her phone, like a call
+    ring: (name: string) => `${name} nu bellen`,
+    ringHint: 'Hilo gaat over op de telefoon',
+    ringing: 'Gaat over op de telefoon…',
     title: 'Vandaag',
     with: (name: string) => `Met ${name}`,
     talk: 'Het praatje',

@@ -282,6 +282,10 @@ export const es = {
     toDo: 'Para hacer',
     callKicker: 'Llamada',
     callDue: (name: string) => `Hace días que nadie habla con ${name}`,
+    // The family makes Hilo ring on her phone, like a call
+    ring: (name: string) => `Llamar a ${name} ahora`,
+    ringHint: 'Hilo sonará en su móvil',
+    ringing: 'Sonando en su móvil…',
     title: 'Hoy',
     with: (name: string) => `Con ${name}`,
     talk: 'La charla',
