@@ -12,18 +12,14 @@ import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { remindLater } from '@/lib/reminders';
+import { doneFor, dueNow, type DayPill } from '@/lib/pill-queue';
 import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
 import { useWide } from '@/lib/layout';
-import { localNow, showTime, type Dose } from '@/lib/time';
-import { colors, fontSize, fontWeight, spacing } from '@/theme';
-
-/** How long "Hecho" and "Deshacer" stay after marking, in case of a wrong tap */
-const UNDO_MS = 10_000;
+import { localNow, showTime } from '@/lib/time';
+import { colors, fontSize, fontWeight, seniorScreen } from '@/theme';
 
 /** How long "Recuérdamelo en un rato" waits */
 const SNOOZE_MINUTES = 30;
-
-type DayPill = Dose & { snoozedUntil?: string };
 
 /** 'HH:mm' a number of minutes from now, in the senior's time zone */
 const inMinutes = (timeZone: string, minutes: number) => localNow(timeZone, new Date(Date.now() + minutes * 60_000)).time;
@@ -73,7 +69,7 @@ export default function PillsScreen() {
 
   const list = pills ?? [];
   const pending = list.filter((p) => !p.takenAt);
-  const due = pending.find((p) => p.time <= now && !(p.snoozedUntil && p.snoozedUntil > now));
+  const due = dueNow(list, now);
   const next = pending.find((p) => p.time > now);
   const undoPill = list.find((p) => p.key === undoId);
 
@@ -83,7 +79,8 @@ export default function PillsScreen() {
     update(dose.key, { takenAt: now, snoozedUntil: undefined });
     setUndoId(dose.key);
     if (undoTimer.current) clearTimeout(undoTimer.current);
-    undoTimer.current = setTimeout(() => setUndoId(null), UNDO_MS);
+    // With another pill already due, she goes on to it after a moment instead of going back home
+    undoTimer.current = setTimeout(() => setUndoId(null), doneFor(list, dose.key, now));
 
     const { data, error: e } = await supabase
       .from('medication_events')
@@ -144,9 +141,9 @@ export default function PillsScreen() {
   ) : null;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={seniorScreen.safe}>
       <WideFrame>
-        <ScrollView contentContainerStyle={styles.screen} bounces={false}>
+        <ScrollView contentContainerStyle={seniorScreen.screen} bounces={false}>
           <View style={styles.top}>
             <ScreenHeader backLabel={t.home.title} />
             {list.length ? <Text style={styles.count}>{t.pills.countToday(taken, list.length)}</Text> : null}
@@ -250,19 +247,6 @@ export default function PillsScreen() {
 const DOT = 64;
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  screen: {
-    width: '100%',
-    maxWidth: spacing.contentMax,
-    alignSelf: 'center',
-    flexGrow: 1,
-    paddingHorizontal: spacing.screenX,
-    paddingTop: spacing.screenTop,
-    paddingBottom: spacing.screenBottom,
-  },
   // Back button on the left, today's count on the right
   top: {
     flexDirection: 'row',
