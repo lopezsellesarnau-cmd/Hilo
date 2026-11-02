@@ -471,6 +471,8 @@ const AUDIO_LINK_SECONDS = 60 * 60;
 const MAX_READ_CHARS = 12_000;
 /** A talk left open (she put the phone down) can go on for a while, not for days */
 const MAX_TALK_AGE_MS = 6 * 60 * 60 * 1000;
+/** Talks left open that a new talk closes (and writes up) before it starts */
+const MAX_OPEN_TO_CLOSE = 3;
 /** talk_sessions.context check: a longer context is cut, never a failed talk */
 const MAX_CONTEXT = 2000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1020,6 +1022,20 @@ Deno.serve(async (req) => {
       const reply = say.enough(me.display_name);
       const spoken = reply.replaceAll(`, ${me.display_name}`, ` ${me.display_name}`);
       return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });
+    }
+
+    // Talks she never closed (app closed, phone off, crash): close them now so her story still goes to the book.
+    // A few at a time: each can mean a chapter written by the writer model
+    const { data: open } = await db
+      .from('talk_sessions')
+      .select('id')
+      .eq('person_id', me.id)
+      .is('ended_at', null)
+      .order('started_at', { ascending: false })
+      .limit(MAX_OPEN_TO_CLOSE);
+    for (const old of open ?? []) {
+      const { data: oldTurns } = await db.from('turns').select('seq, speaker, text').eq('session_id', old.id).order('seq');
+      await closeTalk(db, admin, me, old.id, oldTurns ?? []);
     }
 
     // Weather and holidays: fetched once, when the talk really starts, and saved on it so every turn
