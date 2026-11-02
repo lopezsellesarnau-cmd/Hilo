@@ -126,13 +126,15 @@ export default function PillsScreen() {
   };
 
   const taken = list.filter((p) => p.takenAt).length;
+  // On a wide screen the bot is already on the left
+  const bot = wide ? null : (
+    <View style={styles.botWrap}>
+      <Bot size={doneBotSize} />
+    </View>
+  );
   const doneView = undoPill ? (
     <>
-      {wide ? null : (
-        <View style={styles.botWrap}>
-          <Bot size={doneBotSize} />
-        </View>
-      )}
+      {bot}
       <Text style={styles.doneTitle}>{t.pills.doneName(undoPill.name)}</Text>
       <Text style={styles.focusDetail}>
         {next ? t.pills.nextOne(next.name, showTime(next.time)) : pending.length === 0 ? t.pills.allDoneDetail : t.pills.remindSoon}
@@ -187,11 +189,7 @@ export default function PillsScreen() {
               doneView
             ) : list.length === 0 ? (
               <>
-                {wide ? null : (
-                  <View style={styles.botWrap}>
-                    <Bot size={doneBotSize} />
-                  </View>
-                )}
+                {bot}
                 <Text style={styles.focusName}>{t.pills.noneToday}</Text>
                 <Text style={styles.focusDetail}>{t.pills.noneTodayDetail}</Text>
               </>
@@ -204,11 +202,7 @@ export default function PillsScreen() {
               </>
             ) : pending.length === 0 ? (
               <>
-                {wide ? null : (
-                  <View style={styles.botWrap}>
-                    <Bot size={doneBotSize} />
-                  </View>
-                )}
+                {bot}
                 <Text style={styles.focusName}>{t.pills.allDone}</Text>
                 <Text style={styles.focusDetail}>{t.pills.allDoneDetail}</Text>
               </>
