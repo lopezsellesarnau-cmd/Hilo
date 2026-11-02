@@ -1,6 +1,7 @@
 import { isAuthApiError } from '@supabase/supabase-js';
 import type { Href } from 'expo-router';
 
+import { missing } from '@/lib/found';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -52,15 +53,17 @@ export async function startRoute(): Promise<Href | null> {
   }
 
   if (session.user.is_anonymous) {
-    const { data: me } = await supabase.from('people').select('id').eq('user_id', session.user.id).maybeSingle();
+    const found = await supabase.from('people').select('id').eq('user_id', session.user.id).maybeSingle();
     // An anonymous session without a person is a pairing that never finished
-    if (!me) return null;
-    const { count } = await supabase
+    if (missing(found)) return null;
+    // No internet: her phone, so her Home (it says there's no connection), never Welcome
+    if (!found.data) return '/home';
+    const { count, error } = await supabase
       .from('consents')
       .select('id', { count: 'exact', head: true })
-      .eq('person_id', me.id)
+      .eq('person_id', found.data.id)
       .is('revoked_at', null);
-    return count ? '/home' : { pathname: '/consent', params: { personId: me.id } };
+    return count || error ? '/home' : { pathname: '/consent', params: { personId: found.data.id } };
   }
   return nextFamilyRoute(session.user.id);
 }

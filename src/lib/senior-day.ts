@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { missing } from '@/lib/found';
 import { supabase } from '@/lib/supabase';
 import { buildDoses, localNow, type Dose } from '@/lib/time';
 
@@ -28,17 +29,14 @@ export async function loadSeniorDay(): Promise<
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  const { data: me } = await supabase
+  const found = await supabase
     .from('people')
     .select('id, family_id, display_name, timezone, talk_time, locale')
     .eq('user_id', session?.user.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();
-  if (!me)
-    return {
-      me: null,
-      error: t.common.notPaired,
-    };
+  const me = found.data;
+  if (!me) return { me: null, error: missing(found) ? t.common.notPaired : t.common.offline };
   const today = localNow(me.timezone);
   const { data: meds } = await supabase
     .from('medications')

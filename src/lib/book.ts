@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { missing } from '@/lib/found';
 import { supabase } from '@/lib/supabase';
 
 export type Chapter = {
@@ -25,13 +26,14 @@ export async function loadBook(): Promise<Book> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  const { data: me } = await supabase
+  const found = await supabase
     .from('people')
     .select('id, display_name')
     .eq('user_id', session?.user.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();
-  if (!me) return { error: t.common.notPaired };
+  const me = found.data;
+  if (!me) return { error: missing(found) ? t.common.notPaired : t.common.offline };
 
   const { data, error } = await supabase
     .from('chapters')
