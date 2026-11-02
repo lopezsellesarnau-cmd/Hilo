@@ -449,6 +449,14 @@ const voiceName = (l: Lang) => (useElevenLabs() ? `el-${Deno.env.get('ELEVENLABS
 const synthesize = (parts: string[], speed: number, l: Lang) =>
   useElevenLabs() ? elevenLabsSpeech(parts, speed, l) : azureSpeech(parts, speed, l);
 
+/** Read aloud without the commas around her name ("Hola, Pedro, ¿qué tal?"): the voice paused on them and sounded robotic */
+const withoutNamePauses = (text: string, name: string) =>
+  // Any word of it: the family may have typed "Abuelo Manolo" and Hilo says "Manolo"
+  name
+    .split(/\s+/)
+    .filter((w) => w.length > 2)
+    .reduce((t, w) => t.replaceAll(`, ${w}`, ` ${w}`).replaceAll(`${w},`, w), text);
+
 async function speak(text: string, speed: number, l: Lang): Promise<string | null> {
   try {
     const audio = await synthesize([text], speed, l);
@@ -1002,8 +1010,8 @@ Deno.serve(async (req) => {
   else {
     if (!paid) {
       const reply = say.noAccess(me.display_name);
-      const spoken = reply.replaceAll(`, ${me.display_name}`, ` ${me.display_name}`);
-      return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });
+      const spoken = withoutNamePauses(reply, me.display_name);
+      return json({ session_id: null, reply: spoken, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });
     }
     // A new talk: after the daily limit, Hilo says goodbye gently instead of starting one
     const { data: recent } = await db
@@ -1020,8 +1028,8 @@ Deno.serve(async (req) => {
     ).length;
     if (talksToday >= maxTalks) {
       const reply = say.enough(me.display_name);
-      const spoken = reply.replaceAll(`, ${me.display_name}`, ` ${me.display_name}`);
-      return json({ session_id: null, reply, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });
+      const spoken = withoutNamePauses(reply, me.display_name);
+      return json({ session_id: null, reply: spoken, audio: await speak(spoken, Number(me.voice_speed), l), ask_pills: false, ended: true });
     }
 
     // Talks she never closed (app closed, phone off, crash): close them now so her story still goes to the book.
@@ -1221,9 +1229,8 @@ Deno.serve(async (req) => {
     .insert({ family_id: me.family_id, session_id: sessionId, seq: history.length + 1, speaker: 'hilo', text: reply });
   if (saveError) return json({ error: 'save' }, 500);
 
-  // On screen the comma before her name is right ("Qué bonito, Margarita"); out loud the voice stops there and sounds robotic
-  const firstName = me.display_name.trim().split(/\s+/)[0];
-  const spoken = firstName ? reply.replaceAll(`, ${firstName}`, ` ${firstName}`) : reply;
+  // Without commas around her name, out loud and on screen: the voice stopped there and sounded robotic
+  const spoken = withoutNamePauses(reply, me.display_name);
   const audio = await speak(spoken, speed, l);
 
   await admin.rpc('add_usage', {
@@ -1236,5 +1243,5 @@ Deno.serve(async (req) => {
 
   if (ended) await closeTalk(db, admin, me, sessionId, [...history, { speaker: 'hilo', text: reply }]);
 
-  return json({ session_id: sessionId, reply, audio, ask_pills: askPills.length > 0, ended });
+  return json({ session_id: sessionId, reply: spoken, audio, ask_pills: askPills.length > 0, ended });
 });
