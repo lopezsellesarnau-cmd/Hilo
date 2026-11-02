@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { t } from '@/i18n';
+import { SNOOZE, toReplace } from '@/lib/reminder-plan';
 
 /**
  * Local reminders on the senior's phone: the daily talk and each pill.
@@ -40,7 +41,9 @@ const parts = (t: string) => ({ hour: Number(t.slice(0, 2)), minute: Number(t.sl
  */
 export async function scheduleReminders(talkTime: string | null, meds: Medication[]) {
   if (!(await Notifications.getPermissionsAsync()).granted) return;
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  // Not the "remind me later" she may have just asked for: Home calls this every time she comes back
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(toReplace(scheduled).map((id) => Notifications.cancelScheduledNotificationAsync(id)));
 
   if (talkTime) {
     await Notifications.scheduleNotificationAsync({
@@ -74,7 +77,7 @@ export async function scheduleReminders(talkTime: string | null, meds: Medicatio
 export async function remindLater(name: string, minutes: number) {
   if (!(await Notifications.getPermissionsAsync()).granted) return;
   await Notifications.scheduleNotificationAsync({
-    content: { title: 'Hilo', body: t.reminders.later(name), data: { url: '/pills' } },
+    content: { title: 'Hilo', body: t.reminders.later(name), data: { url: '/pills', kind: SNOOZE } },
     trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: minutes * 60 },
   });
 }
