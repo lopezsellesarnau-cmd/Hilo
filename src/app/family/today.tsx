@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
   error: {
     fontSize: family.fontSize.note,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '600',
     textAlign: 'center',
   },

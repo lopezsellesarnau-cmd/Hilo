@@ -7,7 +7,7 @@ import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
 import { getPendingInvite, JOIN_MESSAGES, joinFamily, setPendingInvite } from '@/lib/invite';
-import { family } from '@/theme';
+import { colors, family } from '@/theme';
 
 const text = t.join;
 
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   error: {
     fontSize: family.fontSize.note,
     lineHeight: 21,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '600',
   },
 });

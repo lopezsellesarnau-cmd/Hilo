@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   danger: {
     fontSize: family.fontSize.body,
     fontWeight: fontWeight.semibold,
-    color: '#b3261e',
+    color: colors.error,
   },
   confirm: {
     padding: 20,
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   error: {
     fontSize: family.fontSize.note,
     lineHeight: 21,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '600',
   },
 });

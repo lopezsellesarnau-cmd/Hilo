@@ -24,6 +24,8 @@ export const colors = {
   /** Pill taken / not taken icons, from the Figma */
   taken: '#1dd900',
   missed: '#d70606',
+  /** Error messages (couldn't save, no connection, wrong code) */
+  error: '#b3261e',
 } as const;
 
 export const fontSize = {

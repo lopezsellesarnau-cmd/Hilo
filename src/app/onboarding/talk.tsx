@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   error: {
     fontSize: family.fontSize.note,
     lineHeight: 21,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '600',
   },
 });

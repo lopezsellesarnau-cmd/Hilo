@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     color: colors.muted,
   },
   error: {
-    color: '#b3261e',
+    color: colors.error,
   },
   resend: {
     alignSelf: 'center',

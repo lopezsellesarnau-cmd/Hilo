@@ -10,7 +10,7 @@ import { t } from '@/i18n';
 import { getCaptchaToken } from '@/lib/captcha';
 import { isReviewEmail } from '@/lib/review';
 import { supabase } from '@/lib/supabase';
-import { family } from '@/theme';
+import { colors, family } from '@/theme';
 
 const looksLikeEmail = (v: string) => /^\S+@\S+\.\S+$/.test(v.trim());
 
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   error: {
     fontSize: family.fontSize.note,
     lineHeight: 21,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '600',
   },
 });

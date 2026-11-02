@@ -8,7 +8,7 @@ import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
 import { TERMS_VERSION } from '@/lib/legal';
 import { supabase } from '@/lib/supabase';
-import { family } from '@/theme';
+import { colors, family } from '@/theme';
 
 /**
  * Creates the family (or reuses it if the user came back with "Atrás")
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   error: {
     fontSize: family.fontSize.note,
     lineHeight: 21,
-    color: '#b3261e',
+    color: colors.error,
     fontWeight: '600',
   },
 });

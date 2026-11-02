@@ -6,7 +6,7 @@ import { BigButton } from '@/components/big-button';
 import { PauseIcon, PlayIcon } from '@/components/icons';
 import { t } from '@/i18n';
 import { chapterAudio } from '@/lib/talk';
-import { fontWeight } from '@/theme';
+import { colors, fontWeight } from '@/theme';
 
 const text = t.chapter;
 
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
     fontWeight: fontWeight.semibold,
-    color: '#b3261e',
+    color: colors.error,
     textAlign: 'center',
   },
 });

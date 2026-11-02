@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.label,
     lineHeight: 24,
     fontWeight: fontWeight.semibold,
-    color: '#b3261e',
+    color: colors.error,
   },
   controls: {
     marginTop: 24,
