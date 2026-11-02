@@ -119,25 +119,16 @@ export default function TalkScreen() {
   const handle = (result: Awaited<ReturnType<typeof sendTurn>>) => {
     if (!alive.current) return;
     if ('error' in result) {
-      if (result.error === 'too_long') {
+      // The talk can't go on: too long today, or this phone is no longer hers
+      if (result.error === 'too_long' || result.error === 'unpaired') {
         closed.current = true;
         setEnded(true);
-        show(t.talk.tooLong, null);
-        return;
-      }
-      if (result.error === 'unpaired') {
-        closed.current = true;
-        setUnpaired(true);
-        setEnded(true);
-        show(t.talk.unpaired, null);
+        setUnpaired(result.error === 'unpaired');
+        show(result.error === 'unpaired' ? t.talk.unpaired : t.talk.tooLong, null);
         return;
       }
       setMood('idle');
-      setHint(
-        result.error === 'offline'
-          ? t.common.offline
-          : t.talk.failed,
-      );
+      setHint(result.error === 'offline' ? t.common.offline : t.talk.failed);
       return;
     }
     session.current = result.sessionId;
