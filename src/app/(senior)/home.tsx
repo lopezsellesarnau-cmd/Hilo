@@ -31,12 +31,15 @@ export default function HomeScreen() {
   const [pills, setPills] = useState<{ taken: number; total: number } | null>(null);
   // Her answer to "How are you?" today: she says it, Hilo never guesses it from the talk
   const [feeling, setFeeling] = useState<Feeling | null>(null);
+  // No connection (or this phone is no longer hers): said under the greeting, like on Pills
+  const [error, setError] = useState<string | null>(null);
   useFocusEffect(
     useCallback(() => {
       // Ready before she taps Mi libro
       loadBook();
       loadSeniorDay().then((day) => {
-        if (!day.me) return;
+        if (!day.me) return setError(day.error);
+        setError(null);
         setName(day.me.display_name);
         setFeeling(day.feeling);
         setPills({
@@ -56,6 +59,7 @@ export default function HomeScreen() {
     <Animated.View entering={enter(0)} accessibilityRole="header" style={styles.header}>
       <Text style={styles.title}>{t.home.hello(name)}</Text>
       <Text style={styles.subtitle}>{t.home.howAreYou}</Text>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       {/* Once a day: after she answers the buttons go away, and they come back tomorrow */}
       {name && !feeling ? (
         <Animated.View
@@ -186,6 +190,14 @@ const styles = StyleSheet.create({
     lineHeight: lineHeight.subtitle,
     fontWeight: fontWeight.regular,
     color: colors.muted,
+    textAlign: 'center',
+  },
+  error: {
+    marginTop: 12,
+    fontSize: fontSize.label,
+    lineHeight: 24,
+    fontWeight: fontWeight.semibold,
+    color: colors.error,
     textAlign: 'center',
   },
   feelings: {
