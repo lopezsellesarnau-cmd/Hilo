@@ -9,22 +9,26 @@ import { supabase } from '@/lib/supabase';
  * or the family app when it is all done. Pills and pairing are optional ("Lo haré luego"), so they are skipped.
  */
 export async function nextFamilyRoute(userId: string): Promise<Href> {
-  const { data: me } = await supabase
+  const found = await supabase
     .from('people')
     .select('family_id, display_name')
     .eq('user_id', userId)
     .eq('role', 'member')
     .limit(1)
     .maybeSingle();
-  if (!me) return '/onboarding/name';
+  if (missing(found)) return '/onboarding/name';
+  // No internet: Today (it says it couldn't load), never back to the start of the onboarding
+  const me = found.data;
+  if (!me) return '/family/today';
 
-  const { data: senior } = await supabase
+  const { data: senior, error } = await supabase
     .from('people')
     .select('id, display_name, talk_time')
     .eq('family_id', me.family_id)
     .eq('role', 'senior')
     .limit(1)
     .maybeSingle();
+  if (error) return '/family/today';
   if (!senior) return { pathname: '/onboarding/senior', params: { memberName: me.display_name } };
   if (!senior.talk_time) {
     return { pathname: '/onboarding/talk', params: { seniorId: senior.id, seniorName: senior.display_name } };
