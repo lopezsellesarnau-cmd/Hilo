@@ -99,6 +99,8 @@ export const en: Strings = {
     namePlaceholder: 'Blood pressure',
     timeLabel: 'WHAT TIME',
     timesA11y: 'Times of the pill',
+    otherTime: 'Other time',
+    addTime: 'Add this time',
     everyDay: 'Every day.',
     everyDayLater: 'Every day. You can change it later in Settings.',
     add: 'Add pill',

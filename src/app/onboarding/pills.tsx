@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { MultiChoiceChips } from '@/components/choice-chips';
@@ -8,6 +9,7 @@ import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
+import { hhmm } from '@/lib/time';
 import { colors, family, fontWeight } from '@/theme';
 
 const TIMES = [
@@ -20,7 +22,10 @@ const TIMES = [
   { value: '22:00', label: '22:00' },
 ] as const;
 
-type Time = (typeof TIMES)[number]['value'];
+/** The chip that opens the phone's time picker, for any other time */
+const OTHER = 'other';
+/** medications.times allows up to 8 */
+const MAX_TIMES = 8;
 type Medication = { id: string; name: string; times: string[] };
 
 // Postgres returns '09:00:00'; show '9:00'
@@ -36,7 +41,9 @@ export default function PillsStep() {
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [pills, setPills] = useState<Medication[]>([]);
   const [name, setName] = useState('');
-  const [times, setTimes] = useState<Time[]>(['09:00']);
+  const [times, setTimes] = useState<string[]>(['09:00']);
+  // iPhone: the time wheel shows under the chips until "Add this time"
+  const [picking, setPicking] = useState<Date | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canAdd = name.trim().length > 0 && times.length > 0 && familyId !== null && !saving;
@@ -75,6 +82,36 @@ export default function PillsStep() {
     setPills((p) => [...p, data as Medication]);
     setName('');
     setTimes(['09:00']);
+  };
+
+  const addTime = (d: Date) => {
+    const v = hhmm(d);
+    setTimes((ts) => (ts.includes(v) || ts.length >= MAX_TIMES ? ts : [...ts, v]));
+  };
+
+  const pickOther = () => {
+    const start = new Date();
+    start.setHours(10, 0, 0, 0);
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: start,
+        mode: 'time',
+        is24Hour: true,
+        onChange: (e, d) => e.type === 'set' && d && addTime(d),
+      });
+    } else setPicking(start);
+  };
+
+  // The usual times plus the ones picked by hand, in order, and "Other time" last (not on the web: no picker there)
+  const options = [
+    ...[...TIMES, ...times.filter((v) => !TIMES.some((o) => o.value === v)).map((v) => ({ value: v, label: showTime(v) }))].sort(
+      (a, b) => a.value.localeCompare(b.value),
+    ),
+    ...(Platform.OS === 'web' ? [] : [{ value: OTHER, label: t.pillsStep.otherTime }]),
+  ];
+  const changeTimes = (v: string[]) => {
+    if (v.includes(OTHER)) pickOther();
+    setTimes(v.filter((x) => x !== OTHER));
   };
 
   const remove = async (id: string) => {
@@ -135,7 +172,26 @@ export default function PillsStep() {
         returnKeyType="done"
       />
       <Text style={styles.label}>{t.pillsStep.timeLabel}</Text>
-      <MultiChoiceChips label={t.pillsStep.timesA11y} options={TIMES} value={times} onChange={setTimes} />
+      <MultiChoiceChips label={t.pillsStep.timesA11y} options={options} value={times} onChange={changeTimes} />
+      {picking ? (
+        <>
+          <DateTimePicker
+            value={picking}
+            mode="time"
+            display="spinner"
+            themeVariant="light"
+            onChange={(_, d) => d && setPicking(d)}
+          />
+          <BigButton
+            scale="family"
+            label={t.pillsStep.addTime}
+            onPress={() => {
+              addTime(picking);
+              setPicking(null);
+            }}
+          />
+        </>
+      ) : null}
       <Text style={styles.note}>{from === 'settings' ? t.pillsStep.everyDay : t.pillsStep.everyDayLater}</Text>
 
       <BigButton

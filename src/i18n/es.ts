@@ -103,6 +103,8 @@ export const es = {
     namePlaceholder: 'La de la tensión',
     timeLabel: 'A QUÉ HORA',
     timesA11y: 'Horas de la pastilla',
+    otherTime: 'Otra hora',
+    addTime: 'Añadir esta hora',
     everyDay: 'Todos los días.',
     everyDayLater: 'Todos los días. Puedes cambiarlo luego en Ajustes.',
     add: 'Añadir pastilla',

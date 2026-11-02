@@ -103,6 +103,8 @@ export const nl: Strings = {
     namePlaceholder: 'Die voor de bloeddruk',
     timeLabel: 'HOE LAAT',
     timesA11y: 'Tijden van de pil',
+    otherTime: 'Andere tijd',
+    addTime: 'Deze tijd toevoegen',
     everyDay: 'Elke dag.',
     everyDayLater: 'Elke dag. Je kunt het later wijzigen in Instellingen.',
     add: 'Pil toevoegen',
