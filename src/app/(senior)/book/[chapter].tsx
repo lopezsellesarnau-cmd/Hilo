@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -89,6 +90,8 @@ export default function ChapterScreen() {
             <View style={styles.coverBot}>
               <BotFace size={270} />
             </View>
+            {/* Her face fades into the dark above the title, like in the Figma */}
+            <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.85)']} style={styles.coverShade} pointerEvents="none" />
             <View style={styles.coverCard}>
               <Text style={styles.title}>{chapter.title}</Text>
               <Text style={styles.number}>{String(chapter.number).padStart(2, '0')}</Text>
@@ -206,6 +209,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 24,
     alignSelf: 'center',
+  },
+  coverShade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 130,
+    height: 130,
   },
   // The white card over the bottom of the cover, with the title and the chapter number
   coverCard: {

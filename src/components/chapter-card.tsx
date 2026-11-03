@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BotFace } from '@/components/icons';
@@ -5,9 +6,9 @@ import { colors, fontWeight } from '@/theme';
 
 /** Black, grey, light, then again: the title left or right, the bot peeking out on the other side */
 const LOOKS = [
-  { ground: colors.ink, ink: colors.onAccent, soft: '#a8a8a8', right: false, face: colors.background, eyes: '#111111' },
-  { ground: '#4a4a4a', ink: colors.onAccent, soft: '#d0d0d0', right: true, face: colors.background, eyes: '#111111' },
-  { ground: '#dcdcdc', ink: colors.ink, soft: '#4a4a4a', right: true, face: colors.ink, eyes: colors.background },
+  { ground: colors.ink, clear: 'rgba(0,0,0,0)', ink: colors.onAccent, soft: '#a8a8a8', right: false, face: colors.background, eyes: '#111111' },
+  { ground: '#4a4a4a', clear: 'rgba(74,74,74,0)', ink: colors.onAccent, soft: '#d0d0d0', right: true, face: colors.background, eyes: '#111111' },
+  { ground: '#dcdcdc', clear: 'rgba(220,220,220,0)', ink: colors.ink, soft: '#4a4a4a', right: true, face: colors.ink, eyes: colors.background },
 ] as const;
 
 /** Height of a chapter card, in both books */
@@ -33,6 +34,8 @@ export function ChapterCard({ title, index, number }: Props) {
       <View style={[styles.bot, look.right ? styles.botLeft : styles.botRight]}>
         <BotFace size={173} face={look.face} eyes={look.eyes} />
       </View>
+      {/* The bot fades into the card at the bottom, like in the Figma */}
+      <LinearGradient colors={[look.clear, look.ground]} style={styles.shade} pointerEvents="none" />
       {number ? <Text style={[styles.number, side, { color: look.soft }]}>{String(number).padStart(2, '0')}</Text> : null}
     </View>
   );
@@ -69,6 +72,13 @@ const styles = StyleSheet.create({
   },
   botLeft: {
     left: 34,
+  },
+  shade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 64,
   },
   number: {
     position: 'absolute',
