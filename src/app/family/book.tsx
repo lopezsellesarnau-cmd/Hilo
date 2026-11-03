@@ -49,7 +49,7 @@ export default function FamilyBookScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
-        <ScrollView contentContainerStyle={styles.screen}>
+        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.screen}>
           <View style={styles.cover}>
             <View style={styles.coverText}>
               <Text style={styles.coverLabel}>{t.today.bookWidget}</Text>

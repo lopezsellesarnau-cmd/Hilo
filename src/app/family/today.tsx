@@ -211,6 +211,7 @@ export default function TodayScreen() {
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={styles.screen}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.ink} />}>
           {/* The day, like a calendar widget: short weekday, a dot, the date */}

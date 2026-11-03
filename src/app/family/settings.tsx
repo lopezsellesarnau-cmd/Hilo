@@ -132,7 +132,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
-        <ScrollView contentContainerStyle={styles.screen}>
+        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.screen}>
           <View style={styles.head}>
             <Text style={styles.title} accessibilityRole="header">
               {text.title}

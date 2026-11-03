@@ -73,7 +73,7 @@ export function TodayPills({ seniorId, seniorName, timezone }: Props) {
   const taken = doses.filter((d) => d.takenAt).length;
 
   return (
-    <View style={styles.wrap}>
+    <View style={styles.card}>
       {/* Like the top row of her Pills screen: the title and how many she has taken */}
       <View style={styles.headRow} accessible accessibilityLabel={t.todayPills.summary(taken, doses.length)}>
         <Text style={styles.heading}>{t.todayPills.title}</Text>
@@ -85,24 +85,23 @@ export function TodayPills({ seniorId, seniorName, timezone }: Props) {
         const inMoment = doses.filter((d) => d.time >= from && d.time < moment.until);
         if (inMoment.length === 0) return null;
         return (
-          <View key={moment.label} style={styles.moment}>
+          <View key={moment.label}>
             <Text style={styles.momentLabel}>{moment.label}</Text>
-            {inMoment.map((d) => {
+            {inMoment.map((d, j) => {
               const late = !d.takenAt && d.time <= now.time;
               return (
-                <ListRow
+                <View
                   key={d.key}
-                  // The same dots she sees: done, the one waiting now, later
-                  left={<DayDot state={d.takenAt ? 'done' : late ? 'now' : 'later'} />}
-                  title={d.name}
-                  detail={
-                    d.takenAt
-                      ? t.todayPills.takenAt(showTime(d.takenAt))
-                      : late
-                        ? t.todayPills.missed(showTime(d.time))
-                        : t.todayPills.at(showTime(d.time))
-                  }
-                />
+                  style={[styles.row, j > 0 && styles.rowLine]}
+                  accessible
+                  accessibilityLabel={`${d.name}. ${detail(d, late)}`}>
+                  {/* The same dots she sees: done, the one waiting now, later */}
+                  <DayDot state={d.takenAt ? 'done' : late ? 'now' : 'later'} size={32} />
+                  <View style={styles.rowText}>
+                    <Text style={styles.name}>{d.name}</Text>
+                    <Text style={[styles.detail, late && styles.late]}>{detail(d, late)}</Text>
+                  </View>
+                </View>
               );
             })}
           </View>
@@ -112,9 +111,23 @@ export function TodayPills({ seniorId, seniorName, timezone }: Props) {
   );
 }
 
+const detail = (d: Dose, late: boolean) =>
+  d.takenAt
+    ? t.todayPills.takenAt(showTime(d.takenAt))
+    : late
+      ? t.todayPills.missed(showTime(d.time))
+      : t.todayPills.at(showTime(d.time));
+
 const styles = StyleSheet.create({
   wrap: {
     gap: 14,
+  },
+  // One grey card, like the widgets of Hoy
+  card: {
+    gap: 14,
+    padding: 20,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
   },
   headRow: {
     flexDirection: 'row',
@@ -123,24 +136,48 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   heading: {
-    fontSize: 24,
-    fontWeight: fontWeight.bold,
+    fontSize: 22,
+    fontWeight: fontWeight.heavy,
     color: colors.ink,
   },
   count: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: fontWeight.bold,
     color: colors.muted,
   },
-  moment: {
-    gap: 10,
-  },
   momentLabel: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: fontWeight.semibold,
+    marginBottom: 2,
+    fontSize: 12,
+    fontWeight: fontWeight.bold,
     letterSpacing: 0.8,
     color: colors.muted,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 12,
+  },
+  rowLine: {
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  rowText: {
+    flex: 1,
+    gap: 2,
+  },
+  name: {
+    fontSize: 17,
+    fontWeight: fontWeight.bold,
+    color: colors.ink,
+  },
+  detail: {
+    fontSize: 14,
+    color: colors.muted,
+  },
+  late: {
+    fontWeight: fontWeight.semibold,
+    color: colors.nudge,
   },
   error: {
     fontSize: family.fontSize.note,
