@@ -1,23 +1,13 @@
-import { router, Tabs } from 'expo-router';
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { router } from 'expo-router';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useCallback, useEffect, useState } from 'react';
-import { type ColorValue, View } from 'react-native';
+import { View } from 'react-native';
 
 import { t } from '@/i18n';
 import { loadCalls } from '@/lib/calls';
 import { familyHasAccess, myFamilyId } from '@/lib/purchases';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme';
-
-// SF Symbols for the tab icons on iPhone; on the web, the Material Symbol with the same meaning
-type Icon = Extract<SymbolViewProps['name'], object>;
-function TabIcon({ name, color }: { name: Icon; color: ColorValue }) {
-  return <SymbolView name={name} tintColor={color} size={26} />;
-}
-const icon = (ios: Icon['ios'], web: Icon['web']) =>
-  function TabBarIcon({ color }: { color: ColorValue }) {
-    return <TabIcon name={{ ios, web }} color={color} />;
-  };
 
 /** Same as quiet-alert and Hoy */
 const CALL_DAYS = 3;
@@ -59,39 +49,32 @@ export default function FamilyLayout() {
 
   if (!allowed) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 
+  // The system tab bar: Liquid Glass on iPhone, Material on Android. SF Symbols on iPhone, Material icons elsewhere.
   return (
-    <Tabs
+    <NativeTabs
       screenListeners={{ focus: refreshBadges }}
-      screenOptions={{
-        tabBarBadgeStyle: { backgroundColor: colors.ink, color: colors.background, fontSize: 12 },
-        headerShown: false,
-        tabBarActiveTintColor: colors.ink,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontSize: 13, fontWeight: '600' },
-        sceneStyle: { backgroundColor: colors.background },
-        // No tab animation and no entering animations in the tab screens: both left blank tabs
-        // All tabs are created at the start and load their data in the background, so switching shows
-        // a ready screen instead of an empty one that fills in (safe now that there are no entering animations)
-        lazy: false,
-      }}>
-      <Tabs.Screen name="today" options={{ title: t.today.title, tabBarIcon: icon('sun.max', 'light_mode') }} />
-      <Tabs.Screen
-        name="talks"
-        options={{
-          title: t.talks.tab,
-          tabBarIcon: icon('bubble.left.and.bubble.right', 'forum'),
-          tabBarBadge: badges.callDue ? '!' : undefined,
-        }}
-      />
-      <Tabs.Screen
-        name="book"
-        options={{
-          title: t.familyBook.tab,
-          tabBarIcon: icon('book.closed', 'menu_book'),
-          tabBarBadge: badges.stories || undefined,
-        }}
-      />
-      <Tabs.Screen name="settings" options={{ title: t.settings.title, tabBarIcon: icon('gearshape', 'settings') }} />
-    </Tabs>
+      tintColor={colors.ink}
+      iconColor={colors.muted}
+      badgeBackgroundColor={colors.ink}
+      labelStyle={{ fontWeight: '600' }}>
+      <NativeTabs.Trigger name="today">
+        <NativeTabs.Trigger.Label>{t.today.title}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="sun.max" md="light_mode" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="talks">
+        <NativeTabs.Trigger.Label>{t.talks.tab}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right" md="forum" />
+        <NativeTabs.Trigger.Badge hidden={!badges.callDue}>!</NativeTabs.Trigger.Badge>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="book">
+        <NativeTabs.Trigger.Label>{t.familyBook.tab}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="book.closed" md="menu_book" />
+        <NativeTabs.Trigger.Badge hidden={!badges.stories}>{String(badges.stories)}</NativeTabs.Trigger.Badge>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="settings">
+        <NativeTabs.Trigger.Label>{t.settings.title}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="gearshape" md="settings" />
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
