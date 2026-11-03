@@ -270,6 +270,10 @@ export default function TodayScreen() {
                       <Text style={styles.talkNote}>{note}</Text>
                     </>
                   ) : null}
+                  {/* Nobody in the family has called her for days: said right where the fix is */}
+                  {senior.user_id && callDue && !ring ? (
+                    <Text style={[styles.callDue, note && styles.callDueOnInk]}>{text.callDue(senior.display_name)}</Text>
+                  ) : null}
                   {senior.user_id ? (
                     ring && ring !== 'noPhone' && ring !== 'failed' ? (
                       <View style={[styles.ringState, !note && styles.ringStatePlain]} accessibilityLiveRegion="polite">
@@ -291,6 +295,16 @@ export default function TodayScreen() {
                       </>
                     )
                   ) : null}
+                </View>
+              ) : null}
+              {/* Without her phone Hilo can't talk with her or ring: the one thing to do (not before her first talk: the checklist has it) */}
+              {!senior.user_id && !firstDay ? (
+                <View style={styles.phoneCard}>
+                  <Text style={styles.phoneTitle}>{text.phoneMissing}</Text>
+                  <Text style={styles.phoneBody}>{text.phoneMissingBody(senior.display_name)}</Text>
+                  <PressScale onPress={pair} accessibilityRole="button" style={[styles.ringButton, styles.ringButtonPlain]}>
+                    <Text style={[styles.ringLabel, styles.ringLabelPlain]}>{text.connect}</Text>
+                  </PressScale>
                 </View>
               ) : null}
             </View>
@@ -412,29 +426,6 @@ export default function TodayScreen() {
             </View>
           ) : null}
 
-          {/* Only what needs the family today; nothing when all is well */}
-          {senior && !firstDay && (!senior.user_id || callDue) ? (
-            <View style={styles.list}>
-              <Text style={styles.label}>{text.toDo.toUpperCase()}</Text>
-              {!senior.user_id ? (
-                <ListRow
-                  left={<DayDot state="now" size={40} />}
-                  title={text.phoneMissing}
-                  detail={text.phoneMissingBody(senior.display_name)}
-                  onPress={pair}
-                  accessibilityLabel={text.connect}
-                />
-              ) : null}
-              {callDue ? (
-                <ListRow
-                  kicker={text.callKicker.toUpperCase()}
-                  title={text.callDue(senior.display_name)}
-                  onPress={() => router.push('/family/talks')}
-                />
-              ) : null}
-            </View>
-          ) : null}
-
         </ScrollView>
       </WideFrame>
     </SafeAreaView>
@@ -544,6 +535,34 @@ const styles = StyleSheet.create({
   },
   ringStateTextPlain: {
     color: colors.ink,
+  },
+  callDue: {
+    paddingHorizontal: 8,
+    fontSize: 16,
+    fontWeight: fontWeight.bold,
+    color: colors.nudge,
+  },
+  callDueOnInk: {
+    paddingHorizontal: 0,
+    color: '#ff9f8a',
+  },
+  phoneCard: {
+    gap: 8,
+    padding: 20,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
+  },
+  phoneTitle: {
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: fontWeight.heavy,
+    color: colors.ink,
+  },
+  phoneBody: {
+    marginBottom: 6,
+    fontSize: family.fontSize.note,
+    lineHeight: 21,
+    color: colors.muted,
   },
   ringLabel: {
     fontSize: 18,
