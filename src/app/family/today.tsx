@@ -54,7 +54,8 @@ export default function TodayScreen() {
   const callNow = async () => {
     setRing('ringing');
     const { error: e } = await supabase.functions.invoke('ring');
-    if (!e) return;
+    // It rang: after the ring time, the same note the server gives for the next half hour
+    if (!e) return void setTimeout(() => setRing('tooSoon'), 30000);
     const status = e instanceof FunctionsHttpError ? e.context.status : 0;
     setRing(status === 429 ? 'tooSoon' : status === 409 ? 'noPhone' : 'failed');
   };
