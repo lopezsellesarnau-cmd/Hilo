@@ -273,6 +273,14 @@ export const en: Strings = {
     sumPills: (taken: number, total: number): [string, string, string] => ['took ', `${taken} of ${total} pills`, ''],
     sumStories: (n: number): [string, string, string] => ['told ', n === 1 ? '1 new story' : `${n} new stories`, ''],
     sumAnd: ' and ',
+    // Widgets of Today: pills, their book, and who talks most with them
+    pillsLeft: (time: string) => `${time} still to take`,
+    pillsAllTaken: 'All taken',
+    bookWidget: 'Their book',
+    toReview: (n: number) => `${n} to review`,
+    podiumTitle: (name: string) => `Who talks most with ${name}`,
+    podiumLeader: (name: string | null, calls: string) =>
+      name ? `${name} leads with ${calls} this month` : `You lead with ${calls} this month`,
     firstDay: 'Getting started',
     stepAccount: 'Your account',
     stepPhone: (name: string) => `Connect ${name}'s phone`,

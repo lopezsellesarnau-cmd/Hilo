@@ -279,6 +279,14 @@ export const es = {
     sumPills: (taken: number, total: number): [string, string, string] => ['se ha tomado ', `${taken} de ${total} pastillas`, ''],
     sumStories: (n: number): [string, string, string] => ['ha contado ', n === 1 ? '1 historia' : `${n} historias`, n === 1 ? ' nueva' : ' nuevas'],
     sumAnd: ' y ',
+    // Widgets of Hoy: pills, her book, and who talks most with her
+    pillsLeft: (time: string) => `Falta la de las ${time}`,
+    pillsAllTaken: 'Todas tomadas',
+    bookWidget: 'Su libro',
+    toReview: (n: number) => `${n} por revisar`,
+    podiumTitle: (name: string) => `Quién habla más con ${name}`,
+    podiumLeader: (name: string | null, calls: string) =>
+      name ? `Va en cabeza ${name}, con ${calls} este mes` : `Vas en cabeza, con ${calls} este mes`,
     firstDay: 'Para empezar',
     stepAccount: 'Tu cuenta',
     stepPhone: (name: string) => `Conectar el móvil de ${name}`,

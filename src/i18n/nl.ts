@@ -277,6 +277,14 @@ export const nl: Strings = {
     sumPills: (taken: number, total: number): [string, string, string] => ['heeft ', `${taken} van ${total} pillen`, ' genomen'],
     sumStories: (n: number): [string, string, string] => ['heeft ', n === 1 ? '1 nieuw verhaal' : `${n} nieuwe verhalen`, ' verteld'],
     sumAnd: ' en ',
+    // Widgets van Vandaag: pillen, het boek, en wie het meest met hem of haar praat
+    pillsLeft: (time: string) => `Die van ${time} nog niet`,
+    pillsAllTaken: 'Allemaal genomen',
+    bookWidget: 'Het boek',
+    toReview: (n: number) => `${n} na te kijken`,
+    podiumTitle: (name: string) => `Wie praat het meest met ${name}`,
+    podiumLeader: (name: string | null, calls: string) =>
+      name ? `${name} staat bovenaan met ${calls} deze maand` : `Jij staat bovenaan met ${calls} deze maand`,
     firstDay: 'Om te beginnen',
     stepAccount: 'Je account',
     stepPhone: (name: string) => `De telefoon van ${name} koppelen`,
