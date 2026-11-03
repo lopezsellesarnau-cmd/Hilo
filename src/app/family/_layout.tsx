@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { t } from '@/i18n';
 import { loadCalls } from '@/lib/calls';
@@ -56,7 +56,17 @@ export default function FamilyLayout() {
       tintColor={colors.ink}
       iconColor={colors.muted}
       badgeBackgroundColor={colors.ink}
-      labelStyle={{ fontWeight: '600' }}>
+      labelStyle={{ fontWeight: '600' }}
+      // The web has no system bar: a black pill with white labels, the open tab white
+      {...(Platform.OS === 'web'
+        ? {
+            backgroundColor: colors.ink,
+            indicatorColor: colors.background,
+            labelStyle: { fontWeight: '600', color: colors.onAccent },
+            badgeBackgroundColor: '#ff6a3d',
+            badgeTextColor: colors.ink,
+          }
+        : {})}>
       <NativeTabs.Trigger name="today">
         <NativeTabs.Trigger.Label>{t.today.title}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="sun.max" md="light_mode" />

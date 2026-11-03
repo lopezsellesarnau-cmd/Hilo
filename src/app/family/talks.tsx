@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     maxWidth: spacing.contentMax,
     alignSelf: 'center',
     paddingHorizontal: spacing.screenX,
-    paddingTop: spacing.screenTop,
+    paddingTop: spacing.screenTop + spacing.tabsTop,
     paddingBottom: 48,
     gap: 14,
   },

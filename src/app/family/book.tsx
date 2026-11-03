@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexGrow: 1,
     paddingHorizontal: spacing.screenX,
-    paddingTop: spacing.screenTop,
+    paddingTop: spacing.screenTop + spacing.tabsTop,
     paddingBottom: 48,
     gap: 22,
   },

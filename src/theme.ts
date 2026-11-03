@@ -75,6 +75,8 @@ export const size = {
 export const spacing = {
   screenX: 18,
   screenTop: 28,
+  /** Family tabs on the web: the tab bar floats over the top of the page (iOS makes room for it on its own) */
+  tabsTop: Platform.OS === 'web' ? 72 : 0,
   // A browser has no home bar under the buttons (iPhone adds ~34 safe area): the same air, by hand
   screenBottom: Platform.OS === 'web' ? 64 : 32,
   buttonGap: 16,
