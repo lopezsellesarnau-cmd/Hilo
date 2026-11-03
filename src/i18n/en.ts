@@ -372,8 +372,9 @@ export const en: Strings = {
   familyBook: {
     tab: 'Book',
     title: 'Book',
-    toReview: 'TO REVIEW',
-    inBook: 'IN THEIR BOOK',
+    toReview: 'To review',
+    inBook: 'In their book',
+    readApprove: 'Read and approve',
     emptyTitle: 'No stories yet',
     emptyText: 'When they start chatting with Hilo, their stories will appear here for you to review.',
     check: (n: number) => (n === 1 ? '1 word to check' : `${n} words to check`),

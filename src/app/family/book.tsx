@@ -3,12 +3,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BookCover } from '@/components/book-cover';
-import { ListRow } from '@/components/list-row';
+import { BotFace } from '@/components/icons';
+import { PressScale } from '@/components/press-scale';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
 import { loadFamilyBook, type Draft } from '@/lib/book';
-import { colors, family, fontWeight, spacing } from '@/theme';
+import { colors, family, fontWeight, serif, spacing } from '@/theme';
 
 const text = t.familyBook;
 
@@ -17,14 +17,24 @@ const day = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day:
 
 const open = (chapter: Draft) => router.push({ pathname: '/review/[id]', params: { id: chapter.id } });
 
+/** The stacked chapter cards (Figma "en su libro"): each one shows this much before the next covers it */
+const CARD = 189;
+const STEP = 94;
+/** Black, grey, light, then again: title left or right, the bot on the other side */
+const LOOKS = [
+  { ground: colors.ink, ink: colors.onAccent, right: false, face: colors.background, eyes: '#111111' },
+  { ground: '#4a4a4a', ink: colors.onAccent, right: true, face: colors.background, eyes: '#111111' },
+  { ground: '#dcdcdc', ink: colors.ink, right: true, face: colors.ink, eyes: colors.background },
+] as const;
+
 /**
  * Libro: the stories from her talks. The family approves each one before she sees it in Mi libro.
- * Same look as her book (18 oct): her cover on top, the stories as pills. Black = waiting for you.
+ * Her cover on top, the stories waiting for you, and her book as a stack of cards.
  */
 export default function FamilyBookScreen() {
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadFamilyBook>> | null>(null);
 
-  // The tabs are preloaded (lazy: false): load at start too, so this tab is ready before it's opened
+  // Load at start too, so this tab is ready before it's opened
   useEffect(() => {
     loadFamilyBook().then(setBook);
   }, []);
@@ -46,15 +56,19 @@ export default function FamilyBookScreen() {
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
-          <View style={styles.head}>
-            {/* The space is kept while loading, so the title never jumps */}
-            <View style={styles.cover}>
-              {book && 'name' in book ? <BookCover width={COVER} title={t.book.cover(book.name)} /> : null}
+          <View style={styles.cover}>
+            <View style={styles.coverText}>
+              <Text style={styles.coverLabel}>{t.today.bookWidget}</Text>
+              {book && 'name' in book ? (
+                <Text style={styles.coverTitle} accessibilityRole="header">
+                  {t.book.cover(book.name)}
+                </Text>
+              ) : null}
+              {book && 'chapters' in book ? <Text style={styles.coverLabel}>{t.book.count(approved.length)}</Text> : null}
             </View>
-            <Text style={styles.title} accessibilityRole="header">
-              {text.title}
-            </Text>
-            {book && 'chapters' in book ? <Text style={styles.subtitle}>{t.book.count(approved.length)}</Text> : null}
+            <View style={styles.coverBot}>
+              <BotFace size={180} face={colors.ink} eyes={colors.background} />
+            </View>
           </View>
 
           {book && 'error' in book ? <Text style={styles.note}>{book.error}</Text> : null}
@@ -68,26 +82,62 @@ export default function FamilyBookScreen() {
 
           {drafts.length ? (
             <View style={styles.section}>
-              <Text style={styles.label}>{text.toReview}</Text>
+              <View style={styles.sectionHead}>
+                <Text style={styles.sectionTitle}>{text.toReview}</Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{drafts.length}</Text>
+                </View>
+              </View>
               {drafts.map((c) => (
-                <ListRow
-                  key={c.id}
-                  dark
-                  kicker={day(c.createdAt).toUpperCase()}
-                  title={c.title}
-                  detail={c.unheardWords.length ? text.check(c.unheardWords.length) : undefined}
-                  onPress={() => open(c)}
-                />
+                <View key={c.id} style={styles.draft}>
+                  <Text style={styles.kicker}>{day(c.createdAt).toUpperCase()}</Text>
+                  <Text style={styles.draftTitle}>{c.title}</Text>
+                  {c.paragraphs[0] ? (
+                    <Text style={styles.snippet} numberOfLines={3}>
+                      {c.paragraphs[0]}
+                    </Text>
+                  ) : null}
+                  {c.unheardWords.length ? <Text style={styles.check}>{text.check(c.unheardWords.length)}</Text> : null}
+                  <PressScale
+                    onPress={() => open(c)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${text.readApprove}: ${c.title}`}
+                    style={styles.button}>
+                    <Text style={styles.buttonText}>{text.readApprove}</Text>
+                  </PressScale>
+                </View>
               ))}
             </View>
           ) : null}
 
           {approved.length ? (
             <View style={styles.section}>
-              <Text style={styles.label}>{text.inBook}</Text>
-              {approved.map((c, i) => (
-                <ListRow key={c.id} kicker={t.book.kicker(i + 1)} title={c.title} onPress={() => open(c)} />
-              ))}
+              <Text style={styles.sectionTitle}>{text.inBook}</Text>
+              <View style={{ height: (approved.length - 1) * STEP + CARD }}>
+                {approved.map((c, i) => {
+                  const look = LOOKS[i % LOOKS.length];
+                  return (
+                    <PressScale
+                      key={c.id}
+                      onPress={() => open(c)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t.book.chapterA11y(i + 1, c.title)}`}
+                      containerStyle={[styles.cardSlot, { top: i * STEP }]}
+                      style={[styles.card, i > 0 && styles.cardShadow]}>
+                      <View style={[styles.cardClip, { backgroundColor: look.ground }]}>
+                        <Text
+                          style={[styles.cardTitle, { color: look.ink }, look.right ? styles.titleRight : styles.titleLeft]}
+                          numberOfLines={2}>
+                          {c.title}
+                        </Text>
+                        <View style={[styles.cardBot, look.right ? styles.botLeft : styles.botRight]}>
+                          <BotFace size={173} face={look.face} eyes={look.eyes} />
+                        </View>
+                      </View>
+                    </PressScale>
+                  );
+                })}
+              </View>
             </View>
           ) : null}
         </ScrollView>
@@ -95,9 +145,6 @@ export default function FamilyBookScreen() {
     </SafeAreaView>
   );
 }
-
-// Large, like the cover of a real book: it is the first thing the family sees here
-const COVER = 220;
 
 const styles = StyleSheet.create({
   safe: {
@@ -112,36 +159,158 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenX,
     paddingTop: spacing.screenTop,
     paddingBottom: 48,
-    gap: 28,
-  },
-  head: {
-    alignItems: 'center',
+    gap: 22,
   },
   cover: {
-    width: COVER,
-    height: (COVER * 250) / 200,
+    height: 230,
+    borderRadius: 32,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
   },
-  title: {
-    marginTop: 14,
-    fontSize: 36,
+  coverText: {
+    position: 'absolute',
+    left: 22,
+    top: 22,
+    right: 120,
+    gap: 6,
+  },
+  coverLabel: {
+    fontSize: 15,
+    fontWeight: fontWeight.semibold,
+    color: '#555555',
+  },
+  coverTitle: {
+    fontFamily: serif,
+    fontSize: 34,
+    lineHeight: 38,
     fontWeight: fontWeight.bold,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
     color: colors.ink,
   },
-  subtitle: {
-    marginTop: 2,
-    fontSize: 21,
-    fontWeight: fontWeight.regular,
-    color: colors.muted,
+  coverBot: {
+    position: 'absolute',
+    right: -24,
+    bottom: -66,
+    transform: [{ scaleX: -1 }],
   },
   section: {
+    gap: 14,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
-  label: {
+  sectionTitle: {
+    paddingHorizontal: 8,
+    fontSize: 22,
+    fontWeight: fontWeight.heavy,
+    color: colors.ink,
+  },
+  badge: {
+    minWidth: 24,
+    height: 24,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ff6a3d',
+  },
+  badgeText: {
+    fontSize: 14,
+    fontWeight: fontWeight.heavy,
+    color: colors.ink,
+  },
+  draft: {
+    gap: 10,
+    padding: 20,
+    borderRadius: 28,
+    backgroundColor: colors.surface,
+  },
+  kicker: {
     fontSize: 13,
+    fontWeight: fontWeight.bold,
+    color: '#555555',
+  },
+  draftTitle: {
+    fontSize: 22,
+    lineHeight: 27,
+    fontWeight: fontWeight.heavy,
+    letterSpacing: -0.3,
+    color: colors.ink,
+  },
+  snippet: {
+    fontFamily: serif,
+    fontSize: 17,
+    lineHeight: 25,
+    color: '#3a3a3c',
+  },
+  check: {
+    fontSize: family.fontSize.note,
     fontWeight: fontWeight.semibold,
-    letterSpacing: 0.8,
-    color: colors.muted,
+    color: colors.nudge,
+  },
+  button: {
+    marginTop: 6,
+    minHeight: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: colors.ink,
+  },
+  buttonText: {
+    fontSize: 17,
+    fontWeight: fontWeight.bold,
+    color: colors.onAccent,
+  },
+  cardSlot: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  card: {
+    height: CARD,
+    borderRadius: 28,
+  },
+  // The card on top casts a shadow on the one behind it
+  cardShadow: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 13,
+    elevation: 8,
+  },
+  cardClip: {
+    flex: 1,
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  cardTitle: {
+    position: 'absolute',
+    top: 14,
+    maxWidth: '78%',
+    fontSize: 26,
+    lineHeight: 30,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.3,
+  },
+  titleLeft: {
+    left: 22,
+  },
+  titleRight: {
+    right: 22,
+    textAlign: 'right',
+  },
+  cardBot: {
+    position: 'absolute',
+    top: 57,
+  },
+  botRight: {
+    right: 20,
+  },
+  botLeft: {
+    left: 34,
   },
   empty: {
     alignItems: 'center',

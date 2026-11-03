@@ -376,8 +376,9 @@ export const nl: Strings = {
   familyBook: {
     tab: 'Boek',
     title: 'Boek',
-    toReview: 'NAKIJKEN',
-    inBook: 'IN HET BOEK',
+    toReview: 'Nakijken',
+    inBook: 'In het boek',
+    readApprove: 'Lezen en goedkeuren',
     emptyTitle: 'Nog geen verhalen',
     emptyText: 'Zodra hij of zij met Hilo gaat praten, verschijnen de verhalen hier zodat je ze kunt nakijken.',
     check: (n: number) => (n === 1 ? '1 woord om na te kijken' : `${n} woorden om na te kijken`),

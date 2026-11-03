@@ -379,8 +379,9 @@ export const es = {
   familyBook: {
     tab: 'Libro',
     title: 'Libro',
-    toReview: 'PARA REVISAR',
-    inBook: 'EN SU LIBRO',
+    toReview: 'Por revisar',
+    inBook: 'En su libro',
+    readApprove: 'Leer y aprobar',
     emptyTitle: 'Aún no hay historias',
     emptyText: 'Cuando empiece a charlar con Hilo, aquí aparecerán sus historias para que las revises.',
     check: (n: number) => (n === 1 ? '1 palabra para revisar' : `${n} palabras para revisar`),
