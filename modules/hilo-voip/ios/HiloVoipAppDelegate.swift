@@ -44,7 +44,8 @@ public class HiloVoipAppDelegate: ExpoAppDelegateSubscriber, PKPushRegistryDeleg
     }
     typealias Report = @convention(c) (
       AnyClass, Selector, NSString, NSString, NSString, Bool, NSString, Bool, Bool, Bool, Bool, Bool, NSDictionary,
-      @convention(block) () -> Void
+      // @escaping: RNCallKeep keeps the completion and calls it later
+      @escaping @convention(block) () -> Void
     ) -> Void
     let report = unsafeBitCast(method_getImplementation(method), to: Report.self)
     report(
