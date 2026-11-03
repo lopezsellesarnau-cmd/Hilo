@@ -314,8 +314,15 @@ export const es = {
   talks: {
     noteLabel: (name: string) => `De qué hablar con ${name}`,
     noteWhen: (day: string) => `De su charla ${day === 'hoy' || day === 'ayer' ? 'de' : 'del'} ${day}.`,
-    tab: 'Charlas',
-    title: 'Charlas',
+    tab: 'Familia',
+    title: 'Familia',
+    // Familia: who talks most with her this month (the podium)
+    month: (month: string, count: number, name: string): [string, string, string] =>
+      [`En ${month} habéis hablado `, count === 1 ? '1 vez' : `${count} veces`, ` con ${name}.`],
+    callCount: (n: number) => (n === 1 ? '1 llamada' : `${n} llamadas`),
+    noCallsMonth: 'Sin llamadas este mes',
+    nudge: '¿una llamada hoy?',
+    countsHint: (name: string) => `Cuenta las llamadas que apuntáis aquí y las que ${name} le cuenta a Hilo en su charla.`,
     todayLabel: 'Hoy',
     liveNow: 'Está charlando con Hilo ahora',
     talked: (time: string, minutes: number | null, count: number) =>

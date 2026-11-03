@@ -24,6 +24,8 @@ export const colors = {
   /** Pill taken / not taken icons, from the Figma */
   taken: '#1dd900',
   missed: '#d70606',
+  /** "¿una llamada hoy?" in Familia: orange dark enough to read on white */
+  nudge: '#c2410c',
   /** Error messages (couldn't save, no connection, wrong code) */
   error: '#b3261e',
 } as const;

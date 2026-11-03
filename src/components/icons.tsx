@@ -85,3 +85,12 @@ export function PauseIcon({ size = 24, color = colors.onAccent }: Props) {
     </Svg>
   );
 }
+
+/** The crown over first place in Familia */
+export function CrownIcon({ size = 28, color = colors.ink }: Props) {
+  return (
+    <Svg width={size} height={(size * 20) / 28} viewBox="0 0 28 20" fill="none" stroke={color} strokeWidth={2.2} strokeLinejoin="round">
+      <Path d="M3 17h22L23 5l-5 5-4-8-4 8-5-5z" />
+    </Svg>
+  );
+}

@@ -63,7 +63,7 @@ export default function FamilyLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="talks">
         <NativeTabs.Trigger.Label>{t.talks.tab}</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right" md="forum" />
+        <NativeTabs.Trigger.Icon sf="person.2" md="group" />
         <NativeTabs.Trigger.Badge hidden={!badges.callDue}>!</NativeTabs.Trigger.Badge>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="book">

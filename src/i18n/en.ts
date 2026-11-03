@@ -307,8 +307,15 @@ export const en: Strings = {
   talks: {
     noteLabel: (name: string) => `What to talk about with ${name}`,
     noteWhen: (day: string) => `From their chat ${day === 'today' || day === 'yesterday' ? '' : 'on '}${day}.`,
-    tab: 'Chats',
-    title: 'Chats',
+    tab: 'Family',
+    title: 'Family',
+    // Family: who talks most with them this month (the podium)
+    month: (month: string, count: number, name: string): [string, string, string] =>
+      [`In ${month} you've talked with ${name} `, count === 1 ? 'once' : `${count} times`, '.'],
+    callCount: (n: number) => (n === 1 ? '1 call' : `${n} calls`),
+    noCallsMonth: 'No calls this month',
+    nudge: 'a call today?',
+    countsHint: (name: string) => `Counts the calls you note here and the ones ${name} tells Hilo about.`,
     todayLabel: 'Today',
     liveNow: 'Chatting with Hilo right now',
     talked: (time: string, minutes: number | null, count: number) =>

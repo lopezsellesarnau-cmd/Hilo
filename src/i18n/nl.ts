@@ -311,8 +311,15 @@ export const nl: Strings = {
   talks: {
     noteLabel: (name: string) => `Waarover je met ${name} kunt praten`,
     noteWhen: (day: string) => `Uit het gesprek van ${day}.`,
-    tab: 'Gesprekken',
-    title: 'Gesprekken',
+    tab: 'Familie',
+    title: 'Familie',
+    // Familie: wie deze maand het meest met hem of haar praat (het podium)
+    month: (month: string, count: number, name: string): [string, string, string] =>
+      [`In ${month} hebben jullie `, count === 1 ? '1 keer' : `${count} keer`, ` met ${name} gepraat.`],
+    callCount: (n: number) => (n === 1 ? '1 keer gebeld' : `${n} keer gebeld`),
+    noCallsMonth: 'Deze maand nog niet gebeld',
+    nudge: 'vandaag even bellen?',
+    countsHint: (name: string) => `Telt de gesprekken die jullie hier noteren en die ${name} aan Hilo vertelt.`,
     todayLabel: 'Vandaag',
     liveNow: 'Praat nu met Hilo',
     talked: (time: string, minutes: number | null, count: number) =>
