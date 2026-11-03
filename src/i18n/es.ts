@@ -272,6 +272,13 @@ export const es = {
   },
 
   today: {
+    // The day in one sentence at the top of Hoy: [before, bold (with an icon), after] per part
+    hello: (hour: number): string => (hour < 14 ? 'Buenos días' : hour < 21 ? 'Buenas tardes' : 'Buenas noches'),
+    sumTalked: (name: string, time: string): [string, string, string] => [`${name} ha `, 'charlado', ` a las ${time}`],
+    sumNotYet: (name: string): [string, string, string] => [`${name} aún no ha `, 'charlado', ' hoy'],
+    sumPills: (taken: number, total: number): [string, string, string] => ['se ha tomado ', `${taken} de ${total} pastillas`, ''],
+    sumStories: (n: number): [string, string, string] => ['ha contado ', n === 1 ? '1 historia' : `${n} historias`, n === 1 ? ' nueva' : ' nuevas'],
+    sumAnd: ' y ',
     firstDay: 'Para empezar',
     stepAccount: 'Tu cuenta',
     stepPhone: (name: string) => `Conectar el móvil de ${name}`,

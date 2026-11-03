@@ -266,6 +266,13 @@ export const en: Strings = {
   },
 
   today: {
+    // The day in one sentence at the top of Today: [before, bold (with an icon), after] per part
+    hello: (hour: number): string => (hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'),
+    sumTalked: (name: string, time: string): [string, string, string] => [`${name} `, 'chatted', ` at ${time}`],
+    sumNotYet: (name: string): [string, string, string] => [`${name} hasn't `, 'chatted', ' yet today'],
+    sumPills: (taken: number, total: number): [string, string, string] => ['took ', `${taken} of ${total} pills`, ''],
+    sumStories: (n: number): [string, string, string] => ['told ', n === 1 ? '1 new story' : `${n} new stories`, ''],
+    sumAnd: ' and ',
     firstDay: 'Getting started',
     stepAccount: 'Your account',
     stepPhone: (name: string) => `Connect ${name}'s phone`,

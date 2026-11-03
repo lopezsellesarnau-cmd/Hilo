@@ -4,15 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BigButton } from '@/components/big-button';
-import { Bot } from '@/components/bot';
 import { DayDot } from '@/components/day-dot';
-import { PhoneIcon } from '@/components/icons';
+import { ChatIcon, PhoneIcon, PillIcon, StoryIcon } from '@/components/icons';
 import { ListRow } from '@/components/list-row';
-import { TodayPills } from '@/components/today-pills';
+import { PressScale } from '@/components/press-scale';
+import { loadTodayDoses, TodayPills } from '@/components/today-pills';
 import { WeekStrip } from '@/components/week-strip';
 import { WideFrame } from '@/components/wide-split';
-import { t } from '@/i18n';
+import { dateLocale, t } from '@/i18n';
 import { loadCalls } from '@/lib/calls';
 import { registerFamilyPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
@@ -21,10 +20,10 @@ import { colors, family, fontWeight, spacing } from '@/theme';
 
 type Senior = { id: string; display_name: string; talk_time: string | null; user_id: string | null; timezone: string };
 
-/** '10:00:00' → '10:00' */
-const showTime = (t: string) => t.slice(0, 5).replace(/^0/, '');
+type Talk = { started_at: string; ended_at: string | null; family_note: string | null };
 
-type Talk = { started_at: string; ended_at: string | null };
+/** "De qué hablar con ella" is fresh for this long, then it's old news (as it was in Charlas) */
+const NOTE_MS = 3 * 86_400_000;
 
 const text = t.today;
 /** Same as quiet-alert: after this, "llama" becomes one of the things to do */
@@ -44,7 +43,11 @@ export default function TodayScreen() {
   const [senior, setSenior] = useState<Senior | null>(null);
   const [talks, setTalks] = useState<Talk[]>([]);
   // Stories from her talks waiting for the family, newest first
-  const [drafts, setDrafts] = useState<{ id: string; title: string }[]>([]);
+  const [drafts, setDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
+  // For the sentence at the top: who is reading, her pills today, and what to talk about with her
+  const [me, setMe] = useState('');
+  const [pills, setPills] = useState<{ taken: number; total: number } | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Nobody in the family has talked with her for CALL_DAYS: one of the things to do today
   const [callDue, setCallDue] = useState(false);
@@ -82,18 +85,19 @@ export default function TodayScreen() {
     setError(null);
     setSenior(data as Senior | null);
     if (!data) return;
-    const [{ data: rows }, { data: stories }, calls, { count: everTalked }, { count: pills }, { count: members }] =
+    const { data: session } = await supabase.auth.getSession();
+    const [{ data: rows }, { data: stories }, calls, { count: everTalked }, { count: meds }, { count: members }, { data: mine }, doses] =
       await Promise.all([
         // Enough to cover today even with several talks
         supabase
           .from('talk_sessions')
-          .select('started_at, ended_at')
+          .select('started_at, ended_at, family_note')
           .eq('person_id', data.id)
           .order('started_at', { ascending: false })
           .limit(10),
         supabase
           .from('chapters')
-          .select('id, title')
+          .select('id, title, created_at')
           .eq('person_id', data.id)
           .eq('status', 'draft')
           .order('created_at', { ascending: false }),
@@ -101,12 +105,17 @@ export default function TodayScreen() {
         supabase.from('talk_sessions').select('id', { count: 'exact', head: true }).eq('person_id', data.id),
         supabase.from('medications').select('id', { count: 'exact', head: true }).eq('person_id', data.id).eq('active', true),
         supabase.from('people').select('id', { count: 'exact', head: true }).eq('role', 'member'),
+        supabase.from('people').select('display_name').eq('user_id', session.session?.user.id ?? '').maybeSingle(),
+        loadTodayDoses(data.id, data.timezone).catch(() => null),
       ]);
     setTalks(talkedToday(rows ?? [], data.timezone));
+    setMe(mine?.display_name ?? '');
+    setPills(doses?.length ? { taken: doses.filter((d) => d.takenAt).length, total: doses.length } : null);
+    setNote((rows ?? []).find((r) => r.family_note && Date.now() - Date.parse(r.started_at) < NOTE_MS)?.family_note ?? null);
     setDrafts(stories ?? []);
     // Same rule as the evening nudge: 3 days since the last call (or since her phone was connected)
     setCallDue(Boolean(calls && (!calls.length || Date.now() - Date.parse(calls[0].at) >= CALL_DAYS * 86_400_000)));
-    setFirstDay(everTalked ? null : { pills: Boolean(pills), family: (members ?? 0) > 1 });
+    setFirstDay(everTalked ? null : { pills: Boolean(meds), family: (members ?? 0) > 1 });
   }, []);
 
   // Reload when coming back to the tab, e.g. after pairing their phone
@@ -127,16 +136,26 @@ export default function TodayScreen() {
     senior && router.push({ pathname: '/onboarding/pair', params: { seniorId: senior.id, seniorName: senior.display_name } });
 
   const lastTalk = talks[0];
-  const talkTitle =
-    senior && lastTalk
-      ? text.talked(
-          localNow(senior.timezone, new Date(lastTalk.started_at)).time.replace(/^0/, ''),
-          lastTalk.ended_at
-            ? Math.max(1, Math.round((Date.parse(lastTalk.ended_at) - Date.parse(lastTalk.started_at)) / 60_000))
-            : null,
-          talks.length,
-        )
-      : text.notYetTitle;
+  // The day in one sentence: talked (or not yet), pills, new stories, joined like a person would say it
+  const now = new Date();
+  const parts = senior
+    ? [
+        {
+          icon: ChatIcon,
+          words: lastTalk
+            ? text.sumTalked(senior.display_name, localNow(senior.timezone, new Date(lastTalk.started_at)).time.replace(/^0/, ''))
+            : text.sumNotYet(senior.display_name),
+        },
+        ...(pills ? [{ icon: PillIcon, words: text.sumPills(pills.taken, pills.total) }] : []),
+        ...(() => {
+          const today = localNow(senior.timezone).date;
+          const n = drafts.filter((d) => localNow(senior.timezone, new Date(d.created_at)).date === today).length;
+          return n ? [{ icon: StoryIcon, words: text.sumStories(n) }] : [];
+        })(),
+      ]
+    : [];
+  const weekday = now.toLocaleDateString(dateLocale, { weekday: 'short' }).replace('.', '');
+  const ringing = ring === 'ringing' || ring === 'tooSoon';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -145,38 +164,81 @@ export default function TodayScreen() {
         <ScrollView
           contentContainerStyle={styles.screen}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.ink} />}>
-          {/* Like the senior's Home: the bot and a centred title */}
+          {/* The day, like a calendar widget: short weekday, a dot, the date */}
           <View style={styles.head}>
-            <Bot size={84} look="left" />
-            <Text style={styles.title} accessibilityRole="header">
-              {text.title}
+            <View style={styles.dayRow}>
+              <Text
+                style={styles.weekday}
+                accessibilityRole="header"
+                accessibilityLabel={now.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}>
+                {weekday.charAt(0).toUpperCase() + weekday.slice(1)}
+              </Text>
+              <View style={styles.dot} />
+            </View>
+            <Text style={styles.date}>
+              {now.toLocaleDateString(dateLocale, { day: 'numeric', month: 'long' })}
+              {'\n'}
+              {now.getFullYear()}
             </Text>
-            {senior ? <Text style={styles.subtitle}>{text.with(senior.display_name)}</Text> : null}
           </View>
+          {senior ? (
+            <Text style={styles.summary}>
+              {text.hello(now.getHours())}
+              {me ? (
+                <>
+                  {', '}
+                  <Text style={styles.strong}>{me}</Text>
+                </>
+              ) : null}
+              {'. '}
+              {parts.map(({ icon: Icon, words: [before, bold, after] }, i) => (
+                <Text key={bold}>
+                  {i === 0 ? '' : i === parts.length - 1 ? text.sumAnd : ', '}
+                  {before}
+                  <Text style={styles.strong}>
+                    <Icon />
+                    {` ${bold}`}
+                  </Text>
+                  {after}
+                </Text>
+              ))}
+              {'.'}
+            </Text>
+          ) : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {senior ? (
             <View style={styles.list}>
-              {/* The one thing a son or daughter opens the app for: black, first */}
-              <ListRow
-                dark
-                kicker={text.talk.toUpperCase()}
-                title={talkTitle}
-                detail={!lastTalk && senior.talk_time ? text.talkAt(showTime(senior.talk_time)) : undefined}
-                onPress={() => router.push('/family/talks')}
-              />
-              {/* Her phone has to be connected for Hilo to ring on it */}
-              {senior.user_id ? (
-                <View style={styles.ring}>
-                  <BigButton
-                    scale="family"
-                    icon={<PhoneIcon />}
-                    label={text.ring(senior.display_name)}
-                    onPress={ring === 'ringing' || ring === 'tooSoon' ? undefined : callNow}
-                  />
-                  <Text style={[styles.note, styles.center, (ring === 'noPhone' || ring === 'failed') && styles.failed]}>
-                    {ring ? ringNote[ring] : text.ringHint}
-                  </Text>
+              {/* What to talk about with her, and Hilo rings on her phone (it has to be connected) */}
+              {note || senior.user_id ? (
+                <View style={styles.talkCard}>
+                  {note ? (
+                    <>
+                      <Text style={styles.talkLabel}>{t.talks.noteLabel(senior.display_name)}</Text>
+                      <Text style={styles.talkNote}>{note}</Text>
+                    </>
+                  ) : null}
+                  {senior.user_id ? (
+                    ring && ring !== 'noPhone' && ring !== 'failed' ? (
+                      <View style={styles.ringState} accessibilityLiveRegion="polite">
+                        {ring === 'ringing' ? <View style={styles.dot} /> : null}
+                        <Text style={styles.ringStateText}>{ringNote[ring]}</Text>
+                      </View>
+                    ) : (
+                      <>
+                        <PressScale
+                          onPress={ringing ? undefined : callNow}
+                          accessibilityRole="button"
+                          accessibilityLabel={text.ring(senior.display_name)}
+                          accessibilityHint={text.ringHint}
+                          style={styles.ringButton}>
+                          <PhoneIcon color={colors.ink} />
+                          <Text style={styles.ringLabel}>{text.ring(senior.display_name)}</Text>
+                        </PressScale>
+                        {ring ? <Text style={styles.ringFailed}>{ringNote[ring]}</Text> : null}
+                      </>
+                    )
+                  ) : null}
                 </View>
               ) : null}
               <WeekStrip key={reloadKey} seniorId={senior.id} timezone={senior.timezone} />
@@ -274,20 +336,103 @@ const styles = StyleSheet.create({
     gap: 28,
   },
   head: {
-    alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
   },
-  title: {
-    marginTop: 14,
-    fontSize: 36,
-    fontWeight: fontWeight.bold,
-    letterSpacing: -0.5,
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  weekday: {
+    fontSize: 44,
+    fontWeight: fontWeight.heavy,
+    letterSpacing: -1,
     color: colors.ink,
   },
-  subtitle: {
-    marginTop: 2,
-    fontSize: 21,
-    fontWeight: fontWeight.regular,
+  dot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: colors.nudge,
+  },
+  date: {
+    marginTop: 6,
+    textAlign: 'right',
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: fontWeight.semibold,
     color: colors.muted,
+  },
+  summary: {
+    marginTop: -12,
+    paddingHorizontal: 8,
+    fontSize: 25,
+    lineHeight: 34,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: -0.3,
+    color: colors.muted,
+  },
+  strong: {
+    color: colors.ink,
+  },
+  talkCard: {
+    gap: 14,
+    padding: 20,
+    borderRadius: 28,
+    backgroundColor: colors.ink,
+  },
+  talkLabel: {
+    fontSize: 14,
+    fontWeight: fontWeight.bold,
+    color: '#b3b3b3',
+  },
+  talkNote: {
+    fontSize: 24,
+    lineHeight: 31,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.3,
+    color: colors.onAccent,
+  },
+  ringButton: {
+    minHeight: 54,
+    borderRadius: 27,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+    backgroundColor: colors.background,
+  },
+  ringLabel: {
+    fontSize: 18,
+    fontWeight: fontWeight.bold,
+    color: colors.ink,
+  },
+  ringState: {
+    minHeight: 54,
+    borderRadius: 27,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#2c2c2e',
+  },
+  ringStateText: {
+    flexShrink: 1,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: fontWeight.bold,
+    color: '#e5e5ea',
+  },
+  ringFailed: {
+    textAlign: 'center',
+    fontSize: family.fontSize.note,
+    fontWeight: fontWeight.semibold,
+    color: '#ff9f8a',
   },
   list: {
     gap: 10,

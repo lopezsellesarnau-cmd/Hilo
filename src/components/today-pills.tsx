@@ -18,6 +18,27 @@ const MOMENTS = [
   { label: t.todayPills.night, until: '24:00' },
 ];
 
+/** Her doses today, taken or not (also the pills in the sentence at the top of Hoy) */
+export async function loadTodayDoses(seniorId: string, timezone: string): Promise<Dose[]> {
+  const today = localNow(timezone);
+  const { data: meds, error: e1 } = await supabase
+    .from('medications')
+    .select('id, name, times, weekdays')
+    .eq('person_id', seniorId)
+    .eq('active', true);
+  if (e1 || !meds) throw e1 ?? new Error('medications');
+  const ids = meds.map((m) => m.id);
+  const { data: events, error: e2 } = ids.length
+    ? await supabase
+        .from('medication_events')
+        .select('id, medication_id, scheduled_time, status, confirmed_at')
+        .in('medication_id', ids)
+        .eq('scheduled_date', today.date)
+    : { data: [], error: null };
+  if (e2 || !events) throw e2 ?? new Error('medication_events');
+  return buildDoses(meds, events, timezone, today.weekday);
+}
+
 /** Hoy: today's pills for the family, grouped by moment of the day (design V1). */
 export function TodayPills({ seniorId, seniorName, timezone }: Props) {
   const [doses, setDoses] = useState<Dose[] | null>(null);
@@ -26,29 +47,12 @@ export function TodayPills({ seniorId, seniorName, timezone }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      const today = localNow(timezone);
-      (async () => {
-        const { data: meds, error: e1 } = await supabase
-          .from('medications')
-          .select('id, name, times, weekdays')
-          .eq('person_id', seniorId)
-          .eq('active', true);
-        if (e1 || !meds) return setError(true);
-
-        const ids = meds.map((m) => m.id);
-        const { data: events, error: e2 } = ids.length
-          ? await supabase
-              .from('medication_events')
-              .select('id, medication_id, scheduled_time, status, confirmed_at')
-              .in('medication_id', ids)
-              .eq('scheduled_date', today.date)
-          : { data: [], error: null };
-        if (e2 || !events) return setError(true);
-
-        const list = buildDoses(meds, events, timezone, today.weekday);
-        setError(false);
-        setDoses(list);
-      })();
+      loadTodayDoses(seniorId, timezone)
+        .then((list) => {
+          setError(false);
+          setDoses(list);
+        })
+        .catch(() => setError(true));
     }, [seniorId, timezone]),
   );
 

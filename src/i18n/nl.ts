@@ -270,6 +270,13 @@ export const nl: Strings = {
   },
 
   today: {
+    // De dag in één zin bovenaan Vandaag: [voor, vet (met een icoon), na] per deel
+    hello: (hour: number): string => (hour < 12 ? 'Goedemorgen' : hour < 18 ? 'Goedemiddag' : 'Goedenavond'),
+    sumTalked: (name: string, time: string): [string, string, string] => [`${name} heeft om ${time} `, 'gepraat', ''],
+    sumNotYet: (name: string): [string, string, string] => [`${name} heeft vandaag nog niet `, 'gepraat', ''],
+    sumPills: (taken: number, total: number): [string, string, string] => ['heeft ', `${taken} van ${total} pillen`, ' genomen'],
+    sumStories: (n: number): [string, string, string] => ['heeft ', n === 1 ? '1 nieuw verhaal' : `${n} nieuwe verhalen`, ' verteld'],
+    sumAnd: ' en ',
     firstDay: 'Om te beginnen',
     stepAccount: 'Je account',
     stepPhone: (name: string) => `De telefoon van ${name} koppelen`,

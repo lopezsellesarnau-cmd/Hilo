@@ -94,3 +94,30 @@ export function CrownIcon({ size = 28, color = colors.ink }: Props) {
     </Svg>
   );
 }
+
+/** Inline in the sentence at the top of Hoy: chat, pills, story */
+export function ChatIcon({ size = 22, color = colors.ink }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
+    </Svg>
+  );
+}
+
+export function PillIcon({ size = 22, color = colors.ink }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Rect x={3} y={8.5} width={18} height={7} rx={3.5} transform="rotate(-35 12 12)" />
+      <Path d="m9.5 8.5 5 7" />
+    </Svg>
+  );
+}
+
+export function StoryIcon({ size = 22, color = colors.ink }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z" />
+      <Path d="M4 21V5" />
+    </Svg>
+  );
+}
