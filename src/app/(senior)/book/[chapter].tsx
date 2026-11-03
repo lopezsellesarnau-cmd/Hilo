@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SideCover } from '@/components/book-cover';
+import { BotFace } from '@/components/icons';
 import { ListenButton } from '@/components/listen-button';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
@@ -25,7 +26,7 @@ export default function ChapterScreen() {
     loadBook().then(setBook);
   }, []);
 
-  const paper = <Stack.Screen options={{ contentStyle: { backgroundColor: colors.paper } }} />;
+  const page = <Stack.Screen options={{ contentStyle: { backgroundColor: colors.background } }} />;
 
   const back = (
     <Pressable
@@ -45,7 +46,7 @@ export default function ChapterScreen() {
   if (!book || 'error' in book || !chapter) {
     return (
       <SafeAreaView style={styles.safe}>
-        {paper}
+        {page}
         <View style={styles.screen}>
           <View style={styles.top}>{back}</View>
           {book && 'error' in book ? <Text style={styles.paragraph}>{book.error}</Text> : null}
@@ -68,7 +69,7 @@ export default function ChapterScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      {paper}
+      {page}
       <WideFrame side={<SideCover name={book.name} />}>
         <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
           <View style={styles.top}>
@@ -83,11 +84,15 @@ export default function ChapterScreen() {
             </Pressable>
           </View>
 
-          <View accessibilityRole="header" style={styles.header}>
-            <Text style={styles.kicker}>{text.kicker(chapter.number)}</Text>
-            <Text style={styles.title}>{chapter.title}</Text>
-            <View style={styles.rule} />
-            <Text style={styles.by}>{text.by(book.name)}</Text>
+          {/* The chapter's cover (Figma "Hilo book chapter"): the bot on black, the title on a white card */}
+          <View accessibilityRole="header" accessibilityLabel={`${text.kicker(chapter.number)}. ${chapter.title}`} style={styles.cover}>
+            <View style={styles.coverBot}>
+              <BotFace size={270} />
+            </View>
+            <View style={styles.coverCard}>
+              <Text style={styles.title}>{chapter.title}</Text>
+              <Text style={styles.number}>{String(chapter.number).padStart(2, '0')}</Text>
+            </View>
           </View>
 
           {/* key: a new player for each chapter when she goes to the next one */}
@@ -130,16 +135,16 @@ export default function ChapterScreen() {
           </View>
         </ScrollView>
       </WideFrame>
-      <ScrollFade visible={fade.visible} color={colors.paper} />
+      <ScrollFade visible={fade.visible} color={colors.background} />
     </SafeAreaView>
   );
 }
 
-// Book typography (serif on paper) only here: reading a chapter should feel like reading a book
+// Book typography (serif on a white page, as in the Figma) only here: reading a chapter should feel like reading a book
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.background,
   },
   screen: {
     width: '100%',
@@ -188,36 +193,49 @@ const styles = StyleSheet.create({
   aaTextOn: {
     color: colors.onAccent,
   },
-  header: {
-    alignItems: 'center',
-  },
-  kicker: {
-    fontSize: 14,
-    fontWeight: fontWeight.bold,
-    letterSpacing: 2,
-    color: '#6b6457',
-    marginBottom: 10,
-  },
-  title: {
-    fontFamily: serif,
-    fontSize: 36,
-    lineHeight: 40,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  rule: {
-    width: 40,
-    height: 1,
-    marginTop: 18,
+  cover: {
+    height: 430,
+    marginBottom: 24,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    overflow: 'hidden',
     backgroundColor: colors.ink,
   },
-  by: {
-    fontFamily: serif,
-    fontStyle: 'italic',
-    fontSize: 20,
-    lineHeight: 28,
-    color: '#4a453c',
-    marginTop: 14,
+  coverBot: {
+    position: 'absolute',
+    top: 24,
+    alignSelf: 'center',
+  },
+  // The white card over the bottom of the cover, with the title and the chapter number
+  coverCard: {
+    position: 'absolute',
+    left: -3,
+    right: -3,
+    bottom: -3,
+    minHeight: 186,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    backgroundColor: colors.background,
+  },
+  title: {
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: fontWeight.heavy,
+    letterSpacing: -0.4,
+    textAlign: 'center',
+    color: colors.ink,
+  },
+  number: {
+    fontSize: 30,
+    fontWeight: '300',
+    color: colors.ink,
   },
   paragraph: {
     fontFamily: serif,

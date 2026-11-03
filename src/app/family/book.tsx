@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CHAPTER_CARD, ChapterCard } from '@/components/chapter-card';
 import { BotFace } from '@/components/icons';
 import { PressScale } from '@/components/press-scale';
 import { WideFrame } from '@/components/wide-split';
@@ -18,14 +19,7 @@ const day = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day:
 const open = (chapter: Draft) => router.push({ pathname: '/review/[id]', params: { id: chapter.id } });
 
 /** The stacked chapter cards (Figma "en su libro"): each one shows this much before the next covers it */
-const CARD = 189;
 const STEP = 94;
-/** Black, grey, light, then again: title left or right, the bot on the other side */
-const LOOKS = [
-  { ground: colors.ink, ink: colors.onAccent, right: false, face: colors.background, eyes: '#111111' },
-  { ground: '#4a4a4a', ink: colors.onAccent, right: true, face: colors.background, eyes: '#111111' },
-  { ground: '#dcdcdc', ink: colors.ink, right: true, face: colors.ink, eyes: colors.background },
-] as const;
 
 /**
  * Libro: the stories from her talks. The family approves each one before she sees it in Mi libro.
@@ -113,30 +107,18 @@ export default function FamilyBookScreen() {
           {approved.length ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{text.inBook}</Text>
-              <View style={{ height: (approved.length - 1) * STEP + CARD }}>
-                {approved.map((c, i) => {
-                  const look = LOOKS[i % LOOKS.length];
-                  return (
-                    <PressScale
-                      key={c.id}
-                      onPress={() => open(c)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${t.book.chapterA11y(i + 1, c.title)}`}
-                      containerStyle={[styles.cardSlot, { top: i * STEP }]}
-                      style={[styles.card, i > 0 && styles.cardShadow]}>
-                      <View style={[styles.cardClip, { backgroundColor: look.ground }]}>
-                        <Text
-                          style={[styles.cardTitle, { color: look.ink }, look.right ? styles.titleRight : styles.titleLeft]}
-                          numberOfLines={2}>
-                          {c.title}
-                        </Text>
-                        <View style={[styles.cardBot, look.right ? styles.botLeft : styles.botRight]}>
-                          <BotFace size={173} face={look.face} eyes={look.eyes} />
-                        </View>
-                      </View>
-                    </PressScale>
-                  );
-                })}
+              <View style={{ height: (approved.length - 1) * STEP + CHAPTER_CARD }}>
+                {approved.map((c, i) => (
+                  <PressScale
+                    key={c.id}
+                    onPress={() => open(c)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.book.chapterA11y(i + 1, c.title)}
+                    containerStyle={[styles.cardSlot, { top: i * STEP }]}
+                    style={i > 0 && styles.cardShadow}>
+                    <ChapterCard title={c.title} index={i} />
+                  </PressScale>
+                ))}
               </View>
             </View>
           ) : null}
@@ -269,48 +251,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
-  card: {
-    height: CARD,
-    borderRadius: 28,
-  },
   // The card on top casts a shadow on the one behind it
   cardShadow: {
+    borderRadius: 28,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -10 },
     shadowOpacity: 0.3,
     shadowRadius: 13,
     elevation: 8,
-  },
-  cardClip: {
-    flex: 1,
-    borderRadius: 28,
-    overflow: 'hidden',
-  },
-  cardTitle: {
-    position: 'absolute',
-    top: 14,
-    maxWidth: '78%',
-    fontSize: 26,
-    lineHeight: 30,
-    fontWeight: fontWeight.bold,
-    letterSpacing: -0.3,
-  },
-  titleLeft: {
-    left: 22,
-  },
-  titleRight: {
-    right: 22,
-    textAlign: 'right',
-  },
-  cardBot: {
-    position: 'absolute',
-    top: 57,
-  },
-  botRight: {
-    right: 20,
-  },
-  botLeft: {
-    left: 34,
   },
   empty: {
     alignItems: 'center',
