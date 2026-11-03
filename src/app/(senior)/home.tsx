@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,7 +12,7 @@ import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { askForReminders, scheduleReminders } from '@/lib/reminders';
 import { loadBook } from '@/lib/book';
-import { ringForTest } from '@/lib/call';
+import { registerSeniorCalls, ringForTest } from '@/lib/call';
 import { loadSeniorDay, saveFeeling, type Feeling } from '@/lib/senior-day';
 import { colors, fontSize, fontWeight, lineHeight, seniorScreen } from '@/theme';
 
@@ -34,6 +34,10 @@ export default function HomeScreen() {
   const [feeling, setFeeling] = useState<Feeling | null>(null);
   // No connection (or this phone is no longer hers): said under the greeting, like on Pills
   const [error, setError] = useState<string | null>(null);
+  // So the family can make Hilo ring on this phone
+  useEffect(() => {
+    registerSeniorCalls();
+  }, []);
   useFocusEffect(
     useCallback(() => {
       // Ready before she taps Mi libro

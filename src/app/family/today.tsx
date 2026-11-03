@@ -1,3 +1,4 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -47,8 +48,16 @@ export default function TodayScreen() {
   const [error, setError] = useState<string | null>(null);
   // Nobody in the family has talked with her for CALL_DAYS: one of the things to do today
   const [callDue, setCallDue] = useState(false);
-  // "Que Hilo llame ahora" was pressed. Only the look for now: the call to the server comes next
-  const [ringing, setRinging] = useState(false);
+  // "Llamar ahora": what happened when it was pressed (the Edge Function ring makes her phone ring)
+  const [ring, setRing] = useState<'ringing' | 'tooSoon' | 'noPhone' | 'failed' | null>(null);
+  const ringNote = { ringing: text.ringing, tooSoon: text.ringTooSoon, noPhone: text.ringNoPhone, failed: text.ringFailed };
+  const callNow = async () => {
+    setRing('ringing');
+    const { error: e } = await supabase.functions.invoke('ring');
+    if (!e) return;
+    const status = e instanceof FunctionsHttpError ? e.context.status : 0;
+    setRing(status === 429 ? 'tooSoon' : status === 409 ? 'noPhone' : 'failed');
+  };
 
   // So the server can tell this phone when she hasn't talked in 2 days
   useEffect(() => {
@@ -162,9 +171,11 @@ export default function TodayScreen() {
                     scale="family"
                     icon={<PhoneIcon />}
                     label={text.ring(senior.display_name)}
-                    onPress={ringing ? undefined : () => setRinging(true)}
+                    onPress={ring === 'ringing' || ring === 'tooSoon' ? undefined : callNow}
                   />
-                  <Text style={[styles.note, styles.center]}>{ringing ? text.ringing : text.ringHint}</Text>
+                  <Text style={[styles.note, styles.center, (ring === 'noPhone' || ring === 'failed') && styles.failed]}>
+                    {ring ? ringNote[ring] : text.ringHint}
+                  </Text>
                 </View>
               ) : null}
               <WeekStrip key={reloadKey} seniorId={senior.id} timezone={senior.timezone} />
@@ -291,6 +302,9 @@ const styles = StyleSheet.create({
   },
   center: {
     textAlign: 'center',
+  },
+  failed: {
+    color: colors.error,
   },
   label: {
     fontSize: 13,
