@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AppState, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -179,19 +179,27 @@ export default function TalkScreen() {
   }, []);
 
   useEffect(() => {
-    // Once per screen, even if React runs effects twice in development: each start is a new talk
-    if (started.current) return;
-    started.current = true;
-    sendTurn(null).then(handle);
-    loadSeniorDay().then((day) => {
-      if (day.me) locale.current = day.me.locale;
+    const begin = () => {
+      // Once per screen, even if React runs effects twice in development: each start is a new talk
+      if (started.current) return;
+      started.current = true;
+      sendTurn(null).then(handle);
+      loadSeniorDay().then((day) => {
+        if (day.me) locale.current = day.me.locale;
+      });
+      // Ask for the microphone and speech recognition when the talk opens, not in the middle of the first press
+      ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    };
+    if (AppState.currentState === 'active') return begin();
+    // Answered Hilo's call on the lock screen: the talk opens behind it, but a locked phone has no
+    // connection for the app. Hilo starts when she unlocks and sees the screen.
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      sub.remove();
+      begin();
     });
+    return () => sub.remove();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Ask for the microphone and speech recognition when the talk opens, not in the middle of the first press
-  useEffect(() => {
-    ExpoSpeechRecognitionModule.requestPermissionsAsync();
   }, []);
 
   const stopTimers = () => {
