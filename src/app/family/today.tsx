@@ -258,6 +258,8 @@ export default function TodayScreen() {
 
           {senior ? (
             <View style={styles.list}>
+              {/* Her week first, like a calendar */}
+              <WeekStrip key={reloadKey} seniorId={senior.id} timezone={senior.timezone} />
               {/* What to talk about with her, and Hilo rings on her phone (it has to be connected) */}
               {note || senior.user_id ? (
                 // Without a note there's nothing to frame: just the black call button
@@ -291,7 +293,6 @@ export default function TodayScreen() {
                   ) : null}
                 </View>
               ) : null}
-              <WeekStrip key={reloadKey} seniorId={senior.id} timezone={senior.timezone} />
             </View>
           ) : null}
 

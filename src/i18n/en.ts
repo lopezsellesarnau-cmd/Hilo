@@ -351,8 +351,6 @@ export const en: Strings = {
   },
 
   week: {
-    talk: 'Chat',
-    pills: 'Pills',
     a11y: (talks: number, days: number) => `This week they chatted ${talks} of ${days} days.`,
   },
 

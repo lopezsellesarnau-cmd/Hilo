@@ -358,8 +358,6 @@ export const es = {
   },
 
   week: {
-    talk: 'Charla',
-    pills: 'Pastillas',
     a11y: (talks: number, days: number) => `Esta semana ha charlado ${talks} de ${days} días.`,
   },
 

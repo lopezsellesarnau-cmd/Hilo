@@ -355,8 +355,6 @@ export const nl: Strings = {
   },
 
   week: {
-    talk: 'Gesprek',
-    pills: 'Pillen',
     a11y: (talks: number, days: number) => `Deze week ${talks} van de ${days} dagen gepraat.`,
   },
 
