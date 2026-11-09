@@ -5,6 +5,7 @@ import { Platform, View } from 'react-native';
 
 import { t } from '@/i18n';
 import { loadCalls } from '@/lib/calls';
+import { unreadMessages } from '@/lib/messages';
 import { familyHasAccess, myFamilyId } from '@/lib/purchases';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/theme';
@@ -12,16 +13,17 @@ import { colors } from '@/theme';
 /** Same as quiet-alert and Hoy */
 const CALL_DAYS = 3;
 
-/** What the tab badges show: stories waiting in Libro, and a call that is due in Charlas */
-async function loadBadges(): Promise<{ stories: number; callDue: boolean }> {
+/** What the tab badges show: stories waiting in Libro; her new messages, or a call that is due, in Familia */
+async function loadBadges(): Promise<{ stories: number; callDue: boolean; messages: number }> {
   const { data: senior } = await supabase.from('people').select('id, user_id').eq('role', 'senior').limit(1).maybeSingle();
-  if (!senior) return { stories: 0, callDue: false };
-  const [{ count }, calls] = await Promise.all([
+  if (!senior) return { stories: 0, callDue: false, messages: 0 };
+  const [{ count }, calls, messages] = await Promise.all([
     supabase.from('chapters').select('id', { count: 'exact', head: true }).eq('person_id', senior.id).eq('status', 'draft'),
     senior.user_id ? loadCalls(senior.id, 1) : Promise.resolve(null),
+    unreadMessages(senior.id).catch(() => 0),
   ]);
   const callDue = Boolean(calls && (!calls.length || Date.now() - Date.parse(calls[0].at) >= CALL_DAYS * 86_400_000));
-  return { stories: count ?? 0, callDue };
+  return { stories: count ?? 0, callDue, messages };
 }
 
 /** The family app: Hoy, Charlas, Libro and Ajustes. Only with a trial or a subscription: otherwise, the paywall. */
@@ -37,7 +39,7 @@ export default function FamilyLayout() {
   }, []);
 
   // Again on every tab change, so a story approved or a call noted clears its badge
-  const [badges, setBadges] = useState({ stories: 0, callDue: false });
+  const [badges, setBadges] = useState({ stories: 0, callDue: false, messages: 0 });
   const refreshBadges = useCallback(() => {
     loadBadges()
       .then(setBadges)
@@ -74,7 +76,9 @@ export default function FamilyLayout() {
       <NativeTabs.Trigger name="talks">
         <NativeTabs.Trigger.Label>{t.talks.tab}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="person.2" md="group" />
-        <NativeTabs.Trigger.Badge hidden={!badges.callDue}>!</NativeTabs.Trigger.Badge>
+        <NativeTabs.Trigger.Badge hidden={!badges.messages && !badges.callDue}>
+          {badges.messages ? String(badges.messages) : '!'}
+        </NativeTabs.Trigger.Badge>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="book">
         <NativeTabs.Trigger.Label>{t.familyBook.tab}</NativeTabs.Trigger.Label>

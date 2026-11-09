@@ -355,6 +355,10 @@ export const es = {
     noTalks: 'Aquí verás sus charlas en cuanto empiece a charlar con Hilo.',
     today: 'hoy',
     yesterday: 'ayer',
+    messagesLabel: (name: string) => `Mensajes de ${name}`,
+    alert: 'Aviso',
+    forYou: 'para ti',
+    forEveryone: 'para todos',
   },
 
   week: {

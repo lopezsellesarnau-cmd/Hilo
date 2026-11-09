@@ -352,6 +352,10 @@ export const nl: Strings = {
     noTalks: 'Hier zie je de gesprekken zodra de persoon met Hilo begint te praten.',
     today: 'vandaag',
     yesterday: 'gisteren',
+    messagesLabel: (name: string) => `Berichten van ${name}`,
+    alert: 'Melding',
+    forYou: 'voor jou',
+    forEveryone: 'voor iedereen',
   },
 
   week: {

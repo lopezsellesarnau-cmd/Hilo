@@ -9,6 +9,7 @@ import { ListRow } from '@/components/list-row';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
 import { dayLabel, iCalled, loadMonth, type MemberCalls } from '@/lib/calls';
+import { loadMessages, markMessagesRead, type FamilyMessage } from '@/lib/messages';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
@@ -35,6 +36,7 @@ const initial = (name: string) => name.trim().charAt(0).toUpperCase();
 export default function FamilyScreen() {
   const [senior, setSenior] = useState<Senior | null>(null);
   const [members, setMembers] = useState<MemberCalls[]>([]);
+  const [messages, setMessages] = useState<FamilyMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   // When the data was loaded: "a call today?" is decided against this, not during render
@@ -53,8 +55,12 @@ export default function FamilyScreen() {
           setError(null);
           setSenior(data as Senior | null);
           if (!data) return;
-          setMembers(await loadMonth(data.id, data.timezone));
+          const [month, sent] = await Promise.all([loadMonth(data.id, data.timezone), loadMessages(data.id).catch(() => [])]);
+          setMembers(month);
+          setMessages(sent);
           setLoadedAt(Date.now());
+          // Shown once as new (the dot), then read: the badge clears on the next tab change
+          if (sent.some((m) => m.unread)) markMessagesRead(data.id).catch(() => {});
         }),
     [],
   );
@@ -96,7 +102,11 @@ export default function FamilyScreen() {
 
   const name = senior.display_name;
   const month = new Date().toLocaleDateString(dateLocale, { month: 'long', timeZone: senior.timezone });
-  const [before, count, after] = text.month(month, members.reduce((n, m) => n + m.count, 0), name);
+  const [before, count, after] = text.month(
+    month,
+    members.reduce((n, m) => n + m.count, 0),
+    name,
+  );
   const me = members.find((m) => m.mine);
   const calledToday = Boolean(me?.last && dayLabel(me.last.at, senior.timezone) === text.today);
   // A podium only makes sense with two people on it
@@ -121,6 +131,29 @@ export default function FamilyScreen() {
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
+          {messages.length ? (
+            <View style={[styles.card, styles.list]}>
+              <Text style={styles.label}>{text.messagesLabel(name).toUpperCase()}</Text>
+              {messages.map((m, i) => (
+                <View key={m.id} style={[styles.message, i > 0 && styles.rowLine]}>
+                  <Text style={[styles.messageBody, m.kind === 'alert' && styles.alert]}>
+                    {m.kind === 'alert' ? `${text.alert}: ` : ''}«{m.body}»
+                  </Text>
+                  <Text style={styles.rowDetail}>
+                    {m.unread ? <Text style={styles.nudge}>● </Text> : null}
+                    {dayLabel(m.at, senior.timezone)} ·{' '}
+                    {new Date(m.at).toLocaleTimeString(dateLocale, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: senior.timezone,
+                    })}{' '}
+                    · {m.forEveryone ? text.forEveryone : text.forYou}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
           {ranked.length >= 2 ? (
             <View style={styles.card}>
               <View style={styles.podium}>
@@ -138,7 +171,12 @@ export default function FamilyScreen() {
                       <View
                         style={[
                           styles.avatar,
-                          { width: place.avatar, height: place.avatar, borderRadius: place.avatar / 2, backgroundColor: place.fill },
+                          {
+                            width: place.avatar,
+                            height: place.avatar,
+                            borderRadius: place.avatar / 2,
+                            backgroundColor: place.fill,
+                          },
                         ]}>
                         <Text style={[styles.avatarText, { fontSize: place.avatar * 0.36 }, first && styles.onInk]}>
                           {initial(m.name)}
@@ -307,6 +345,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     paddingVertical: 14,
+  },
+  label: {
+    paddingTop: 12,
+    fontSize: 13,
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.4,
+    color: colors.muted,
+  },
+  message: {
+    gap: 4,
+    paddingVertical: 14,
+  },
+  messageBody: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: fontWeight.semibold,
+    color: colors.ink,
+  },
+  alert: {
+    color: colors.error,
   },
   rowLine: {
     borderTopWidth: 1,

@@ -348,6 +348,10 @@ export const en: Strings = {
     noTalks: "You'll see their chats here as soon as they start chatting with Hilo.",
     today: 'today',
     yesterday: 'yesterday',
+    messagesLabel: (name: string) => `Messages from ${name}`,
+    alert: 'Alert',
+    forYou: 'for you',
+    forEveryone: 'for everyone',
   },
 
   week: {
