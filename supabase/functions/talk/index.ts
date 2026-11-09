@@ -6,6 +6,7 @@
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.133.0';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.117.3';
+import { importPKCS8, SignJWT } from 'npm:jose@5.9.6';
 
 const MODEL = 'claude-haiku-5-5';
 /** The book is read for years: quality matters more than speed here, and it's one call per talk */
@@ -32,6 +33,7 @@ Cómo hablas:
 - Si se repite o se confunde, no le corriges. Sigues con cariño.
 - Si te pide que hables más despacio, más deprisa o normal, usa ajustar_voz y después le dices que ya está, con una frase corta.
 - Si te dice que aún no se ha tomado las pastillas, le recuerdas con calma que se las tome ahora y lo marque en Mis pastillas. No insistas más.
+- Si te pide que le digas algo a alguien de su familia ("dile a Pedro que…"), repítele el mensaje en una frase y pregúntale si se lo mandas. Solo cuando diga que sí, usa mensaje_familia con tipo mensaje y el texto que ella ha aprobado. Si no está claro para quién es, pregúntaselo. Nunca mandes nada que ella no te haya pedido.
 
 De qué habláis:
 - Primero, cómo está hoy: si ha dormido bien, qué va a hacer.
@@ -40,6 +42,7 @@ De qué habláis:
 
 Límites:
 - No eres médico. Si habla de dolor, de una caída, de que se encuentra mal o de tristeza fuerte, le dices con calma que es importante contárselo hoy a su familia o llamar al 112 si es urgente, y no das consejos médicos.
+- Si se ha caído, le duele algo o se encuentra mal ahora, usa además mensaje_familia con tipo aviso (lo que le pasa, con sus palabras y en una frase) y dile que has avisado a su familia. No esperes a que te lo pida. La tristeza no se avisa.
 - No hablas de dinero, compras ni datos bancarios. Si alguien le pide dinero o claves por teléfono, le dices que no los dé y que lo hable con su familia.
 - No finges ser una persona. Si te pregunta, eres Hilo, un programa que su familia ha puesto para charlar.
 - Si te dice que algo es solo para ti o que no se lo cuentes a su familia, tranquilízala: queda entre vosotros.
@@ -60,6 +63,7 @@ Hoe je praat:
 - Als de persoon iets herhaalt of in de war raakt, verbeter je niet. Je gaat liefdevol verder.
 - Als de persoon vraagt om langzamer, sneller of normaal te praten, gebruik je ajustar_voz en zeg je daarna kort dat het geregeld is.
 - Als de persoon zegt dat de pillen nog niet genomen zijn, herinner je er rustig aan om ze nu te nemen en het aan te vinken bij Mijn pillen. Daarna dring je niet meer aan.
+- Als de persoon vraagt om iets door te geven aan iemand van de familie ("zeg tegen Pedro dat…"), herhaal je het bericht in één zin en vraag je of je het mag sturen. Pas als de persoon ja zegt, gebruik je mensaje_familia met tipo mensaje en de goedgekeurde tekst. Is niet duidelijk voor wie het is, vraag het dan. Stuur nooit iets waar de persoon niet om gevraagd heeft.
 
 Waar jullie over praten:
 - Eerst hoe het vandaag gaat: of de persoon goed geslapen heeft, wat er vandaag op het programma staat.
@@ -68,6 +72,7 @@ Waar jullie over praten:
 
 Grenzen:
 - Je bent geen arts. Gaat het over pijn, een val, zich niet goed voelen of erge somberheid, dan zeg je rustig dat het belangrijk is om het vandaag aan de familie te vertellen, of 112 te bellen als het dringend is. Je geeft geen medisch advies.
+- Is de persoon gevallen, heeft hij of zij nu pijn of voelt hij of zij zich nu niet goed, gebruik dan ook mensaje_familia met tipo aviso (wat er aan de hand is, in de eigen woorden en in één zin) en zeg dat je de familie hebt gewaarschuwd. Wacht niet tot het gevraagd wordt. Somberheid meld je niet.
 - Je praat niet over geld, aankopen of bankgegevens. Vraagt iemand aan de telefoon om geld of codes, dan zeg je dat de persoon die niet moet geven en het met de familie moet bespreken.
 - Je doet niet alsof je een mens bent. Als het gevraagd wordt: je bent Hilo, een programma dat de familie heeft geïnstalleerd om mee te praten.
 - Als de persoon zegt dat iets alleen voor jou is of niet aan de familie verteld mag worden, stel gerust: het blijft tussen jullie.
@@ -87,6 +92,7 @@ How you talk:
 - If they repeat themselves or get confused, you don't correct them. You carry on kindly.
 - If they ask you to speak slower, faster or normally, use ajustar_voz and then say briefly that it's done.
 - If they say they haven't taken their pills yet, calmly remind them to take them now and mark them in My pills. Don't insist after that.
+- If they ask you to pass something on to someone in their family ("tell Pedro to…"), repeat the message back in one sentence and ask if you should send it. Only when they say yes, use mensaje_familia with tipo mensaje and the text they approved. If it isn't clear who it's for, ask them. Never send anything they didn't ask for.
 
 What you talk about:
 - First, how they are today: whether they slept well, what they're going to do.
@@ -95,6 +101,7 @@ What you talk about:
 
 Limits:
 - You are not a doctor. If they mention pain, a fall, feeling unwell or deep sadness, calmly tell them it's important to tell their family today, or to call 112 if it's urgent, and give no medical advice.
+- If they have fallen, are in pain or feel unwell right now, also use mensaje_familia with tipo aviso (what is happening, in their words and in one sentence) and tell them you have let their family know. Don't wait for them to ask. Sadness is not reported.
 - You don't talk about money, purchases or bank details. If someone asks them for money or codes on the phone, tell them not to give them and to talk to their family.
 - You don't pretend to be a person. If they ask, you are Hilo, a program their family set up to chat with them.
 - If they say something is just for you or not to tell their family, reassure them: it stays between you.
@@ -123,6 +130,9 @@ const SAY = {
       `[Cosas que te ha contado solo a ti, para que no lleguen a su familia: ${lines}. Puedes hablarlas con ella si sale, con naturalidad, pero nunca digas que irán a su libro ni a su familia.]`,
     feelsBad: '[Hoy, en la pantalla de inicio, ha tocado «Mal» en «¿Cómo estás?». Al empezar, pregúntale con cariño qué tal está, sin insistir: si no quiere hablar de ello, sigue con normalidad.]',
     askFamily: '[Hace días que no consta que nadie de su familia haya hablado con ella. En algún momento de la charla, con naturalidad y sin insistir, pregúntale si ha hablado últimamente con alguien de su familia y qué le contaron.]',
+    family: (names: string) => `[Su familia en Hilo: ${names}. Si te pide mandarle algo a alguien, usa estos nombres.]`,
+    pushMessage: (name: string, text: string) => `${name}: «${text}»`,
+    pushAlert: (name: string, text: string) => `Aviso de ${name}: «${text}». Llama para ver cómo está.`,
     pillOne: (time: string, name: string) => `Por cierto, a las ${time} te tocaba esto: ${name}. ¿Te lo has tomado?`,
     pillMany: (list: string) => `Por cierto, hoy te tocaba esto: ${list}. ¿Te lo has tomado todo?`,
     and: 'y',
@@ -164,6 +174,9 @@ const SAY = {
       `[Dingen die de persoon alleen aan jou heeft verteld, zodat de familie ze niet hoort: ${lines}. Je kunt erover praten als het ter sprake komt, maar zeg nooit dat het in het boek of bij de familie komt.]`,
     feelsBad: '[Vandaag heeft de persoon op het beginscherm bij "Hoe gaat het met u?" op "Slecht" getikt. Vraag aan het begin vriendelijk hoe het gaat, zonder aan te dringen: wil de persoon er niet over praten, ga dan gewoon verder.]',
     askFamily: '[Al een paar dagen is niet bekend dat iemand van de familie met de persoon heeft gesproken. Vraag op een natuurlijk moment, zonder aan te dringen, of de persoon de laatste tijd iemand van de familie heeft gesproken en wat ze vertelden.]',
+    family: (names: string) => `[De familie in Hilo: ${names}. Vraagt de persoon iets door te geven, gebruik dan deze namen.]`,
+    pushMessage: (name: string, text: string) => `${name}: "${text}"`,
+    pushAlert: (name: string, text: string) => `Melding van ${name}: "${text}". Bel even om te horen hoe het gaat.`,
     pillOne: (time: string, name: string) => `Trouwens, om ${time} was het tijd voor ${name}. Heeft u die genomen?`,
     pillMany: (list: string) => `Trouwens, vandaag was het tijd voor ${list}. Heeft u alles genomen?`,
     and: 'en',
@@ -205,6 +218,9 @@ const SAY = {
       `[Things they told only you, so they don't reach their family: ${lines}. You can talk about them with them if it comes up, naturally, but never say they'll go in their book or to their family.]`,
     feelsBad: '[Today, on their Home screen, they tapped "Bad" for "How are you?". At the start, gently ask how they are, without pushing: if they don\'t want to talk about it, carry on as usual.]',
     askFamily: "[For a few days there's no record of anyone in their family talking with them. At some point in the chat, naturally and without insisting, ask whether they've spoken with anyone in their family lately and what they talked about.]",
+    family: (names: string) => `[Their family in Hilo: ${names}. If they ask you to pass something on, use these names.]`,
+    pushMessage: (name: string, text: string) => `${name}: "${text}"`,
+    pushAlert: (name: string, text: string) => `Alert from ${name}: "${text}". Call to check on them.`,
     pillOne: (time: string, name: string) => `By the way, at ${time} it was time for ${name}. Have you taken it?`,
     pillMany: (list: string) => `By the way, today it was time for ${list}. Have you taken everything?`,
     and: 'and',
@@ -369,6 +385,26 @@ const TOOLS: Anthropic.Tool[] = [
         },
       },
       required: ['que'],
+    },
+  },
+  {
+    name: 'mensaje_familia',
+    description:
+      'Manda un mensaje suyo a su familia: les llega un aviso en el móvil. ' +
+      'tipo mensaje: solo cuando ella pide que le digas algo a alguien y ya te ha dicho que sí después de oírlo repetido. ' +
+      'tipo aviso: cuando se ha caído, le duele algo o se encuentra mal ahora (va a toda la familia). ' +
+      'Nunca para otra cosa ni por tu cuenta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        para: {
+          type: 'string',
+          description: 'El nombre de la persona de su familia, tal como sale en la lista, o "todos". En un aviso, "todos".',
+        },
+        texto: { type: 'string', description: 'El mensaje en una frase, con sus palabras (máximo 300 caracteres).' },
+        tipo: { type: 'string', enum: ['mensaje', 'aviso'] },
+      },
+      required: ['para', 'texto', 'tipo'],
     },
   },
   {
@@ -951,6 +987,126 @@ async function closeTalk(db: SupabaseClient, admin: SupabaseClient, me: Senior, 
   }
 }
 
+// ── Messages to her family ────────────────────────────────────────────────
+// "Dile a Pedro que prepare la cena": saved in family_messages and sent as a push to their phones.
+// Same APNs code as quiet-alert (functions are pasted in the dashboard one by one, so no shared file).
+
+type Member = { id: string; display_name: string; user_id: string | null };
+
+/** Messages per talk: enough for real use, stops a confused loop from filling their phones */
+const MAX_MESSAGES_PER_TALK = 5;
+const MESSAGE_MAX = 300;
+const EVERYONE = new Set(['todos', 'toda la familia', 'familia', 'everyone', 'all', 'family', 'iedereen', 'familie', 'de familie']);
+
+/**
+ * Who "para" means: one member, null for the whole family, or 'unclear' when Hilo has to ask her.
+ * Any word of the name counts ("Pedro" for "Pedro García"), but only if it points to one person.
+ */
+function recipientOf(para: string, members: Member[]): Member | null | 'unclear' {
+  const wanted = bare(para);
+  if (!wanted || EVERYONE.has(wanted)) return members.length === 1 ? members[0] : null;
+  const words = wanted.split(' ').filter((w) => w.length > 2);
+  const found = members.filter((m) => {
+    const name = bare(m.display_name);
+    return name === wanted || name.split(' ').some((w) => words.includes(w));
+  });
+  return found.length === 1 ? found[0] : 'unclear';
+}
+
+async function apnsToken() {
+  const key = await importPKCS8(Deno.env.get('APNS_KEY')!.replaceAll('\\n', '\n'), 'ES256');
+  return new SignJWT({})
+    .setProtectedHeader({ alg: 'ES256', kid: Deno.env.get('APNS_KEY_ID')! })
+    .setIssuer(Deno.env.get('APNS_TEAM_ID')!)
+    .setIssuedAt()
+    .sign(key);
+}
+
+/** Production server first (TestFlight, App Store), then sandbox (development builds). 'gone' = dead token. */
+async function sendPush(jwt: string, token: string, body: string): Promise<'sent' | 'gone' | 'failed'> {
+  const payload = JSON.stringify({
+    aps: { alert: { title: 'Hilo', body }, sound: 'default' },
+    // Tapping it opens Charlas, where the message is
+    body: { url: '/family/talks' },
+  });
+  for (const host of ['api.push.apple.com', 'api.sandbox.push.apple.com']) {
+    const res = await fetch(`https://${host}/3/device/${token}`, {
+      method: 'POST',
+      headers: {
+        authorization: `bearer ${jwt}`,
+        'apns-topic': Deno.env.get('APNS_TOPIC') ?? 'com.arnolop.hilo',
+        'apns-push-type': 'alert',
+        'apns-priority': '10',
+      },
+      body: payload,
+    });
+    if (res.ok) return 'sent';
+    const reason = ((await res.json().catch(() => ({}))) as { reason?: string }).reason;
+    if (res.status === 410 || reason === 'Unregistered') return 'gone';
+    if (reason === 'BadDeviceToken') continue;
+    console.error('apns', host, res.status, reason);
+    return 'failed';
+  }
+  return 'gone';
+}
+
+/** The push to the recipient's phones (or every family member's), each in its own language */
+async function pushMessage(admin: SupabaseClient, me: Senior, to: Member[], kind: 'message' | 'alert', text: string) {
+  const users = to.map((m) => m.user_id).filter((u): u is string => Boolean(u));
+  if (!users.length) return;
+  const { data: tokens } = await admin.from('push_tokens').select('token, locale').eq('family_id', me.family_id).in('user_id', users);
+  if (!tokens?.length) return;
+  const jwt = await apnsToken();
+  for (const { token, locale } of tokens) {
+    const s = SAY[lang(locale)];
+    const result = await sendPush(jwt, token, kind === 'alert' ? s.pushAlert(me.display_name, text) : s.pushMessage(me.display_name, text));
+    if (result === 'gone') await admin.from('push_tokens').delete().eq('token', token);
+  }
+}
+
+/** The tool: checks, saves and sends in the background. Returns what Hilo is told back. */
+async function familyMessage(
+  admin: SupabaseClient,
+  me: Senior,
+  sessionId: string,
+  members: Member[],
+  input: { para?: unknown; texto?: unknown; tipo?: unknown },
+): Promise<{ content: string; error: boolean }> {
+  const kind = input.tipo === 'aviso' ? 'alert' : 'message';
+  const text = String(input.texto ?? '').trim().slice(0, MESSAGE_MAX);
+  if (!text) return { content: 'Falta el mensaje.', error: true };
+  if (!members.length) return { content: 'No hay nadie de su familia en Hilo todavía. Díselo con cariño.', error: true };
+
+  // An alert always goes to everyone
+  const to = kind === 'alert' ? null : recipientOf(String(input.para ?? ''), members);
+  if (to === 'unclear') {
+    return {
+      content: `No sé a quién. Pregúntale si es para ${members.map((m) => m.display_name).join(', ')} o para todos. No digas que lo has mandado.`,
+      error: true,
+    };
+  }
+
+  const { count } = await admin.from('family_messages').select('id', { count: 'exact', head: true }).eq('session_id', sessionId);
+  if ((count ?? 0) >= MAX_MESSAGES_PER_TALK) return { content: 'Hoy ya has mandado muchos mensajes. Dile que se lo cuente a su familia por teléfono.', error: true };
+
+  const { error } = await admin.from('family_messages').insert({
+    family_id: me.family_id,
+    senior_id: me.id,
+    recipient_id: to?.id ?? null,
+    kind,
+    body: text,
+    session_id: sessionId,
+  });
+  if (error) {
+    console.error('family message', error.message);
+    return { content: 'No se ha podido mandar. Dile que lo intente llamando por teléfono.', error: true };
+  }
+  EdgeRuntime.waitUntil(pushMessage(admin, me, to ? [to] : members, kind, text).catch((e) => console.error('message push', String(e))));
+  return kind === 'alert'
+    ? { content: 'Aviso enviado a toda su familia. Díselo, y recuérdale que si es urgente llame al 112.', error: false }
+    : { content: `Enviado a ${to ? to.display_name : 'toda su familia'}. Díselo en una frase corta.`, error: false };
+}
+
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -1061,7 +1217,7 @@ Deno.serve(async (req) => {
     sessionId = data.id;
   }
 
-  const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }, { data: checkin }, secrets] = await Promise.all([
+  const [{ data: turns, error: turnsError }, { data: talk }, { data: chapters }, { data: checkin }, secrets, { data: family }] = await Promise.all([
     db.from('turns').select('seq, speaker, text').eq('session_id', sessionId).order('seq'),
     db.from('talk_sessions').select('pills_asked_at, context, started_at, ended_at').eq('id', sessionId).single(),
     // Titles only (drafts too): enough for Hilo not to ask for the same story twice
@@ -1069,7 +1225,10 @@ Deno.serve(async (req) => {
     // Her answer to "How are you?" on the Home today: she says it, Hilo doesn't guess it
     db.from('checkins').select('feeling').eq('person_id', me.id).eq('day', localNow(me.timezone).date).maybeSingle(),
     privateNotes(admin, me.id),
+    // Her family members, for "dile a Pedro que…" (user_id: to find their phones)
+    admin.from('people').select('id, display_name, user_id').eq('family_id', me.family_id).eq('role', 'member').order('created_at'),
   ]);
+  const members: Member[] = family ?? [];
   if (turnsError || !talk) return json({ error: 'session' }, 404);
   // Only an open talk from the last hours: an old session id must not skip the subscription and the daily limit
   if (session_id && !body.leave && (talk.ended_at || Date.now() - Date.parse(talk.started_at) > MAX_TALK_AGE_MS)) {
@@ -1129,6 +1288,7 @@ Deno.serve(async (req) => {
     chapters?.length ? say.stories(chapters.map((c) => c.title).join('; ')) : '',
     checkin?.feeling === 3 ? say.feelsBad : '',
     secrets.length ? say.privateNotes(secrets.join('; ')) : '',
+    members.length ? say.family(members.map((m) => m.display_name).join(', ')) : '',
     context ?? talk.context ?? '',
   ].filter(Boolean);
   const messages: Anthropic.MessageParam[] = [
@@ -1191,6 +1351,11 @@ Deno.serve(async (req) => {
               : 'Guardado. Dile con cariño que queda entre vosotros. No digas que esto irá a su libro.',
             is_error: Boolean(error),
           });
+          continue;
+        }
+        if (call.name === 'mensaje_familia') {
+          const { content, error } = await familyMessage(admin, me, sessionId, members, call.input as Record<string, unknown>);
+          results.push({ type: 'tool_result', tool_use_id: call.id, content, is_error: error });
           continue;
         }
         const wanted = nextSpeed(speed, (call.input as { cambio?: unknown }).cambio);
