@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
 import { ScreenHeader } from '@/components/screen-header';
-import { Bot } from '@/components/bot';
+import { LiveBot } from '@/components/live-bot';
 import { t } from '@/i18n';
 import { codeFromInviteQr, JOIN_MESSAGES, joinFamily } from '@/lib/invite';
 import { codeFromQr, pair, PAIR_MESSAGES } from '@/lib/pairing';
@@ -62,7 +62,7 @@ export default function PairScanScreen() {
           {connecting ? (
             <View style={styles.ask}>
               <View style={styles.bot}>
-                <Bot size={140} mood="thinking" />
+                <LiveBot size={140} mood="thinking" />
               </View>
               <Text style={styles.text}>{t.pairCode.connecting}</Text>
             </View>

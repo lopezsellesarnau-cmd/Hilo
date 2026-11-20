@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Bot } from '@/components/bot';
+import { LiveBot } from '@/components/live-bot';
 import { getCaptchaToken } from '@/lib/captcha';
 import { supabase } from '@/lib/supabase';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
@@ -45,7 +45,7 @@ export default function StaffLogin() {
   return (
     <View style={styles.page}>
       <View style={styles.box}>
-        <Bot size={56} />
+        <LiveBot size={56} />
         <Text style={[staffText.label, styles.kicker]}>Hilo for organisations</Text>
         <Text style={staffText.title}>{step === 'email' ? 'Sign in' : 'Check your email'}</Text>
         <Text style={[staffText.body, styles.hint]}>

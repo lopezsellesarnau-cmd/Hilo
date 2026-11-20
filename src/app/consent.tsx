@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
-import { Bot } from '@/components/bot';
+import { LiveBot } from '@/components/live-bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
@@ -71,7 +71,7 @@ export default function ConsentScreen() {
             <View style={styles.center}>
               {wide ? null : (
                 <View style={styles.doneBot}>
-                  <Bot size={200} mood="speaking" />
+                  <LiveBot size={200} mood="speaking" />
                 </View>
               )}
               <Text style={styles.doneTitle} accessibilityRole="header">
@@ -99,7 +99,7 @@ export default function ConsentScreen() {
         <ScrollView contentContainerStyle={styles.screen}>
           {wide ? null : (
             <View style={styles.bot}>
-              <Bot size={72} mood={saving ? 'thinking' : 'idle'} />
+              <LiveBot size={72} mood={saving ? 'thinking' : 'idle'} />
             </View>
           )}
           <ScreenHeader title={t.consent.title} subtitle={t.consent.subtitle} />

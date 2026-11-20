@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { Bot, type BotMood } from '@/components/bot';
+import { LiveBot, type BotMood } from '@/components/live-bot';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { spacing } from '@/theme';
 
@@ -36,7 +36,7 @@ export function WideFrame({ side, mood, children }: { side?: ReactNode; mood?: B
         side={
           side ?? (
             <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <Bot size={wideBotSize(width, height)} mood={mood} />
+              <LiveBot size={wideBotSize(width, height)} mood={mood} />
             </View>
           )
         }>

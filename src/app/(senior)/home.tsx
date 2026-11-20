@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-n
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Bot } from '@/components/bot';
+import { LiveBot, useFinger } from '@/components/live-bot';
 import { MicIcon } from '@/components/icons';
 import { PressScale } from '@/components/press-scale';
 import { WideSplit } from '@/components/wide-split';
@@ -22,6 +22,8 @@ const enter = (order: number) => FadeInDown.duration(500).delay(order === 0 ? 0 
 
 export default function HomeScreen() {
   const { width, height } = useWindowDimensions();
+  // The bot looks at her finger wherever she touches the screen
+  const { finger, handlers } = useFinger();
   // iPad on its side: bot on the left, greeting and buttons on the right (Figma IPAD MINI / DUO 2)
   const wide = useWide();
   // Never a fixed 265: on short screens a fixed bot overlaps the greeting (prototype bug)
@@ -108,7 +110,7 @@ export default function HomeScreen() {
         accessibilityRole="button"
         accessibilityLabel={t.home.tapToTalk}
         accessibilityHint={t.home.talkHint}>
-        <Bot size={botSize} mood="idle" />
+        <LiveBot size={botSize} finger={finger} />
       </PressScale>
     </Animated.View>
   );
@@ -157,7 +159,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={seniorScreen.safe}>
+    <SafeAreaView style={seniorScreen.safe} {...handlers}>
       <ScrollView contentContainerStyle={[seniorScreen.screen, wide && seniorScreen.screenWide]} bounces={false}>
         {wide ? (
           <WideSplit side={stage}>

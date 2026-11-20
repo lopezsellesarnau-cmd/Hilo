@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Bot, type BotMood } from '@/components/bot';
+import { LiveBot, type BotMood } from '@/components/live-bot';
 import { WideSplit } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
@@ -55,7 +55,7 @@ export function OnboardingStep({ step, question, hint, children, footer, mood = 
 
       {wide ? null : (
         <View style={styles.bot} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Bot size={72} mood={mood} />
+          <LiveBot size={72} mood={mood} />
         </View>
       )}
 
@@ -79,7 +79,7 @@ export function OnboardingStep({ step, question, hint, children, footer, mood = 
             <WideSplit
               side={
                 <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                  <Bot size={wideBotSize(width, height)} mood={mood} />
+                  <LiveBot size={wideBotSize(width, height)} mood={mood} />
                 </View>
               }>
               <ScrollView contentContainerStyle={styles.sideScroll} keyboardShouldPersistTaps="handled">

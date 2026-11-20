@@ -6,7 +6,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
-import { Bot } from '@/components/bot';
+import { LiveBot, useFinger } from '@/components/live-bot';
 import { WideSplit } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
@@ -23,6 +23,8 @@ export default function WelcomeScreen() {
   // iPad on its side: the bot alone on the left, name and buttons on the right
   const wide = useWide();
   const logoSize = wide ? wideBotSize(width, height) : Math.min(170, width * 0.42);
+  // The bot looks at her finger wherever she touches the screen
+  const { finger, handlers } = useFinger();
   // Signed in already? Go straight to the right place instead of showing Welcome
   const [checking, setChecking] = useState(true);
   useEffect(() => {
@@ -42,7 +44,7 @@ export default function WelcomeScreen() {
 
   const bot = (
     <Animated.View entering={FadeIn.duration(700)}>
-      <Bot size={logoSize} look={wide ? 'right' : 'left'} />
+      <LiveBot size={logoSize} look={wide ? 'right' : 'left'} finger={finger} />
     </Animated.View>
   );
 
@@ -71,7 +73,7 @@ export default function WelcomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} {...handlers}>
       <View style={[styles.screen, wide && styles.screenWide]}>
         {wide ? (
           <WideSplit side={bot}>

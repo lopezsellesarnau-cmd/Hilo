@@ -1,14 +1,14 @@
-import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayer, useAudioSampleListener } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeIn, LinearTransition, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
-import { Bot, type BotMood } from '@/components/bot';
+import { LiveBot, useFinger, type BotMood } from '@/components/live-bot';
 import { RepeatIcon } from '@/components/icons';
 import { PressScale } from '@/components/press-scale';
 import { ScreenHeader } from '@/components/screen-header';
@@ -83,18 +83,34 @@ export default function TalkScreen() {
   const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Hilo's last sentence as audio, so "Repetir" plays it again without asking Claude
   const player = useAudioPlayer();
+  // How loud Hilo's voice is, 0 to 1: the bot's mouth opens with it.
+  // Each sample's loudness (RMS) against the loudest so far, so a quiet voice still moves the mouth.
+  const voice = useSharedValue(0);
+  const peak = useRef(0.05);
+  useAudioSampleListener(player, (sample) => {
+    const frames = sample.channels[0]?.frames;
+    if (!frames?.length) return;
+    let sum = 0;
+    for (const f of frames) sum += f * f;
+    const rms = Math.sqrt(sum / frames.length);
+    peak.current = Math.max(peak.current * 0.995, rms);
+    voice.value = withTiming(Math.min(1, (rms / peak.current) * 1.1), { duration: 60 });
+  });
+  // The bot looks at her finger when it isn't talking or listening
+  const { finger, handlers } = useFinger();
   const [lastAudio, setLastAudio] = useState<string | null>(null);
 
   // When the voice ends, it's her turn
   useEffect(() => {
     const sub = player.addListener('playbackStatusUpdate', (status) => {
       if (status.didJustFinish) {
+        voice.value = withTiming(0, { duration: 120 });
         if (speakTimer.current) clearTimeout(speakTimer.current);
         setMood('idle');
       }
     });
     return () => sub.remove();
-  }, [player]);
+  }, [player, voice]);
 
   // Hilo says the sentence out loud; without audio, "speaking" lasts about as long as reading it
   const speak = async (text: string, audio: string | null) => {
@@ -284,7 +300,7 @@ export default function TalkScreen() {
   // On a wide screen the bot is on the left of the text, so it looks right, towards it
   const stage = (
     <Animated.View layout={LinearTransition.duration(250)} style={styles.stage}>
-      <Bot size={botSize} mood={mood} look={wide ? 'right' : 'left'} />
+      <LiveBot size={botSize} mood={mood} look={wide ? 'right' : 'left'} finger={finger} voice={voice} />
     </Animated.View>
   );
 
@@ -382,7 +398,7 @@ export default function TalkScreen() {
   );
 
   return (
-    <SafeAreaView style={seniorScreen.safe}>
+    <SafeAreaView style={seniorScreen.safe} {...handlers}>
       <ScrollView contentContainerStyle={[seniorScreen.screen, wide && seniorScreen.screenWide]} bounces={false}>
         {wide ? (
           <WideSplit side={stage}>

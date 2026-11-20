@@ -5,7 +5,7 @@ import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
-import { Bot } from '@/components/bot';
+import { LiveBot } from '@/components/live-bot';
 import { CheckIcon, PillIllustration } from '@/components/icons';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideFrame } from '@/components/wide-split';
@@ -151,7 +151,7 @@ export default function PillsScreen() {
   // On a wide screen the bot is already on the left
   const bot = wide ? null : (
     <View style={styles.botWrap}>
-      <Bot size={doneBotSize} />
+      <LiveBot size={doneBotSize} />
     </View>
   );
   const doneView = undoPill ? (

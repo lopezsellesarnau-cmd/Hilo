@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BigButton } from '@/components/big-button';
-import { Bot } from '@/components/bot';
+import { LiveBot } from '@/components/live-bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { TextField } from '@/components/text-field';
 import { WideFrame } from '@/components/wide-split';
@@ -45,7 +45,7 @@ export default function PairCodeScreen() {
           <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
             {wide ? null : (
               <View style={styles.bot}>
-                <Bot size={110} mood={checking ? 'thinking' : 'idle'} />
+                <LiveBot size={110} mood={checking ? 'thinking' : 'idle'} />
               </View>
             )}
             <ScreenHeader
