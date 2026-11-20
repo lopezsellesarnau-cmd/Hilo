@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { View, type GestureResponderEvent } from 'react-native';
 import Animated, {
   useAnimatedProps,
@@ -13,7 +13,7 @@ import Animated, {
   FadeOut,
   type SharedValue,
 } from 'react-native-reanimated';
-import Svg, { Circle, ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
+import Svg, { ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 
 import { t } from '@/i18n';
 import { colors } from '@/theme';
@@ -64,17 +64,43 @@ type Props = {
   voice?: SharedValue<number>;
   /** 'stackd': tall capsule eyes like the StackD Bot, a bit bigger (default). 'thread': Hilo's round eyes joined by a thread. */
   face?: Face;
+  /** The body, from the StackD Bot (the book gives each chapter its own). The thread face is circle only. */
+  shape?: BotShape;
+  /** Body and eye colours (default: black body, white eyes). */
+  color?: string;
+  eyeColor?: string;
 };
 
 type Face = 'stackd' | 'thread';
 
-// In a 100-unit box. w/h: eye size facing straight on; gap: from the centre to each eye, as a share of
-// the sphere; reach: how far the eyes travel from the centre.
+/* The StackD Bot's bodies, in a 100-unit box. cx/cy is where the face rests, rx/ry how far the eyes travel. */
+const SHAPES = {
+  circle: { d: 'M50 0a50 50 0 1 1 0 100a50 50 0 1 1 0-100Z', cx: 50, cy: 50, rx: 50, ry: 50 },
+  squircle: { d: 'M36 4h28c18 0 32 14 32 32v28c0 18-14 32-32 32H36C18 96 4 82 4 64V36C4 18 18 4 36 4Z', cx: 50, cy: 50, rx: 46, ry: 46 },
+  pill: { d: 'M36 18h28a32 32 0 0 1 0 64H36a32 32 0 0 1 0-64Z', cx: 50, cy: 50, rx: 46, ry: 32 },
+  arch: { d: 'M50 6c22 0 40 18 40 40v40c0 5.5-4.5 10-10 10H20c-5.5 0-10-4.5-10-10V46C10 24 28 6 50 6Z', cx: 50, cy: 52, rx: 40, ry: 44 },
+  drop: { d: 'M44 8c3-4 9-4 12 0C66 20 86 42 86 62a36 36 0 0 1-72 0C14 42 34 20 44 8Z', cx: 50, cy: 62, rx: 34, ry: 30 },
+  triangle: { d: 'M62 25.1L86 70.9Q98 94 72 94H28Q2 94 14 70.9L38 25.1Q50 2 62 25.1Z', cx: 50, cy: 66, rx: 30, ry: 22 },
+  cloud: { d: 'M6 58a24 24 0 1 0 48 0a24 24 0 1 0-48 0ZM24 40a28 28 0 1 0 56 0a28 28 0 1 0-56 0ZM52 56a22 22 0 1 0 44 0a22 22 0 1 0-44 0ZM24 70a22 22 0 1 0 44 0a22 22 0 1 0-44 0ZM52 72a18 18 0 1 0 36 0a18 18 0 1 0-36 0Z', cx: 50, cy: 58, rx: 40, ry: 30 },
+  clover: { d: 'M8 32a24 24 0 1 0 48 0a24 24 0 1 0-48 0ZM44 32a24 24 0 1 0 48 0a24 24 0 1 0-48 0ZM8 68a24 24 0 1 0 48 0a24 24 0 1 0-48 0ZM44 68a24 24 0 1 0 48 0a24 24 0 1 0-48 0ZM16 50a34 34 0 1 0 68 0a34 34 0 1 0-68 0Z', cx: 50, cy: 50, rx: 40, ry: 40 },
+  hexagon: { d: 'M85.9 70.4L70.4 85.9Q61.9 94.4 50.3 91.3L29.1 85.6Q17.5 82.5 14.4 70.9L8.7 49.7Q5.6 38.1 14.1 29.6L29.6 14.1Q38.1 5.6 49.7 8.7L70.9 14.4Q82.5 17.5 85.6 29.1L91.3 50.3Q94.4 61.9 85.9 70.4Z', cx: 50, cy: 50, rx: 40, ry: 40 },
+};
+export type BotShape = keyof typeof SHAPES;
+export const BOT_SHAPES = Object.keys(SHAPES) as BotShape[];
+type Body = (typeof SHAPES)[BotShape];
+
+/** Where the face sits and how far it travels: the shape's for StackD eyes, the old fixed one for the thread. */
+function frame(face: Face, body: Body) {
+  'worklet';
+  return face === 'thread' ? { cx: 50, cy: 50, rx: 44, ry: 44 } : body;
+}
+
+// In a 100-unit box. w/h: eye size facing straight on; spacing: from the centre to each eye.
 const FACES = {
   // The StackD Bot's tall eyes (11 × 21, 13 from the centre) at 1.4×
-  stackd: { w: 15.4, h: 29.4, gap: 0.36, reach: 50 },
+  stackd: { w: 15.4, h: 29.4, spacing: 18.2 },
   // Measured from the 18 oct bot (assets/icons/bot.svg): round eyes, radius 11.5
-  thread: { w: 23, h: 23, gap: 0.56, reach: 44 },
+  thread: { w: 23, h: 23, spacing: 24.6 },
 };
 const THREAD = 3.1; // thread width
 const MOUTH = 1.4; // the StackD mouth (12-20 wide, 2.5-11.5 tall) at the same scale as the eyes
@@ -92,33 +118,34 @@ const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 /** One eye on the sphere: its box for a look (x, y in -1..1). */
-function eye(face: Face, side: number, x: number, y: number, blink: number) {
+function eye(face: Face, body: Body, side: number, x: number, y: number, blink: number) {
   'worklet';
   const clamp = (v: number) => Math.min(0.92, Math.max(-0.92, v));
   const yaw = Math.asin(clamp(x));
   const pitch = -Math.asin(clamp(y));
   const f = FACES[face];
-  const x0 = side * f.gap;
+  const b = frame(face, body);
+  const x0 = side * (f.spacing / b.rx);
   const z0 = Math.sqrt(1 - x0 * x0);
   const x1 = x0 * Math.cos(yaw) + z0 * Math.sin(yaw);
   const z1 = -x0 * Math.sin(yaw) + z0 * Math.cos(yaw);
   const y2 = -z1 * Math.sin(pitch);
   const near = Math.min(1, Math.max(0, z1 * Math.cos(pitch)));
   const k = 0.45 + 0.55 * near;
-  const cx = 50 + x1 * f.reach;
-  const cy = 50 + y2 * f.reach;
+  const cx = b.cx + x1 * b.rx;
+  const cy = b.cy + y2 * b.ry;
   const w = f.w * k * (0.7 + 0.3 * near);
   const h = f.h * k * blink;
   return { cx, cy, x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: Math.min(w, h) / 2 };
 }
 
 /** The mouth: a point on the sphere below the eyes, turned with the head like they are (StackD Bot maths). */
-function mouthBox(face: Face, x: number, y: number, open: number) {
+function mouthBox(face: Face, body: Body, x: number, y: number, open: number) {
   'worklet';
   const clamp = (v: number) => Math.min(0.92, Math.max(-0.92, v));
   const yaw = Math.asin(clamp(x));
   const pitch = -Math.asin(clamp(y));
-  const reach = FACES[face].reach;
+  const b = frame(face, body);
   const y0 = 0.56;
   const z0 = Math.sqrt(1 - y0 * y0);
   const x1 = z0 * Math.sin(yaw);
@@ -130,12 +157,25 @@ function mouthBox(face: Face, x: number, y: number, open: number) {
   // Closed: no mouth at all
   const w = o < 0.02 ? 0 : (12 + 8 * o) * MOUTH * k * (0.7 + 0.3 * near);
   const h = o < 0.02 ? 0 : (2.5 + 9 * o) * MOUTH * k;
-  const cx = 50 + x1 * reach;
-  const cy = 50 + y2 * reach;
+  const cx = b.cx + x1 * b.rx;
+  const cy = b.cy + y2 * b.ry;
   return { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: Math.min(w, h) / 2 };
 }
 
-export function LiveBot({ size, mood = 'idle', look = 'right', finger, face = 'stackd', voice }: Props) {
+export function LiveBot({
+  size,
+  mood = 'idle',
+  look = 'right',
+  finger,
+  face = 'stackd',
+  voice,
+  shape = 'circle',
+  color = colors.ink,
+  eyeColor = colors.background,
+}: Props) {
+  const body = SHAPES[face === 'thread' ? 'circle' : shape];
+  // One clip per bot: several shapes can share a screen (the chapters of the book)
+  const clip = `bot-${useId().replace(/:/g, '')}`;
   const reduceMotion = useReducedMotion();
   const box = useRef<View>(null);
   // The bot's centre on screen, to aim at the finger
@@ -208,17 +248,17 @@ export function LiveBot({ size, mood = 'idle', look = 'right', finger, face = 's
   }, [reduceMotion, blink, breath]);
 
   const left = useAnimatedProps(() => {
-    const { x, y, width, height, rx } = eye(face, -1, lookX.value, lookY.value, blink.value);
+    const { x, y, width, height, rx } = eye(face, body, -1, lookX.value, lookY.value, blink.value);
     return { x, y, width, height, rx };
   });
   const right = useAnimatedProps(() => {
-    const { x, y, width, height, rx } = eye(face, 1, lookX.value, lookY.value, blink.value);
+    const { x, y, width, height, rx } = eye(face, body, 1, lookX.value, lookY.value, blink.value);
     return { x, y, width, height, rx };
   });
   // The thread runs from eye to eye and hangs a little, like the logo
   const thread = useAnimatedProps(() => {
-    const a = eye(face, -1, lookX.value, lookY.value, 1);
-    const b = eye(face, 1, lookX.value, lookY.value, 1);
+    const a = eye(face, body, -1, lookX.value, lookY.value, 1);
+    const b = eye(face, body, 1, lookX.value, lookY.value, 1);
     const sag = Math.hypot(b.cx - a.cx, b.cy - a.cy) * SAG;
     const mx = (a.cx + b.cx) / 2;
     const my = (a.cy + b.cy) / 2 + sag;
@@ -226,7 +266,7 @@ export function LiveBot({ size, mood = 'idle', look = 'right', finger, face = 's
   });
   // Only while speaking: if the audio stops without saying so, the mouth still closes
   const speaking = mood === 'speaking';
-  const mouth = useAnimatedProps(() => mouthBox(face, lookX.value, lookY.value, voice && speaking ? voice.value : 0));
+  const mouth = useAnimatedProps(() => mouthBox(face, body, lookX.value, lookY.value, voice && speaking ? voice.value : 0));
   const breathing = useAnimatedStyle(() => ({ transform: [{ scale: breath.value }] }));
 
   return (
@@ -243,18 +283,18 @@ export function LiveBot({ size, mood = 'idle', look = 'right', finger, face = 's
       ) : null}
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <Defs>
-          <ClipPath id="hilo-bot">
-            <Circle cx={50} cy={50} r={50} />
+          <ClipPath id={clip}>
+            <Path d={body.d} />
           </ClipPath>
         </Defs>
-        <Circle cx={50} cy={50} r={50} fill={colors.ink} />
-        <G clipPath="url(#hilo-bot)">
+        <Path d={body.d} fill={color} />
+        <G clipPath={`url(#${clip})`}>
           {face === 'thread' ? (
-            <AnimatedPath animatedProps={thread} stroke={colors.background} strokeWidth={THREAD} strokeLinecap="round" fill="none" />
+            <AnimatedPath animatedProps={thread} stroke={eyeColor} strokeWidth={THREAD} strokeLinecap="round" fill="none" />
           ) : null}
-          <AnimatedRect animatedProps={left} fill={colors.background} />
-          <AnimatedRect animatedProps={right} fill={colors.background} />
-          {voice ? <AnimatedRect animatedProps={mouth} fill={colors.background} /> : null}
+          <AnimatedRect animatedProps={left} fill={eyeColor} />
+          <AnimatedRect animatedProps={right} fill={eyeColor} />
+          {voice ? <AnimatedRect animatedProps={mouth} fill={eyeColor} /> : null}
         </G>
       </Svg>
     </Animated.View>

@@ -5,7 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SideCover } from '@/components/book-cover';
-import { BotFace } from '@/components/icons';
+import { chapterShape } from '@/components/chapter-card';
+import { LiveBot } from '@/components/live-bot';
 import { ListenButton } from '@/components/listen-button';
 import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
 import { WideFrame } from '@/components/wide-split';
@@ -88,7 +89,7 @@ export default function ChapterScreen() {
           {/* The chapter's cover (Figma "Hilo book chapter"): the bot on black, the title on a white card */}
           <View accessibilityRole="header" accessibilityLabel={`${text.kicker(chapter.number)}. ${chapter.title}`} style={styles.cover}>
             <View style={styles.coverBot}>
-              <BotFace size={270} />
+              <LiveBot size={270} shape={chapterShape(chapter.number)} color={colors.background} eyeColor={colors.ink} />
             </View>
             {/* Her face fades into the dark above the title, like in the Figma */}
             <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.85)']} style={styles.coverShade} pointerEvents="none" />

@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CHAPTER_CARD, ChapterCard } from '@/components/chapter-card';
-import { BotFace } from '@/components/icons';
+import { LiveBot } from '@/components/live-bot';
 import { PressScale } from '@/components/press-scale';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
@@ -61,7 +61,7 @@ export default function FamilyBookScreen() {
               {book && 'chapters' in book ? <Text style={styles.coverLabel}>{t.book.count(approved.length)}</Text> : null}
             </View>
             <View style={styles.coverBot}>
-              <BotFace size={180} face={colors.ink} eyes={colors.background} />
+              <LiveBot size={180} />
             </View>
           </View>
 

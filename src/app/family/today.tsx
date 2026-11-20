@@ -6,7 +6,8 @@ import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DayDot } from '@/components/day-dot';
-import { BotFace, ChatIcon, PhoneIcon, PillIcon, StoryIcon } from '@/components/icons';
+import { LiveBot } from '@/components/live-bot';
+import { ChatIcon, PhoneIcon, PillIcon, StoryIcon } from '@/components/icons';
 import { ListRow } from '@/components/list-row';
 import { PressScale } from '@/components/press-scale';
 import { loadTodayDoses, TodayPills } from '@/components/today-pills';
@@ -347,7 +348,7 @@ export default function TodayScreen() {
                   </View>
                 ) : null}
                 <View style={styles.widgetBot}>
-                  <BotFace size={140} />
+                  <LiveBot size={140} color={colors.background} eyeColor={colors.ink} />
                 </View>
               </PressScale>
               </View>
