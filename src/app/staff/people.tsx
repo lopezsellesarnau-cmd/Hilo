@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { clock, usePeopleOverview, useTeam, type PersonOverview } from '@/staff/data';
-import { BotMark } from '@/staff/icons';
+import { PersonBot, shapesFor } from '@/staff/icons';
+import type { BotShape } from '@/components/live-bot';
 import { useStaff } from '@/staff/session';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
 
@@ -28,6 +29,8 @@ function when(iso: string | null, none: string): string {
 export default function People() {
   const me = useStaff();
   const people = usePeopleOverview();
+  // From everyone, not the filtered list, so a search doesn't change anyone's shape
+  const shapes = shapesFor(people.data ?? []);
   const team = useTeam();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -122,7 +125,7 @@ export default function People() {
             <Text style={[staffText.label, styles.colPhone]}>Phone</Text>
           </View>
           {shown.length ? (
-            shown.map((p) => <Row key={p.id} person={p} carer={carerName(p.carer_id)} wide={wide} />)
+            shown.map((p) => <Row key={p.id} person={p} shape={shapes[p.id]} carer={carerName(p.carer_id)} wide={wide} />)
           ) : (
             <Text style={[staffText.note, styles.noMatch]}>
               {filter === 'mine' && !q ? 'Nobody has you as their carer yet.' : 'Nobody matches.'}
@@ -134,7 +137,17 @@ export default function People() {
   );
 }
 
-function Row({ person: p, carer, wide }: { person: PersonOverview; carer: string | null; wide: boolean }) {
+function Row({
+  person: p,
+  shape,
+  carer,
+  wide,
+}: {
+  person: PersonOverview;
+  shape: BotShape | undefined;
+  carer: string | null;
+  wide: boolean;
+}) {
   const [hovered, setHovered] = useState(false);
   const pct = p.pills_due_7d ? Math.round((100 * p.pills_taken_7d) / p.pills_due_7d) : null;
   const pills = pct === null ? 'No pills' : `${pct} %`;
@@ -154,7 +167,7 @@ function Row({ person: p, carer, wide }: { person: PersonOverview; carer: string
       accessibilityLabel={`Open ${p.display_name}`}>
       <View style={[styles.colName, styles.nameCell]}>
         <View style={styles.avatar}>
-          <BotMark size={31} />
+          <PersonBot shape={shape} />
         </View>
         <View style={styles.nameText}>
           <Text style={styles.name} numberOfLines={1}>

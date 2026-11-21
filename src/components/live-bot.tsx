@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { View, type GestureResponderEvent } from 'react-native';
+import { Platform, View, type GestureResponderEvent } from 'react-native';
 import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
@@ -54,12 +54,34 @@ export function useFinger() {
   return made;
 }
 
+/** On the web: the mouse, one listener for every bot on the page (like the StackD Bot). */
+let mouse: Finger | null = null;
+function webMouse(): Finger {
+  if (mouse) return mouse;
+  const fns = new Set<(p: Point, start: boolean) => void>();
+  const send = (p: Point) => fns.forEach((fn) => fn(p, false));
+  window.addEventListener('pointermove', (e) => send({ x: e.clientX, y: e.clientY }), { passive: true });
+  // Out of the window: back to rest
+  document.documentElement.addEventListener('pointerleave', () => send(null));
+  mouse = {
+    listen: (fn) => {
+      fns.add(fn);
+      return () => {
+        fns.delete(fn);
+      };
+    },
+  };
+  return mouse;
+}
+
 type Props = {
   size: number;
   mood?: BotMood;
   /** Which way it looks at rest. */
   look?: 'right' | 'left';
   finger?: Finger;
+  /** On the web, follow the mouse anywhere on the page (no `finger` needed). */
+  cursor?: boolean;
   /** How loud Hilo's voice is right now, 0 to 1: the mouth opens with it (like the StackD voice memo). */
   voice?: SharedValue<number>;
   /** 'stackd': tall capsule eyes like the StackD Bot, a bit bigger (default). 'thread': Hilo's round eyes joined by a thread. */
@@ -169,6 +191,7 @@ export function LiveBot({
   finger,
   face = 'stackd',
   voice,
+  cursor = false,
   shape = 'circle',
   color = colors.ink,
   eyeColor = colors.background,
@@ -198,12 +221,15 @@ export function LiveBot({
     lookY.value = go(target.y);
   }, [target.x, target.y, reduceMotion, lookX, lookY]);
 
-  // Follow the finger, only while idle (in a talk the mood decides where it looks)
+  // Follow the finger (or the mouse on the web), only while idle (in a talk the mood decides where it looks)
+  const web = cursor && Platform.OS === 'web';
   useEffect(() => {
-    if (!finger || mood !== 'idle') return;
+    const source = finger ?? (web ? webMouse() : null);
+    if (!source || mood !== 'idle') return;
+    let measured = 0;
     const go = (v: number) => (reduceMotion ? withTiming(v, { duration: 0 }) : withSpring(v, SPRING));
     let back: ReturnType<typeof setTimeout> | undefined;
-    const stop = finger.listen((p, start) => {
+    const stop = source.listen((p, start) => {
       if (back) clearTimeout(back);
       if (!p) {
         back = setTimeout(() => {
@@ -212,12 +238,17 @@ export function LiveBot({
         }, BACK);
         return;
       }
-      // The screen may have scrolled since the last touch
-      if (start) measure();
+      // The screen may have scrolled since the last touch (the mouse never "starts": every quarter second)
+      if (start || (web && Date.now() - measured > 250)) {
+        measure();
+        measured = Date.now();
+      }
       const c = centre.current;
-      // Within about one and a half bots of distance the look is already full; further away it saturates
-      const dx = (p.x - c.x) / (size * 1.6);
-      const dy = (p.y - c.y) / (size * 1.6);
+      // Within about one and a half bots of distance the look is already full; further away it saturates.
+      // Small avatars on the web use a wider reach, or they would all stare at once.
+      const reach = web ? Math.max(size * 1.6, 260) : size * 1.6;
+      const dx = (p.x - c.x) / reach;
+      const dy = (p.y - c.y) / reach;
       const d = Math.hypot(dx, dy);
       const s = d > 1 ? 1 / d : 1;
       lookX.value = go(dx * s * FOLLOW);
@@ -227,7 +258,7 @@ export function LiveBot({
       if (back) clearTimeout(back);
       stop();
     };
-  }, [finger, mood, size, target.x, target.y, reduceMotion, lookX, lookY]);
+  }, [finger, web, mood, size, target.x, target.y, reduceMotion, lookX, lookY]);
 
   // A blink every 3 to 6 s; a very slight breath. Both off with Reduce Motion.
   useEffect(() => {

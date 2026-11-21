@@ -1,22 +1,31 @@
-import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
+
+import { BOT_SHAPES, LiveBot, type BotShape } from '@/components/live-bot';
 
 import { staffColors } from './theme';
 
 type Props = { size?: number; color?: string };
 
-/** The Hilo bot as a flat mark: sidebar logo, People icon and the avatar of someone with no photo. */
+/** Hilo itself: the hexagon of the app icon. Sidebar logo, People icon, voice card and a new person with no photo yet.
+ * On the web its eyes follow the mouse. */
 export function BotMark({ size = 28, light = false }: { size?: number; light?: boolean }) {
-  const fill = light ? '#fff' : staffColors.ink;
-  const face = light ? staffColors.ink : '#fff';
-  return (
-    <Svg width={size} height={size} viewBox="0 0 351 351">
-      <Circle cx={175.5} cy={175.5} r={175.5} fill={fill} />
-      <Path d="M140 168 Q 215 194 292 150" stroke={face} strokeWidth={14} strokeLinecap="round" fill="none" />
-      <Circle cx={135} cy={164.5} r={38} fill={face} />
-      <Ellipse cx={296} cy={146} rx={29} ry={37} fill={face} />
-    </Svg>
-  );
+  return <LiveBot size={size} shape="hexagon" cursor {...tones(light)} />;
 }
+
+/** Each person's own bot, in the shape `shapesFor` gave them. */
+export function PersonBot({ shape, size = 31, light = false }: { shape: BotShape | undefined; size?: number; light?: boolean }) {
+  return <LiveBot size={size} shape={shape ?? 'circle'} cursor {...tones(light)} />;
+}
+
+/** A shape per person, by the order they joined the organisation: the first nine are all different
+ * (hexagon included), then it starts again. Same list on every page, so the same shape everywhere. */
+export function shapesFor(people: { id: string; created_at: string }[]): Record<string, BotShape> {
+  const order = [...people].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
+  return Object.fromEntries(order.map((p, i) => [p.id, BOT_SHAPES[i % BOT_SHAPES.length]]));
+}
+
+const tones = (light: boolean) =>
+  light ? { color: '#fff', eyeColor: staffColors.ink } : { color: staffColors.ink, eyeColor: '#fff' };
 
 const line = (color: string) => ({ fill: 'none', stroke: color, strokeWidth: 1.6 });
 

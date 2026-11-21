@@ -27,13 +27,15 @@ async function load(): Promise<StaffSession> {
   if (!user || user.is_anonymous) return { status: 'signedOut' };
 
   // First organisation only: one person working for two organisations comes later
-  const { data: row } = await supabase
+  const { data: row, error } = await supabase
     .from('org_members')
     .select('org_id, role, display_name, organizations (name)')
     .eq('user_id', user.id)
     .order('created_at')
     .limit(1)
     .maybeSingle();
+  // In development, tell a failed check apart from an email that really isn't in an organisation
+  if (error && __DEV__) console.warn('org_members check failed', error.message);
   if (!row) return { status: 'notStaff', email: user.email ?? '' };
 
   // Every staff member signs in with a second step; until then the database gives them nothing (not even

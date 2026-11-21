@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { LiveBot } from '@/components/live-bot';
+import { BotMark } from '@/staff/icons';
 import { getCaptchaToken } from '@/lib/captcha';
 import { supabase } from '@/lib/supabase';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
@@ -29,6 +29,8 @@ export default function StaffLogin() {
     });
     setBusy(false);
     if (error?.status === 429) return setMessage('Too many tries. Wait a minute and try again.');
+    // In development, say why no email went out (rate limit, unknown email…); users still get the same answer
+    if (error && __DEV__) return setMessage(`No code was sent (${error.message}).`);
     // Unknown emails get the same answer, so the page doesn't tell who works where
     setStep('code');
   };
@@ -39,13 +41,14 @@ export default function StaffLogin() {
     const { error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token, type: 'email' });
     setBusy(false);
     // On success the layout sees the new session and opens /staff
-    if (error) setMessage("That code didn't work. Check it, or ask for a new one.");
+    // In development, Supabase's own reason, to tell an expired code from a wrong one
+    if (error) setMessage(__DEV__ ? `That code didn't work (${error.message}).` : "That code didn't work. Check it, or ask for a new one.");
   };
 
   return (
     <View style={styles.page}>
       <View style={styles.box}>
-        <LiveBot size={56} />
+        <BotMark size={56} />
         <Text style={[staffText.label, styles.kicker]}>Hilo for organisations</Text>
         <Text style={staffText.title}>{step === 'email' ? 'Sign in' : 'Check your email'}</Text>
         <Text style={[staffText.body, styles.hint]}>

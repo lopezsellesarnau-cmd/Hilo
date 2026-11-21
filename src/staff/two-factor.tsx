@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 
-import { LiveBot } from '@/components/live-bot';
+import { BotMark } from '@/staff/icons';
 import { supabase } from '@/lib/supabase';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
 
@@ -82,7 +82,7 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
     <View style={styles.page}>
       <View style={[styles.box, wide && styles.wideBox]}>
         <View style={wide && styles.intro}>
-          <LiveBot size={56} />
+          <BotMark size={56} />
           <Text style={[staffText.label, styles.kicker]}>Hilo for organisations</Text>
           <Text style={staffText.title}>{mode === 'enroll' ? 'Set up a second step' : 'One more step'}</Text>
           <Text style={[staffText.body, styles.hint]}>

@@ -30,8 +30,10 @@ export default function StaffLayout() {
   if (session.status === 'loading') return <View style={styles.page}>{head}</View>;
 
   if (pathname === '/staff/login') {
-    // Signed in with the email code: past the login, to the second step or the app
-    if (session.status !== 'signedOut' && session.status !== 'notStaff') return <Redirect href="/staff" />;
+    // Signed in with the email code: past the login, to the second step, the app, or "Not a staff account"
+    // (which has Sign out). Staying here silently looked like a failed sign-in, and pressing Sign in again
+    // sent a code already used: "Token has expired or is invalid".
+    if (session.status !== 'signedOut') return <Redirect href="/staff" />;
     return (
       <>
         {head}

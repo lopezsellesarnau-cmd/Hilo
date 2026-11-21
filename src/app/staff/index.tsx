@@ -13,7 +13,8 @@ import {
   type StaffPerson,
   type StaffSignal,
 } from '@/staff/data';
-import { BotMark } from '@/staff/icons';
+import { PersonBot, shapesFor } from '@/staff/icons';
+import type { BotShape } from '@/components/live-bot';
 import { useStaff } from '@/staff/session';
 import { WhyPanel } from '@/staff/why-panel';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
@@ -52,6 +53,7 @@ export default function Today() {
 
   const alertsFor = (id: string) => (signals.data ?? []).filter((s) => s.person_id === id);
   const seniors = (data ?? []).filter((p) => p.role === 'senior');
+  const shapes = shapesFor(seniors);
   // Newest "Done" today for this person (actions come newest first)
   const doneFor = (id: string) => (actions.data ?? []).find((a) => a.person_id === id);
   const flagged = seniors.filter((p) => alertsFor(p.id).length);
@@ -79,7 +81,7 @@ export default function Today() {
               {/* Who needs a call first */}
               {[...toCall, ...fine].slice(0, 5).map((p, i) => (
                 <View key={p.id} style={[styles.stackItem, { marginLeft: i ? -14 : 0, zIndex: 10 - i }]}>
-                  <BotMark size={52} />
+                  <PersonBot shape={shapes[p.id]} size={41} />
                 </View>
               ))}
             </View>
@@ -112,6 +114,7 @@ export default function Today() {
                   <Row
                     key={p.id}
                     person={p}
+                    shape={shapes[p.id]}
                     family={familyCount(p.family_id)}
                     alerts={alertsFor(p.id)}
                     done={doneFor(p.id)}
@@ -139,6 +142,7 @@ export default function Today() {
                   <Row
                     key={p.id}
                     person={p}
+                    shape={shapes[p.id]}
                     family={familyCount(p.family_id)}
                     alerts={[]}
                     done={doneFor(p.id)}
@@ -190,9 +194,10 @@ type RowProps = {
   done: StaffAction | undefined;
   selected: boolean;
   onPick: () => void;
+  shape: BotShape | undefined;
 };
 
-function Row({ person, family, alerts, done, selected, onPick }: RowProps) {
+function Row({ person, family, alerts, done, selected, onPick, shape }: RowProps) {
   return (
     <Pressable
       onPress={onPick}
@@ -205,7 +210,7 @@ function Row({ person, family, alerts, done, selected, onPick }: RowProps) {
         done && alerts.length > 0 && styles.rowDone,
       ]}>
       <View style={styles.avatar}>
-        <BotMark size={31} />
+        <PersonBot shape={shape} />
       </View>
       <View style={styles.rowText}>
         <Text style={styles.name}>{person.display_name}</Text>
@@ -261,10 +266,16 @@ const styles = StyleSheet.create({
   },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   stack: { flexDirection: 'row' },
+  // An ink circle like the list's avatars, filled with the page colour so each one hides the bot behind it
   stackItem: {
+    width: 58,
+    height: 58,
     borderRadius: 99,
-    borderWidth: 3,
-    borderColor: staffColors.page,
+    borderWidth: 2,
+    borderColor: staffColors.ink,
+    backgroundColor: staffColors.page,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerCount: {
     fontFamily: staffFont,

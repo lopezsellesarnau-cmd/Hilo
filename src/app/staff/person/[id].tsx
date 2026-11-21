@@ -12,7 +12,7 @@ import {
   type PersonWeek,
   type StaffAction,
 } from '@/staff/data';
-import { BellIcon, BotMark, NoteIcon, PillIcon } from '@/staff/icons';
+import { BellIcon, NoteIcon, PersonBot, PillIcon, shapesFor } from '@/staff/icons';
 import { LonelinessCard } from '@/staff/loneliness-card';
 import { PairCard } from '@/staff/pair-card';
 import { useStaff } from '@/staff/session';
@@ -108,7 +108,7 @@ export default function PersonPage() {
           </View>
           <View style={styles.heroBottom}>
             <View style={styles.heroBot}>
-              <BotMark size={210} light />
+              <PersonBot shape={shapesFor((people.data ?? []).filter((p) => p.role === 'senior'))[person.id]} size={210} light />
             </View>
             <View style={styles.heroFade} />
           </View>
