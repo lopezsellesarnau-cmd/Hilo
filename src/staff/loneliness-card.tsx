@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { toast } from '@/components/toast';
+
 import { addLoneliness, deleteLoneliness, useLoneliness } from './data';
 import { staffColors, staffFont } from './theme';
 
@@ -76,6 +78,7 @@ export function LonelinessCard({ personId, locale, me }: { personId: string; loc
     setAsking(false);
     setAnswers({});
     checks.reload();
+    toast('Loneliness check saved');
   };
 
   const undo = async () => {

@@ -17,6 +17,7 @@ export const nl: Strings = {
     no: 'Nee',
     assistant: 'Uw assistent',
     saveFailed: 'Het opslaan is niet gelukt. Controleer de verbinding en probeer het opnieuw.',
+    saved: 'Opgeslagen',
     loadFailed: 'De gegevens konden niet worden geladen. Controleer de verbinding.',
     offline: 'Geen verbinding. Probeer het zo nog eens.',
     notPaired: 'Deze telefoon is nog niet verbonden met uw familie.',

@@ -4,6 +4,7 @@ import { StyleSheet, Text, TextInput } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
+import { toast } from '@/components/toast';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors, family } from '@/theme';
@@ -46,6 +47,7 @@ export default function MemoryScreen() {
     setSaving(false);
     if (e) return setError(t.common.saveFailed);
     router.back();
+    toast(t.common.saved);
   };
 
   return (

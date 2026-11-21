@@ -130,9 +130,10 @@ export function useStaffActionsToday(): Loaded<StaffAction[]> {
   return { data, error, reload };
 }
 
-export async function markDone(personId: string, note: string): Promise<boolean> {
-  const { error } = await supabase.rpc('staff_mark_done', { person: personId, note });
-  return !error;
+/** The new action's id (for Undo), or null if it wasn't saved. */
+export async function markDone(personId: string, note: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('staff_mark_done', { person: personId, note });
+  return error ? null : ((data as string | null) ?? null);
 }
 
 export async function undoDone(actionId: string): Promise<boolean> {

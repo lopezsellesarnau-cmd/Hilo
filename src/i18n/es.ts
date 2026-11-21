@@ -15,6 +15,7 @@ export const es = {
     no: 'No',
     assistant: 'Tu asistente',
     saveFailed: 'No hemos podido guardarlo. Comprueba tu conexión y vuelve a probar.',
+    saved: 'Guardado',
     loadFailed: 'No hemos podido cargar los datos. Comprueba tu conexión.',
     offline: 'No hay conexión. Prueba otra vez en un momento.',
     notPaired: 'Este móvil aún no está conectado con tu familia.',

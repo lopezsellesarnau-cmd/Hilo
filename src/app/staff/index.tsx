@@ -13,6 +13,7 @@ import {
   type StaffPerson,
   type StaffSignal,
 } from '@/staff/data';
+import { toast } from '@/components/toast';
 import { PersonBot, shapesFor } from '@/staff/icons';
 import type { BotShape } from '@/components/live-bot';
 import { useStaff } from '@/staff/session';
@@ -169,13 +170,28 @@ export default function Today() {
                 done={selectedDone}
                 mine={!!selectedDone && selectedDone.user_id === me.userId}
                 onDone={async (note) => {
-                  const ok = await markDone(selected.id, note);
-                  if (ok) actions.reload();
-                  return ok;
+                  const id = await markDone(selected.id, note);
+                  if (!id) return false;
+                  actions.reload();
+                  // Undo right in the toast, for a Done pressed on the wrong person
+                  toast(`${selected.display_name} marked as done`, {
+                    action: {
+                      label: 'Undo',
+                      onPress: async () => {
+                        if (!(await undoDone(id))) return toast.error("Couldn't undo. Try again from the panel.");
+                        actions.reload();
+                        toast('Undone');
+                      },
+                    },
+                  });
+                  return true;
                 }}
                 onUndo={async () => {
                   const ok = selectedDone ? await undoDone(selectedDone.id) : false;
-                  if (ok) actions.reload();
+                  if (ok) {
+                    actions.reload();
+                    toast('Undone');
+                  }
                   return ok;
                 }}
               />

@@ -6,6 +6,7 @@ import { BigButton } from '@/components/big-button';
 import { ChoiceChips } from '@/components/choice-chips';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
+import { toast } from '@/components/toast';
 import { t } from '@/i18n';
 import { findPlace, type Place } from '@/lib/place';
 import { supabase } from '@/lib/supabase';
@@ -126,7 +127,11 @@ export default function TalkStep() {
       setError(t.common.saveFailed);
       return;
     }
-    if (editing) return router.back();
+    if (editing) {
+      router.back();
+      toast(t.common.saved);
+      return;
+    }
     router.push({ pathname: '/onboarding/pills', params: { seniorId, seniorName } });
   };
 

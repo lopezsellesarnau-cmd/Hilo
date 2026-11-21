@@ -13,6 +13,7 @@ export const en: Strings = {
     no: 'No',
     assistant: 'Your assistant',
     saveFailed: "We couldn't save it. Check your connection and try again.",
+    saved: 'Saved',
     loadFailed: "We couldn't load the data. Check your connection.",
     offline: 'No connection. Try again in a moment.',
     notPaired: "This phone isn't connected to your family yet.",
