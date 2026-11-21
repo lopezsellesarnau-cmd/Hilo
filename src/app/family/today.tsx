@@ -2,13 +2,14 @@ import { FunctionsHttpError } from '@supabase/supabase-js';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DayDot } from '@/components/day-dot';
 import { LiveBot } from '@/components/live-bot';
 import { ChatIcon, PhoneIcon, PillIcon, StoryIcon } from '@/components/icons';
 import { ListRow } from '@/components/list-row';
+import { ActivityGrid } from '@/components/activity-grid';
+import { PillsRing } from '@/components/pills-ring';
 import { PressScale } from '@/components/press-scale';
 import { loadTodayDoses, TodayPills } from '@/components/today-pills';
 import { WeekStrip } from '@/components/week-strip';
@@ -32,34 +33,6 @@ const MINI_PODIUM = [
   { rank: 1, avatar: 52, bar: 84, fill: colors.ink },
   { rank: 3, avatar: 40, bar: 40, fill: '#e6e6e6' },
 ] as const;
-
-/** Pills taken today as a ring, like the activity rings */
-function PillsRing({ taken, total }: { taken: number; total: number }) {
-  const r = 34;
-  const length = 2 * Math.PI * r;
-  return (
-    <Svg width={84} height={84} viewBox="0 0 84 84">
-      <Circle cx={42} cy={42} r={r} fill="none" stroke="#dcdcdc" strokeWidth={10} />
-      {taken ? (
-        <Circle
-          cx={42}
-          cy={42}
-          r={r}
-          fill="none"
-          stroke={colors.ink}
-          strokeWidth={10}
-          strokeLinecap="round"
-          strokeDasharray={`${(length * taken) / total} ${length}`}
-          transform="rotate(-90 42 42)"
-        />
-      ) : null}
-      <SvgText x={42} y={49} textAnchor="middle" fill={colors.ink} fontSize={22} fontWeight="800">
-        {`${taken}/${total}`}
-      </SvgText>
-    </Svg>
-  );
-}
-
 
 const text = t.today;
 /** Same as quiet-alert: after this, "llama" becomes one of the things to do */
@@ -392,6 +365,11 @@ export default function TodayScreen() {
               </View>
               <Text style={styles.podiumLeader}>{leader}</Text>
             </PressScale>
+          ) : null}
+
+          {/* Her talks over 12 weeks: the week strip, further back */}
+          {senior ? (
+            <ActivityGrid key={`grid-${reloadKey}`} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
           ) : null}
 
           {/* Before her first talk: the few steps that make Hilo work, ticked as they are done */}

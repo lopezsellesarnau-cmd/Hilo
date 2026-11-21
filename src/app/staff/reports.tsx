@@ -5,6 +5,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { useFirstDay, useReport, type Report } from '@/staff/data';
 import { BellIcon, PillIcon } from '@/staff/icons';
 import { useStaff } from '@/staff/session';
+import { StackedWeeks } from '@/staff/stacked-weeks';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
 
 /** 'YYYY-MM-DD' of a local date */
@@ -232,7 +233,6 @@ function Kpi(props: {
   );
 }
 
-const CHART = 230;
 
 function Engagement({ weeks }: { weeks: Report['weeks'] }) {
   const values = weeks.map((w) => (w.people ? Math.round((100 * w.engaged) / w.people) : 0));
@@ -254,27 +254,8 @@ function Engagement({ weeks }: { weeks: Report['weeks'] }) {
         <Text style={styles.small}>{weeks.length === 1 ? '1 week' : `${weeks.length} weeks`}</Text>
       </View>
       {weeks.length ? (
-        <View style={styles.chart} accessibilityRole="image" accessibilityLabel={summary}>
-          <View style={[styles.goalLine, { bottom: 46 + (CHART * GOAL) / 100 }]} />
-          <View style={[styles.goalTag, { bottom: 54 + (CHART * GOAL) / 100 }]}>
-            <Text style={styles.goalText}>{`Goal ${GOAL} %`}</Text>
-          </View>
-          {weeks.map((w, i) => {
-            const last = i === weeks.length - 1;
-            return (
-              <View key={w.monday} style={styles.barCol}>
-                <Text style={[styles.barValue, last && styles.bold]}>{`${values[i]} %`}</Text>
-                <View
-                  style={[
-                    styles.bar,
-                    { height: Math.max(8, (CHART * values[i]) / 100) },
-                    last ? styles.barOn : values[i] >= GOAL ? styles.barGood : null,
-                  ]}
-                />
-                <Text style={styles.barLabel}>{w.partial ? `${short(w.monday)} · so far` : short(w.monday)}</Text>
-              </View>
-            );
-          })}
+        <View accessibilityLabel={summary}>
+          <StackedWeeks weeks={weeks} goal={GOAL} label={(w) => (w.partial ? `${short(w.monday)} · so far` : short(w.monday))} />
         </View>
       ) : (
         <Text style={styles.line}>Weeks show up once someone has a paired phone.</Text>
@@ -571,16 +552,6 @@ const styles = StyleSheet.create({
   darkCard: { ...card, backgroundColor: staffColors.ink },
   lineCard: { ...card, borderWidth: 1, borderColor: '#e3e3e3', gap: 12 },
 
-  chart: { height: CHART + 76, flexDirection: 'row', alignItems: 'flex-end', gap: 12, paddingTop: 30 },
-  goalLine: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: staffColors.ink },
-  goalTag: { position: 'absolute', right: 0, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 99, backgroundColor: staffColors.ink },
-  goalText: { fontFamily: staffFont, fontSize: 12, color: '#fff' },
-  barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 8, minWidth: 0 },
-  barValue: { fontFamily: staffFont, fontSize: 14, color: staffColors.ink, fontVariant: ['tabular-nums'] },
-  bar: { width: '100%', maxWidth: 56, borderRadius: 99, backgroundColor: '#d6d6d3' },
-  barGood: { backgroundColor: '#8f8f8b' },
-  barOn: { backgroundColor: staffColors.ink },
-  barLabel: { fontFamily: staffFont, fontSize: 12, color: staffColors.soft, textAlign: 'center', minHeight: 30 },
 
   kinds: { gap: 16 },
   kind: { gap: 6 },

@@ -288,6 +288,10 @@ export const es = {
     bookWidget: 'Su libro',
     toReview: (n: number) => `${n} por revisar`,
     podiumTitle: (name: string) => `Quién habla más con ${name}`,
+    activityTitle: (name: string) => `Las últimas 12 semanas de ${name}`,
+    activitySummary: (days: number) => `Ha hablado ${days} ${days === 1 ? 'día' : 'días'} en 12 semanas`,
+    activityDay: (date: string, answers: number) =>
+      answers ? `${date} · respondió ${answers} ${answers === 1 ? 'vez' : 'veces'}` : `${date} · sin charla`,
     podiumLeader: (name: string | null, calls: string) =>
       name ? `Va en cabeza ${name}, con ${calls} este mes` : `Vas en cabeza, con ${calls} este mes`,
     firstDay: 'Para empezar',

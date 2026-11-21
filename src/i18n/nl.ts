@@ -286,6 +286,10 @@ export const nl: Strings = {
     bookWidget: 'Het boek',
     toReview: (n: number) => `${n} na te kijken`,
     podiumTitle: (name: string) => `Wie praat het meest met ${name}`,
+    activityTitle: (name: string) => `De laatste 12 weken van ${name}`,
+    activitySummary: (days: number) => `${days} ${days === 1 ? 'dag' : 'dagen'} gepraat in 12 weken`,
+    activityDay: (date: string, answers: number) =>
+      answers ? `${date} · ${answers} keer geantwoord` : `${date} · geen gesprek`,
     podiumLeader: (name: string | null, calls: string) =>
       name ? `${name} staat bovenaan met ${calls} deze maand` : `Jij staat bovenaan met ${calls} deze maand`,
     firstDay: 'Om te beginnen',
