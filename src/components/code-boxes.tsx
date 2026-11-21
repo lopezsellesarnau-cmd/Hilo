@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, TextInput, View, type TextStyle } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, {
   ZoomIn,
   useAnimatedStyle,
@@ -29,6 +29,13 @@ type Props = {
   length: number;
   status?: CodeStatus;
   autoFocus?: boolean;
+  /** No visible label (it stays for VoiceOver), for screens that already say what to type (the staff web). */
+  hideLabel?: boolean;
+  /** The digits' font (the staff web uses Helvetica). */
+  fontFamily?: string;
+  /** Box colour when empty (default: the app's grey). */
+  fill?: string;
+  style?: StyleProp<ViewStyle>;
 };
 
 const wave: CSSAnimationKeyframes = {
@@ -47,7 +54,18 @@ const caret: CSSAnimationKeyframes = {
 
 const GAP = 8;
 
-export function CodeBoxes({ label, value, onChangeText, length, status = 'idle', autoFocus }: Props) {
+export function CodeBoxes({
+  label,
+  value,
+  onChangeText,
+  length,
+  status = 'idle',
+  autoFocus,
+  hideLabel = false,
+  fontFamily,
+  fill = colors.surface,
+  style,
+}: Props) {
   const reduceMotion = useReducedMotion();
   const [focused, setFocused] = useState(false);
   const [width, setWidth] = useState(0);
@@ -83,8 +101,8 @@ export function CodeBoxes({ label, value, onChangeText, length, status = 'idle',
   };
 
   return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label.toUpperCase()}</Text>
+    <View style={[styles.field, style]}>
+      {hideLabel ? null : <Text style={styles.label}>{label.toUpperCase()}</Text>}
       <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         <Animated.View style={[styles.row, shaking]}>
           {Array.from({ length }, (_, i) => {
@@ -96,7 +114,7 @@ export function CodeBoxes({ label, value, onChangeText, length, status = 'idle',
                 <Animated.View
                   style={[
                     styles.box,
-                    { width: box, height: box * 1.25, borderRadius: box * 0.3 },
+                    { width: box, height: box * 1.25, borderRadius: box * 0.3, backgroundColor: fill, borderColor: fill },
                     on && styles.boxOn,
                     wrong && ch ? styles.boxWrong : null,
                     done && styles.boxDone,
@@ -116,7 +134,7 @@ export function CodeBoxes({ label, value, onChangeText, length, status = 'idle',
                       // A new key per digit, so each one pops in when it arrives
                       key={`${i}${ch}`}
                       entering={reduceMotion ? undefined : ZoomIn.duration(240).delay(Math.max(0, i - from) * 55)}
-                      style={[styles.digit, { fontSize: box * 0.52 }, done && styles.digitDone]}>
+                      style={[styles.digit, { fontSize: box * 0.52, fontFamily }, done && styles.digitDone]}>
                       {ch}
                     </Animated.Text>
                   ) : on ? (

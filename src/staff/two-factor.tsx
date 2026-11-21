@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BotMark } from '@/staff/icons';
+import { CodeBoxes } from '@/components/code-boxes';
 import { supabase } from '@/lib/supabase';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
 
@@ -104,22 +105,23 @@ export function TwoFactor({ mode, email }: { mode: 'enroll' | 'verify'; email: s
             </View>
           ) : null}
 
-          <TextInput
+          <CodeBoxes
+            label="Code from your authenticator app"
+            hideLabel
+            length={6}
             value={code}
-            onChangeText={(v) => {
-              const digits = v.replace(/\D/g, '').slice(0, 6);
+            // Red only for a code that was checked, not for "type the 6 digits"
+            status={busy ? 'checking' : message && code.length === 6 ? 'error' : 'idle'}
+            onChangeText={(digits) => {
+              if (!factorId) return;
               setCode(digits);
               setMessage(null);
               if (digits.length === 6) verify(digits);
             }}
-            placeholder="······"
-            placeholderTextColor={staffColors.muted}
-            keyboardType="number-pad"
-            autoComplete="one-time-code"
-            maxLength={6}
+            fontFamily={staffFont}
+            fill={staffColors.block}
+            style={styles.boxes}
             autoFocus
-            editable={!!factorId}
-            style={[styles.input, styles.code]}
           />
 
           {message ? <Text style={styles.error}>{message}</Text> : null}
@@ -167,7 +169,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: staffColors.ink,
   },
-  code: { fontSize: 24, letterSpacing: 8 },
+  boxes: { marginTop: 24 },
   error: { marginTop: 12, fontFamily: staffFont, fontSize: 14, color: staffColors.error },
   button: {
     marginTop: 20,

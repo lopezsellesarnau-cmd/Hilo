@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { CodeBoxes } from '@/components/code-boxes';
 import { BotMark } from '@/staff/icons';
 import { getCaptchaToken } from '@/lib/captcha';
 import { supabase } from '@/lib/supabase';
@@ -74,21 +75,21 @@ export default function StaffLogin() {
             style={styles.input}
           />
         ) : (
-          <TextInput
+          <CodeBoxes
+            label="Code from your email"
+            hideLabel
+            length={6}
             value={code}
-            onChangeText={(v) => {
-              const digits = v.replace(/\D/g, '').slice(0, 6);
+            status={busy ? 'checking' : message ? 'error' : 'idle'}
+            onChangeText={(digits) => {
               setCode(digits);
               setMessage(null);
               if (digits.length === 6) verify(digits);
             }}
-            placeholder="······"
-            placeholderTextColor={staffColors.muted}
-            keyboardType="number-pad"
-            autoComplete="one-time-code"
-            maxLength={6}
+            fontFamily={staffFont}
+            fill={staffColors.block}
+            style={styles.boxes}
             autoFocus
-            style={[styles.input, styles.code]}
           />
         )}
 
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: staffColors.ink,
   },
-  code: { fontSize: 24, letterSpacing: 8 },
+  boxes: { marginTop: 24 },
   error: { marginTop: 12, fontFamily: staffFont, fontSize: 14, color: staffColors.error },
   button: {
     marginTop: 20,
