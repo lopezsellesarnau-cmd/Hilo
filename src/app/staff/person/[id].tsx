@@ -12,6 +12,7 @@ import {
   type PersonWeek,
   type StaffAction,
 } from '@/staff/data';
+import { ActivityGrid } from '@/components/activity-grid';
 import { BellIcon, NoteIcon, PersonBot, PillIcon, shapesFor } from '@/staff/icons';
 import { LonelinessCard } from '@/staff/loneliness-card';
 import { PairCard } from '@/staff/pair-card';
@@ -132,6 +133,20 @@ export default function PersonPage() {
           <Text style={styles.weekFoot}>
             {week.last_talk ? `Last talk with Hilo ${date(week.last_talk)}, ${clock(week.last_talk)}` : 'No talk yet'}
           </Text>
+          {/* The same, further back: 12 weeks of the days she answered Hilo */}
+          {week.activity ? (
+            <View style={styles.activity}>
+              <ActivityGrid
+                timezone={person.timezone}
+                answers={Object.fromEntries(week.activity.map((a) => [a.day, a.answers]))}
+                title="LAST 12 WEEKS"
+                summary={(n) => `Talked on ${n} ${n === 1 ? 'day' : 'days'}`}
+                dayLine={(d, n) => (n ? `${d} · answered ${n} ${n === 1 ? 'time' : 'times'}` : `${d} · no talk`)}
+                locale="en-GB"
+                fontFamily={staffFont}
+              />
+            </View>
+          ) : null}
         </View>
       </View>
 
@@ -452,6 +467,7 @@ const styles = StyleSheet.create({
     filter: 'blur(19px)',
   } as ViewStyle,
 
+  activity: { marginTop: 8, paddingTop: 20, borderTopWidth: 1, borderTopColor: staffColors.line },
   weekCard: {
     ...flex(1, 460),
     backgroundColor: staffColors.block,

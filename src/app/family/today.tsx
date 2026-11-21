@@ -8,7 +8,7 @@ import { DayDot } from '@/components/day-dot';
 import { LiveBot } from '@/components/live-bot';
 import { ChatIcon, PhoneIcon, PillIcon, StoryIcon } from '@/components/icons';
 import { ListRow } from '@/components/list-row';
-import { ActivityGrid } from '@/components/activity-grid';
+import { FamilyActivityGrid } from '@/components/activity-grid';
 import { PillsRing } from '@/components/pills-ring';
 import { PressScale } from '@/components/press-scale';
 import { loadTodayDoses, TodayPills } from '@/components/today-pills';
@@ -369,7 +369,7 @@ export default function TodayScreen() {
 
           {/* Her talks over 12 weeks: the week strip, further back */}
           {senior ? (
-            <ActivityGrid key={`grid-${reloadKey}`} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
+            <FamilyActivityGrid key={`grid-${reloadKey}`} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
           ) : null}
 
           {/* Before her first talk: the few steps that make Hilo work, ticked as they are done */}

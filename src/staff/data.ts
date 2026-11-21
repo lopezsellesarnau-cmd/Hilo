@@ -149,6 +149,8 @@ export type PersonWeek = {
   days: { day: string; talks: number; due: number; taken: number; calls: number; feeling: 1 | 2 | 3 | null }[];
   last_talk: string | null;
   last_call: string | null;
+  /** Her last 12 weeks: the days she answered Hilo and how many times (counts only; staff_person_activity) */
+  activity?: { day: string; answers: number }[];
 };
 
 /** One person's week and the team's notes about her (newest first). */
