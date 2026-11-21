@@ -128,7 +128,7 @@ export function CodeBoxes({ label, value, onChangeText, length, status = 'idle',
                           animationName: caret,
                           animationDuration: '1s',
                           animationIterationCount: 'infinite',
-                          animationTimingFunction: 'steps(1)',
+                          animationTimingFunction: 'step-end',
                         },
                       ]}
                     />

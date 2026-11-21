@@ -4,7 +4,7 @@ import { Platform, StyleSheet, Text } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
-import { TextField } from '@/components/text-field';
+import { CodeBoxes } from '@/components/code-boxes';
 import { t } from '@/i18n';
 import { getPendingInvite, JOIN_MESSAGES, joinFamily, setPendingInvite } from '@/lib/invite';
 import { colors, family } from '@/theme';
@@ -18,6 +18,7 @@ export default function JoinStep() {
   const [code, setCode] = useState(() => getPendingInvite() ?? '');
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [joined, setJoined] = useState(false);
 
   const submit = async (value: string) => {
     if (joining) return;
@@ -31,9 +32,12 @@ export default function JoinStep() {
       return;
     }
     setPendingInvite(null);
-    // Their senior is already set up: straight to the family app, with nothing to go back to
-    router.dismissAll();
-    router.replace('/family/today');
+    // The boxes turn black first, then straight to the family app, with nothing to go back to
+    setJoined(true);
+    setTimeout(() => {
+      router.dismissAll();
+      router.replace('/family/today');
+    }, 650);
   };
 
   return (
@@ -59,19 +63,16 @@ export default function JoinStep() {
           )}
         </>
       }>
-      <TextField
+      <CodeBoxes
         label={text.label}
-        code
+        length={8}
         value={code}
-        onChangeText={(v) => {
-          const digits = v.replace(/\D/g, '').slice(0, 8);
+        status={joined ? 'success' : joining ? 'checking' : error ? 'error' : 'idle'}
+        onChangeText={(digits) => {
           setCode(digits);
           setError(null);
           if (digits.length === 8) submit(digits);
         }}
-        placeholder="········"
-        keyboardType="number-pad"
-        maxLength={8}
         autoFocus
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}

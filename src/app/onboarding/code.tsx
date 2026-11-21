@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
+import { CodeBoxes } from '@/components/code-boxes';
 import { TextField } from '@/components/text-field';
 import { t } from '@/i18n';
 import { nextFamilyRoute } from '@/lib/onboarding';
@@ -17,6 +18,7 @@ export default function CodeStep() {
   const [code, setCode] = useState('');
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
   // App Store review account: a password instead of the emailed code
   const review = isReviewEmail(email);
   const ready = review ? code.length >= 8 : code.length === 6;
@@ -39,9 +41,12 @@ export default function CodeStep() {
     // Someone coming back continues where they left off
     const next = await nextFamilyRoute(data.user.id);
     setChecking(false);
-    // Nothing to go back to: Welcome and the email step are done
-    router.dismissAll();
-    router.replace(next);
+    // The boxes turn black first; nothing to go back to: Welcome and the email step are done
+    setSignedIn(true);
+    setTimeout(() => {
+      router.dismissAll();
+      router.replace(next);
+    }, review ? 0 : 650);
   };
 
   const resend = async () => {
@@ -93,21 +98,17 @@ export default function CodeStep() {
           autoFocus
         />
       ) : (
-        <TextField
+        <CodeBoxes
           label={t.code.label}
-          code
+          length={6}
           value={code}
-          onChangeText={(v) => {
-            const digits = v.replace(/\D/g, '').slice(0, 6);
+          // Red only for a wrong code, not for "wait before asking again"
+          status={signedIn ? 'success' : checking ? 'checking' : message?.text === t.code.wrong ? 'error' : 'idle'}
+          onChangeText={(digits) => {
             setCode(digits);
             setMessage(null);
             if (digits.length === 6) verify(digits);
           }}
-          placeholder="······"
-          keyboardType="number-pad"
-          autoComplete="one-time-code"
-          textContentType="oneTimeCode"
-          maxLength={6}
           autoFocus
         />
       )}
