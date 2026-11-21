@@ -403,6 +403,9 @@ export const en: Strings = {
     discardYes: 'Yes, discard',
     cancel: 'Cancel',
     error: "We couldn't save it. Check your connection and try again.",
+    toastApproved: (name: string) => `In ${name}'s book`,
+    toastDraft: (name: string) => `Taken out of ${name}'s book`,
+    toastDeleted: 'Chapter deleted',
   },
 
   join: {

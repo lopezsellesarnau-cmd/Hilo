@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideFrame } from '@/components/wide-split';
+import { toast } from '@/components/toast';
 import { t } from '@/i18n';
 import { deleteChapter, loadFamilyBook, setChapterStatus, type Draft } from '@/lib/book';
 import { colors, family, fontWeight, serif, spacing } from '@/theme';
@@ -49,7 +50,7 @@ export default function ReviewScreen() {
     });
   }, [id]);
 
-  const save = async (action: () => Promise<boolean>) => {
+  const save = async (action: () => Promise<boolean>, done: string) => {
     if (saving) return;
     setSaving(true);
     setError(null);
@@ -57,6 +58,7 @@ export default function ReviewScreen() {
     setSaving(false);
     if (!ok) return setError(text.error);
     router.back();
+    toast(done);
   };
 
   // Paper behind the screen too, so it never flashes white while it slides in
@@ -107,7 +109,7 @@ export default function ReviewScreen() {
                 <BigButton
                   scale="family"
                   label={saving ? t.common.saving : text.approve}
-                  onPress={() => save(() => setChapterStatus(chapter.id, 'approved'))}
+                  onPress={() => save(() => setChapterStatus(chapter.id, 'approved'), text.toastApproved(name))}
                   accessibilityHint={text.approveHint(name)}
                 />
                 <BigButton scale="family" variant="outline" label={text.discard} onPress={() => setConfirming(true)} />
@@ -123,7 +125,7 @@ export default function ReviewScreen() {
                   scale="family"
                   variant="outline"
                   label={saving ? t.common.saving : text.unapprove}
-                  onPress={() => save(() => setChapterStatus(chapter.id, 'draft'))}
+                  onPress={() => save(() => setChapterStatus(chapter.id, 'draft'), text.toastDraft(name))}
                 />
               </>
             )}
@@ -132,7 +134,7 @@ export default function ReviewScreen() {
               <View style={styles.confirm}>
                 <Text style={styles.confirmTitle}>{text.discardTitle}</Text>
                 <Text style={styles.confirmText}>{text.discardText}</Text>
-                <BigButton scale="family" label={text.discardYes} onPress={() => save(() => deleteChapter(chapter.id))} />
+                <BigButton scale="family" label={text.discardYes} onPress={() => save(() => deleteChapter(chapter.id), text.toastDeleted)} />
                 <BigButton scale="family" variant="outline" label={text.cancel} onPress={() => setConfirming(false)} />
               </View>
             ) : null}

@@ -411,6 +411,9 @@ export const es = {
     discardYes: 'Sí, descartar',
     cancel: 'Cancelar',
     error: 'No se ha podido guardar. Comprueba tu conexión y vuelve a probar.',
+    toastApproved: (name: string) => `En el libro de ${name}`,
+    toastDraft: (name: string) => `Quitado del libro de ${name}`,
+    toastDeleted: 'Capítulo borrado',
   },
 
   // A new family member, invited by someone already in Hilo

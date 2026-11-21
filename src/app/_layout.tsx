@@ -1,13 +1,16 @@
 import * as Notifications from 'expo-notifications';
-import { router, Stack } from 'expo-router';
+import { router, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { Toaster } from '@/components/toast';
 import { CaptchaHost } from '@/lib/captcha';
 import { reminderUrl } from '@/lib/reminders';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
+  // Toasts sit above the family's tab bar
+  const pathname = usePathname();
   // Tapping a reminder while Hilo is running opens the talk or the pills (cold start: see index.tsx)
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((r) => {
@@ -30,6 +33,7 @@ export default function RootLayout() {
           animationDuration: 350,
         }}
       />
+      <Toaster bottom={pathname.startsWith('/family') ? 64 : 0} />
       <CaptchaHost />
     </>
   );

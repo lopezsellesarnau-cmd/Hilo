@@ -407,6 +407,9 @@ export const nl: Strings = {
     discardYes: 'Ja, weggooien',
     cancel: 'Annuleren',
     error: 'Het opslaan is niet gelukt. Controleer je verbinding en probeer het opnieuw.',
+    toastApproved: (name: string) => `In het boek van ${name}`,
+    toastDraft: (name: string) => `Uit het boek van ${name} gehaald`,
+    toastDeleted: 'Hoofdstuk verwijderd',
   },
 
   join: {
