@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@/components/big-button';
 import { LiveBot } from '@/components/live-bot';
 import { ScreenHeader } from '@/components/screen-header';
-import { TextField } from '@/components/text-field';
+import { CodeBoxes } from '@/components/code-boxes';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { useWide } from '@/lib/layout';
@@ -21,6 +21,7 @@ export default function PairCodeScreen() {
   const [code, setCode] = useState(() => (params.code ?? '').replace(/\D/g, '').slice(0, 6));
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paired, setPaired] = useState(false);
 
   const submit = async (value: string) => {
     if (checking) return;
@@ -35,7 +36,9 @@ export default function PairCodeScreen() {
       return;
     }
     setChecking(false);
-    router.replace({ pathname: '/consent', params: { personId } });
+    // The boxes turn black first, so she sees it worked
+    setPaired(true);
+    setTimeout(() => router.replace({ pathname: '/consent', params: { personId } }), 650);
   };
 
   return (
@@ -55,19 +58,16 @@ export default function PairCodeScreen() {
             />
 
             <View style={styles.body}>
-              <TextField
+              <CodeBoxes
                 label={t.code.label}
-                code
+                length={6}
                 value={code}
-                onChangeText={(v) => {
-                  const digits = v.replace(/\D/g, '').slice(0, 6);
+                status={paired ? 'success' : checking ? 'checking' : error ? 'error' : 'idle'}
+                onChangeText={(digits) => {
                   setCode(digits);
                   setError(null);
                   if (digits.length === 6) submit(digits);
                 }}
-                placeholder="······"
-                keyboardType="number-pad"
-                maxLength={6}
               />
               {error ? <Text style={styles.error}>{error}</Text> : null}
             </View>
