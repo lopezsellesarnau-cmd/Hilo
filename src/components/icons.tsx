@@ -1,4 +1,4 @@
-import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
 import { colors } from '@/theme';
 
@@ -122,14 +122,3 @@ export function StoryIcon({ size = 22, color = colors.ink }: Props) {
   );
 }
 
-/** Hilo's bot face (the 18 oct bot), drawn so it can be inverted on the black cards: face and eye colours */
-export function BotFace({ size = 140, face = colors.background, eyes = '#111111' }: { size?: number; face?: string; eyes?: string }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 351 351">
-      <Circle cx={175.5} cy={175.5} r={175.5} fill={face} />
-      <Path d="M140 168 Q 215 194 292 150" stroke={eyes} strokeWidth={11} strokeLinecap="round" fill="none" />
-      <Circle cx={135} cy={164.5} r={38} fill={eyes} />
-      <Ellipse cx={296} cy={146} rx={29} ry={37} fill={eyes} />
-    </Svg>
-  );
-}
