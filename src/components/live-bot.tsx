@@ -19,7 +19,7 @@ import { t } from '@/i18n';
 import { colors } from '@/theme';
 
 /**
- * Hilo's bot, alive: the black circle with the StackD Bot's tall eyes, a bit bigger
+ * Hilo's bot, alive: the StackD Bot (hexagon, tall eyes), like the app icon
  * (or, with face="thread", Hilo's round eyes joined by a thread).
  * The eyes sit on a sphere (same maths as the StackD Bot): turning away, an eye moves less and gets
  * narrower, so the flat circle reads as round. While her finger is on the screen it looks at it,
@@ -86,7 +86,7 @@ type Props = {
   voice?: SharedValue<number>;
   /** 'stackd': tall capsule eyes like the StackD Bot, a bit bigger (default). 'thread': Hilo's round eyes joined by a thread. */
   face?: Face;
-  /** The body, from the StackD Bot (the book gives each chapter its own). The thread face is circle only. */
+  /** The body, from the StackD Bot: hexagon by default, like the app icon (the book gives each chapter its own). The thread face is circle only. */
   shape?: BotShape;
   /** Body and eye colours (default: black body, white eyes). */
   color?: string;
@@ -119,13 +119,13 @@ function frame(face: Face, body: Body) {
 
 // In a 100-unit box. w/h: eye size facing straight on; spacing: from the centre to each eye.
 const FACES = {
-  // The StackD Bot's tall eyes (11 × 21, 13 from the centre) at 1.4×
-  stackd: { w: 15.4, h: 29.4, spacing: 18.2 },
+  // The StackD Bot's tall eyes (11 × 21, 13 from the centre), as on the app icon. A diagonal look leans them.
+  stackd: { w: 11, h: 21, spacing: 13, tilt: true },
   // Measured from the 18 oct bot (assets/icons/bot.svg): round eyes, radius 11.5
-  thread: { w: 23, h: 23, spacing: 24.6 },
+  thread: { w: 23, h: 23, spacing: 24.6, tilt: false },
 };
 const THREAD = 3.1; // thread width
-const MOUTH = 1.4; // the StackD mouth (12-20 wide, 2.5-11.5 tall) at the same scale as the eyes
+const MOUTH = 1; // the StackD mouth (12-20 wide, 2.5-11.5 tall), at the same scale as the eyes
 const SAG = 0.22; // how much the thread hangs, as a share of its length
 
 // Gentler than the web: she should notice it looking, not be distracted by it
@@ -158,7 +158,24 @@ function eye(face: Face, body: Body, side: number, x: number, y: number, blink: 
   const cy = b.cy + y2 * b.ry;
   const w = f.w * k * (0.7 + 0.3 * near);
   const h = f.h * k * blink;
-  return { cx, cy, x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: Math.min(w, h) / 2 };
+  // StackD: a diagonal look leans the pair, 60° × x × y
+  const tilt = f.tilt ? (60 * x * y * Math.PI) / 180 : 0;
+  return { cx, cy, w, h, tilt };
+}
+
+/** An eye as a capsule turned by its tilt (an SVG rect can't be rotated from an animation). */
+function capsule(cx: number, cy: number, w: number, h: number, tilt: number) {
+  'worklet';
+  const c = Math.cos(tilt);
+  const s = Math.sin(tilt);
+  // The long axis and the side it bulges to, turned by the tilt; a blink makes it wider than tall
+  const tall = h >= w;
+  const r = Math.max(0.01, (tall ? w : h) / 2);
+  const half = Math.max(0, (tall ? h : w) / 2 - r);
+  const [ax, ay] = tall ? [-s, c] : [c, s];
+  const [sx, sy] = tall ? [c, s] : [s, -c];
+  const p = (along: number, side: number) => `${cx + ax * along + sx * side} ${cy + ay * along + sy * side}`;
+  return `M${p(-half, r)}L${p(half, r)}A${r} ${r} 0 0 1 ${p(half, -r)}L${p(-half, -r)}A${r} ${r} 0 0 1 ${p(-half, r)}Z`;
 }
 
 /** The mouth: a point on the sphere below the eyes, turned with the head like they are (StackD Bot maths). */
@@ -192,7 +209,7 @@ export function LiveBot({
   face = 'stackd',
   voice,
   cursor = false,
-  shape = 'circle',
+  shape = 'hexagon',
   color = colors.ink,
   eyeColor = colors.background,
 }: Props) {
@@ -279,12 +296,12 @@ export function LiveBot({
   }, [reduceMotion, blink, breath]);
 
   const left = useAnimatedProps(() => {
-    const { x, y, width, height, rx } = eye(face, body, -1, lookX.value, lookY.value, blink.value);
-    return { x, y, width, height, rx };
+    const e = eye(face, body, -1, lookX.value, lookY.value, blink.value);
+    return { d: capsule(e.cx, e.cy, e.w, e.h, e.tilt) };
   });
   const right = useAnimatedProps(() => {
-    const { x, y, width, height, rx } = eye(face, body, 1, lookX.value, lookY.value, blink.value);
-    return { x, y, width, height, rx };
+    const e = eye(face, body, 1, lookX.value, lookY.value, blink.value);
+    return { d: capsule(e.cx, e.cy, e.w, e.h, e.tilt) };
   });
   // The thread runs from eye to eye and hangs a little, like the logo
   const thread = useAnimatedProps(() => {
@@ -323,8 +340,8 @@ export function LiveBot({
           {face === 'thread' ? (
             <AnimatedPath animatedProps={thread} stroke={eyeColor} strokeWidth={THREAD} strokeLinecap="round" fill="none" />
           ) : null}
-          <AnimatedRect animatedProps={left} fill={eyeColor} />
-          <AnimatedRect animatedProps={right} fill={eyeColor} />
+          <AnimatedPath animatedProps={left} fill={eyeColor} />
+          <AnimatedPath animatedProps={right} fill={eyeColor} />
           {voice ? <AnimatedRect animatedProps={mouth} fill={eyeColor} /> : null}
         </G>
       </Svg>
