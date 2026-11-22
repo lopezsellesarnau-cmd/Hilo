@@ -136,6 +136,12 @@ export async function markDone(personId: string, note: string): Promise<string |
   return error ? null : ((data as string | null) ?? null);
 }
 
+/** Hilo's voice speed for her, set by her organisation's staff (staff_set_voice_speed). */
+export async function setVoiceSpeed(personId: string, speed: number): Promise<boolean> {
+  const { error } = await supabase.rpc('staff_set_voice_speed', { person: personId, speed });
+  return !error;
+}
+
 export async function undoDone(actionId: string): Promise<boolean> {
   const { error } = await supabase.rpc('staff_undo', { action: actionId });
   return !error;
@@ -149,8 +155,8 @@ export type PersonWeek = {
   days: { day: string; talks: number; due: number; taken: number; calls: number; feeling: 1 | 2 | 3 | null }[];
   last_talk: string | null;
   last_call: string | null;
-  /** Her last 12 weeks: the days she answered Hilo and how many times (counts only; staff_person_activity) */
-  activity?: { day: string; answers: number }[];
+  /** How fast Hilo talks to her, 0.70 to 1.20 (staff_open_person) */
+  voice_speed?: number;
 };
 
 /** One person's week and the team's notes about her (newest first). */

@@ -1,20 +1,22 @@
 import { Link, useLocalSearchParams } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import {
   clock,
   signalLines,
+  setVoiceSpeed,
   usePersonPage,
   useStaffPeople,
   useStaffSignals,
   type PersonWeek,
   type StaffAction,
 } from '@/staff/data';
-import { ActivityGrid } from '@/components/activity-grid';
 import { BellIcon, NoteIcon, PersonBot, PillIcon, shapesFor } from '@/staff/icons';
 import { LonelinessCard } from '@/staff/loneliness-card';
+import { VoiceCard } from '@/staff/voice-card';
+import { toast } from '@/components/toast';
 import { PairCard } from '@/staff/pair-card';
 import { useStaff } from '@/staff/session';
 import { staffColors, staffFont, staffText } from '@/staff/theme';
@@ -39,6 +41,18 @@ export default function PersonPage() {
   const people = useStaffPeople();
   const signals = useStaffSignals();
   const page = usePersonPage(id);
+  // Hilo's voice speed: what's saved, until staff change it here (each step is saved straight away)
+  const [speedEdit, setSpeedEdit] = useState<number | null>(null);
+  const speed = speedEdit ?? page.data?.week.voice_speed ?? 1;
+  const changeSpeed = (v: number) => {
+    const before = speed;
+    setSpeedEdit(v);
+    setVoiceSpeed(id, v).then((ok) => {
+      if (ok) return;
+      setSpeedEdit(before);
+      toast.error("Couldn't save the voice speed");
+    });
+  };
 
   const person = people.data?.find((p) => p.id === id && p.role === 'senior');
   const failed = people.error || signals.error || page.error;
@@ -133,20 +147,6 @@ export default function PersonPage() {
           <Text style={styles.weekFoot}>
             {week.last_talk ? `Last talk with Hilo ${date(week.last_talk)}, ${clock(week.last_talk)}` : 'No talk yet'}
           </Text>
-          {/* The same, further back: 12 weeks of the days she answered Hilo */}
-          {week.activity ? (
-            <View style={styles.activity}>
-              <ActivityGrid
-                timezone={person.timezone}
-                answers={Object.fromEntries(week.activity.map((a) => [a.day, a.answers]))}
-                title="LAST 12 WEEKS"
-                summary={(n) => `Talked on ${n} ${n === 1 ? 'day' : 'days'}`}
-                dayLine={(d, n) => (n ? `${d} · answered ${n} ${n === 1 ? 'time' : 'times'}` : `${d} · no talk`)}
-                locale="en-GB"
-                fontFamily={staffFont}
-              />
-            </View>
-          ) : null}
         </View>
       </View>
 
@@ -241,6 +241,8 @@ export default function PersonPage() {
 
       <View style={styles.wrap}>
         <LonelinessCard personId={person.id} locale={person.locale} me={me.userId} />
+        {/* Hilo's voice for her: listen, and change how fast it talks (saved with her) */}
+        <VoiceCard locale={person.locale} name={person.display_name} speed={speed} onSpeed={changeSpeed} />
       </View>
 
       <View style={styles.wrap}>
@@ -467,7 +469,6 @@ const styles = StyleSheet.create({
     filter: 'blur(19px)',
   } as ViewStyle,
 
-  activity: { marginTop: 8, paddingTop: 20, borderTopWidth: 1, borderTopColor: staffColors.line },
   weekCard: {
     ...flex(1, 460),
     backgroundColor: staffColors.block,
