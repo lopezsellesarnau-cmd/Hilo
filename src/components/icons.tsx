@@ -135,3 +135,16 @@ export function GearIcon({ size = 22, color = colors.ink }: Props) {
     </Svg>
   );
 }
+
+/** A small filled padlock (Salud: encrypted) */
+export function LockIcon({ size = 20, color = 'rgba(0,0,0,0.3)' }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        fill={color}
+        fillRule="evenodd"
+        d="M7 10V7.5a5 5 0 0 1 10 0V10h.5A2.5 2.5 0 0 1 20 12.5v7A2.5 2.5 0 0 1 17.5 22h-11A2.5 2.5 0 0 1 4 19.5v-7A2.5 2.5 0 0 1 6.5 10H7Zm2.5 0h5V7.5a2.5 2.5 0 0 0-5 0V10Z"
+      />
+    </Svg>
+  );
+}

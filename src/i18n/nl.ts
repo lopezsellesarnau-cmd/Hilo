@@ -6,6 +6,7 @@ import type { Strings } from './es';
  */
 export const nl: Strings = {
   common: {
+    close: 'Sluiten',
     back: 'Terug',
     backTo: (label: string) => `Terug naar ${label}`,
     continue: 'Verder',
@@ -398,6 +399,16 @@ export const nl: Strings = {
     docs: 'Documenten',
     visits: 'Afspraken',
     soon: 'Binnenkort',
+    saveWeight: 'Gewicht opslaan',
+    weightSaved: 'Gewicht opgeslagen',
+    weightEmpty: 'Noteer twee keer een gewicht om de lijn te zien',
+    weightLabel: 'Gewicht van vandaag',
+    ranges: { m1: '1M', m3: '3M', y1: '1J' },
+    todayShort: 'Vandaag',
+    pillsNone: 'Vandaag geen pillen',
+    taken: 'Genomen',
+    later: 'Straks',
+    since: (delta: string, date: string) => `${delta} kg sinds ${date}`,
   },
   familyBook: {
     tab: 'Boek',

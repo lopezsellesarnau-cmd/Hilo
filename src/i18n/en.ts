@@ -2,6 +2,7 @@ import type { Strings } from './es';
 
 export const en: Strings = {
   common: {
+    close: 'Close',
     back: 'Back',
     backTo: (label: string) => `Back to ${label}`,
     continue: 'Continue',
@@ -394,6 +395,16 @@ export const en: Strings = {
     docs: 'Documents',
     visits: 'Visits',
     soon: 'Soon',
+    saveWeight: 'Save weight',
+    weightSaved: 'Weight saved',
+    weightEmpty: 'Log two weights to see the line',
+    weightLabel: "Today's weight",
+    ranges: { m1: '1M', m3: '3M', y1: '1Y' },
+    todayShort: 'Today',
+    pillsNone: 'No pills today',
+    taken: 'Taken',
+    later: 'Later',
+    since: (delta: string, date: string) => `${delta} kg since ${date}`,
   },
   familyBook: {
     tab: 'Book',

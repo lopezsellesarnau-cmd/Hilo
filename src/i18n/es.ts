@@ -4,6 +4,7 @@
  */
 export const es = {
   common: {
+    close: 'Cerrar',
     back: 'Atrás',
     backTo: (label: string) => `Volver a ${label}`,
     continue: 'Continuar',
@@ -401,6 +402,16 @@ export const es = {
     docs: 'Documentos',
     visits: 'Citas',
     soon: 'Pronto',
+    saveWeight: 'Guardar peso',
+    weightSaved: 'Peso guardado',
+    weightEmpty: 'Apunta dos pesos para ver la línea',
+    weightLabel: 'Su peso de hoy',
+    ranges: { m1: '1M', m3: '3M', y1: '1A' },
+    todayShort: 'Hoy',
+    pillsNone: 'Hoy no hay pastillas',
+    taken: 'Tomada',
+    later: 'Luego',
+    since: (delta: string, date: string) => `${delta} kg desde el ${date}`,
   },
   familyBook: {
     tab: 'Libro',
