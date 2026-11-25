@@ -119,8 +119,8 @@ function frame(face: Face, body: Body) {
 
 // In a 100-unit box. w/h: eye size facing straight on; spacing: from the centre to each eye.
 const FACES = {
-  // The StackD Bot's tall eyes (11 × 21, 13 from the centre), as on the app icon. A diagonal look leans them.
-  stackd: { w: 11, h: 21, spacing: 13, tilt: true },
+  // The StackD Bot's tall eyes, 1.35× bigger since the v2 redesign (25 nov 2026; were 11 × 21, 13 from the centre). A diagonal look leans them.
+  stackd: { w: 14.85, h: 28.35, spacing: 15.7, tilt: true },
   // Measured from the 18 oct bot (the first logo): round eyes, radius 11.5
   thread: { w: 23, h: 23, spacing: 24.6, tilt: false },
 };

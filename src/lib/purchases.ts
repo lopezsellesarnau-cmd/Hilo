@@ -48,6 +48,9 @@ const hasEntitlement = (info: Awaited<ReturnType<typeof Purchases.getCustomerInf
  * (right after buying, before the webhook arrives). On the phone, offline counts as yes: never lock a family out for a bad signal.
  */
 export async function familyHasAccess(familyId: string): Promise<boolean> {
+  // Development only: skip the paywall in the simulator, where Apple's sandbox sign-in often fails.
+  // Set EXPO_PUBLIC_DEV_SKIP_PAYWALL=1 in .env.local. Never applies to a release build (__DEV__ is false there).
+  if (__DEV__ && process.env.EXPO_PUBLIC_DEV_SKIP_PAYWALL === '1') return true;
   // Supabase answered and this family has never had a subscription (a new family): nothing to protect from a bad signal
   let neverSubscribed = false;
   try {

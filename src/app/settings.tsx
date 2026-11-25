@@ -133,6 +133,9 @@ export default function SettingsScreen() {
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.screen}>
+          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={12} style={styles.back}>
+            <Text style={styles.backText}>‹ {t.today.title}</Text>
+          </Pressable>
           <View style={styles.head}>
             <Text style={styles.title} accessibilityRole="header">
               {text.title}
@@ -220,6 +223,8 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  back: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, marginBottom: 8 },
+  backText: { fontSize: 17, fontWeight: fontWeight.semibold, color: colors.muted },
   safe: {
     flex: 1,
     backgroundColor: colors.background,

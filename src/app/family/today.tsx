@@ -5,14 +5,11 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DayDot } from '@/components/day-dot';
-import { LiveBot } from '@/components/live-bot';
-import { ChatIcon, PhoneIcon, PillIcon, StoryIcon } from '@/components/icons';
+import { LiveBot, useFinger } from '@/components/live-bot';
+import { GearIcon, PhoneIcon } from '@/components/icons';
 import { ListRow } from '@/components/list-row';
-import { FamilyActivityGrid } from '@/components/activity-grid';
-import { PillsRing } from '@/components/pills-ring';
 import { PressScale } from '@/components/press-scale';
 import { loadTodayDoses, TodayPills } from '@/components/today-pills';
-import { WeekStrip } from '@/components/week-strip';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
 import { loadCalls, loadMonth, type MemberCalls } from '@/lib/calls';
@@ -27,12 +24,6 @@ type Talk = { started_at: string; ended_at: string | null; family_note: string |
 
 /** "De qué hablar con ella" is fresh for this long, then it's old news (as it was in Charlas) */
 const NOTE_MS = 3 * 86_400_000;
-/** The small podium on Hoy, left to right: second, first, third (sizes from the canvas design) */
-const MINI_PODIUM = [
-  { rank: 2, avatar: 44, bar: 56, fill: '#d6d6d6' },
-  { rank: 1, avatar: 52, bar: 84, fill: colors.ink },
-  { rank: 3, avatar: 40, bar: 40, fill: '#e6e6e6' },
-] as const;
 
 const text = t.today;
 /** Same as quiet-alert: after this, "llama" becomes one of the things to do */
@@ -50,15 +41,17 @@ const talkedToday = (talks: Talk[], timeZone: string) => {
  */
 export default function TodayScreen() {
   const [senior, setSenior] = useState<Senior | null>(null);
+  // Her Bot looks at your finger anywhere on the screen
+  const { finger, handlers } = useFinger();
   const [talks, setTalks] = useState<Talk[]>([]);
   // Stories from her talks waiting for the family, newest first
   const [drafts, setDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
   // For the sentence at the top: who is reading, her pills today, and what to talk about with her
-  const [me, setMe] = useState('');
+  const [, setMe] = useState('');
   const [pills, setPills] = useState<{ taken: number; total: number; next: string | null } | null>(null);
   // Tapping the pills widget opens today's list under it
   const [pillsOpen, setPillsOpen] = useState(false);
-  const [month, setMonth] = useState<MemberCalls[]>([]);
+  const [, setMonth] = useState<MemberCalls[]>([]);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Nobody in the family has talked with her for CALL_DAYS: one of the things to do today
@@ -156,225 +149,139 @@ export default function TodayScreen() {
   const lastTalk = talks[0];
   // The day in one sentence: talked (or not yet), pills, new stories, joined like a person would say it
   const now = new Date();
-  const parts = senior
-    ? [
-        {
-          icon: ChatIcon,
-          words: lastTalk
-            ? text.sumTalked(senior.display_name, localNow(senior.timezone, new Date(lastTalk.started_at)).time.replace(/^0/, ''))
-            : text.sumNotYet(senior.display_name),
-        },
-        ...(pills ? [{ icon: PillIcon, words: text.sumPills(pills.taken, pills.total) }] : []),
-        ...(() => {
-          const today = localNow(senior.timezone).date;
-          const n = drafts.filter((d) => localNow(senior.timezone, new Date(d.created_at)).date === today).length;
-          return n ? [{ icon: StoryIcon, words: text.sumStories(n) }] : [];
-        })(),
-      ]
-    : [];
   const weekday = now.toLocaleDateString(dateLocale, { weekday: 'short' }).replace('.', '');
   const ringing = ring === 'ringing' || ring === 'tooSoon';
-  const ranked = month.filter((m) => m.count > 0).slice(0, 3);
-  const leader = ranked[0] ? text.podiumLeader(ranked[0].mine ? null : ranked[0].name, t.talks.callCount(ranked[0].count)) : '';
   const addPills = () =>
     senior &&
     router.push({ pathname: '/onboarding/pills', params: { seniorId: senior.id, seniorName: senior.display_name, from: 'today' } });
 
+  const talkedAt = lastTalk ? localNow(senior?.timezone ?? 'UTC', new Date(lastTalk.started_at)).time.replace(/^0/, '') : null;
+  const canCall = Boolean(senior?.user_id);
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']} {...handlers}>
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={styles.screen}
+          contentContainerStyle={v2.screen}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.ink} />}>
-          {/* The day, like a calendar widget: short weekday, a dot, the date */}
-          <View style={styles.head}>
-            <View style={styles.dayRow}>
-              <Text
-                style={styles.weekday}
-                accessibilityRole="header"
-                accessibilityLabel={now.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}>
-                {weekday.charAt(0).toUpperCase() + weekday.slice(1)}
-              </Text>
-              <View style={styles.dot} />
-            </View>
-            <Text style={styles.date}>
-              {now.toLocaleDateString(dateLocale, { day: 'numeric', month: 'long' })}
-              {'\n'}
-              {now.getFullYear()}
+          {/* v2: the day, her name, Call and Ajustes on one line */}
+          <View style={v2.top}>
+            <Text style={v2.day} accessibilityRole="header" accessibilityLabel={now.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}>
+              {weekday.charAt(0).toUpperCase() + weekday.slice(1)} {now.getDate()}
             </Text>
-          </View>
-          {senior ? (
-            <Text style={styles.summary}>
-              {text.hello(now.getHours())}
-              {me ? (
-                <>
-                  {', '}
-                  <Text style={styles.strong}>{me}</Text>
-                </>
+            <View style={v2.topRight}>
+              {senior ? (
+                <View style={v2.name}>
+                  <Text style={v2.nameText} numberOfLines={1}>{senior.display_name}</Text>
+                </View>
               ) : null}
-              {'. '}
-              {parts.map(({ icon: Icon, words: [before, bold, after] }, i) => (
-                <Text key={bold}>
-                  {i === 0 ? '' : i === parts.length - 1 ? text.sumAnd : ', '}
-                  {before}
-                  <Text style={styles.strong}>
-                    <Icon />
-                    {` ${bold}`}
-                  </Text>
-                  {after}
-                </Text>
-              ))}
-              {'.'}
+              {canCall && senior ? (
+                <PressScale
+                  onPress={ringing ? undefined : callNow}
+                  accessibilityRole="button"
+                  accessibilityLabel={text.ring(senior.display_name)}
+                  accessibilityHint={text.ringHint}
+                  style={[v2.call, ringing && v2.callOff]}>
+                  <PhoneIcon size={16} color={colors.onAccent} />
+                  <Text style={v2.callText}>{text.call}</Text>
+                </PressScale>
+              ) : null}
+              <PressScale onPress={() => router.push('/settings')} accessibilityRole="button" accessibilityLabel={t.settings.title} hitSlop={8} style={styles.gear}>
+                <GearIcon size={22} color={colors.ink} />
+              </PressScale>
+            </View>
+          </View>
+          {ring ? (
+            <Text style={v2.ringNote} accessibilityLiveRegion="polite">
+              {ringNote[ring]}
             </Text>
+          ) : senior && canCall && callDue ? (
+            <Text style={v2.ringNote}>{text.callDue(senior.display_name)}</Text>
+          ) : null}
+
+          {/* Her Bot: big, its eyes follow your finger on the screen */}
+          {senior ? (
+            <View style={v2.bot}>
+              <LiveBot size={128} finger={finger} />
+            </View>
+          ) : null}
+
+          {senior ? (
+            <>
+              <Text style={v2.big} accessibilityRole="header" adjustsFontSizeToFit numberOfLines={2}>
+                {talkedAt ? text.headTalked(talkedAt) : text.headNotYet}
+              </Text>
+              {!talkedAt && senior.talk_time ? <Text style={v2.sub}>{text.subNotYet(showTime(senior.talk_time))}</Text> : null}
+            </>
           ) : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          {senior ? (
-            <View style={styles.list}>
-              {/* Her week first, like a calendar */}
-              <WeekStrip key={reloadKey} seniorId={senior.id} timezone={senior.timezone} />
-              {/* What to talk about with her, and Hilo rings on her phone (it has to be connected) */}
-              {note || senior.user_id ? (
-                // Without a note there's nothing to frame: just the black call button
-                <View style={note ? styles.talkCard : styles.talkPlain}>
-                  {note ? (
-                    <>
-                      <Text style={styles.talkLabel}>{t.talks.noteLabel(senior.display_name)}</Text>
-                      <Text style={styles.talkNote}>{note}</Text>
-                    </>
-                  ) : null}
-                  {/* Nobody in the family has called her for days: said right where the fix is */}
-                  {senior.user_id && callDue && !ring ? (
-                    <Text style={[styles.callDue, note && styles.callDueOnInk]}>{text.callDue(senior.display_name)}</Text>
-                  ) : null}
-                  {senior.user_id ? (
-                    ring && ring !== 'noPhone' && ring !== 'failed' ? (
-                      <View style={[styles.ringState, !note && styles.ringStatePlain]} accessibilityLiveRegion="polite">
-                        {ring === 'ringing' ? <View style={styles.dot} /> : null}
-                        <Text style={[styles.ringStateText, !note && styles.ringStateTextPlain]}>{ringNote[ring]}</Text>
-                      </View>
-                    ) : (
-                      <>
-                        <PressScale
-                          onPress={ringing ? undefined : callNow}
-                          accessibilityRole="button"
-                          accessibilityLabel={text.ring(senior.display_name)}
-                          accessibilityHint={text.ringHint}
-                          style={[styles.ringButton, !note && styles.ringButtonPlain]}>
-                          <PhoneIcon color={note ? colors.ink : colors.onAccent} />
-                          <Text style={[styles.ringLabel, !note && styles.ringLabelPlain]}>{text.ring(senior.display_name)}</Text>
-                        </PressScale>
-                        {ring ? <Text style={[styles.ringFailed, !note && styles.failed]}>{ringNote[ring]}</Text> : null}
-                      </>
-                    )
-                  ) : null}
-                </View>
-              ) : null}
-              {/* Without her phone Hilo can't talk with her or ring: the one thing to do (not before her first talk: the checklist has it) */}
-              {!senior.user_id && !firstDay ? (
-                <View style={styles.phoneCard}>
-                  <Text style={styles.phoneTitle}>{text.phoneMissing}</Text>
-                  <Text style={styles.phoneBody}>{text.phoneMissingBody(senior.display_name)}</Text>
-                  <PressScale onPress={pair} accessibilityRole="button" style={[styles.ringButton, styles.ringButtonPlain]}>
-                    <Text style={[styles.ringLabel, styles.ringLabelPlain]}>{text.connect}</Text>
-                  </PressScale>
-                </View>
-              ) : null}
+          {/* What to talk about with her */}
+          {senior && note ? (
+            <View style={v2.note}>
+              <Text style={v2.noteLabel}>{t.talks.noteLabel(senior.display_name)}</Text>
+              <Text style={v2.noteText}>{note}</Text>
             </View>
           ) : null}
 
-          {/* Widgets: her pills today, her book, and who talks most with her this month */}
+          {/* Her pills today: one capsule per dose, filled when taken. Tap for the list. */}
           {senior ? (
-            <View style={styles.widgets}>
-              <View style={styles.widgetSlot}>
-              <PressScale
-                onPress={pills ? () => setPillsOpen((o) => !o) : addPills}
-                accessibilityRole="button"
-                accessibilityLabel={pills ? t.todayPills.summary(pills.taken, pills.total) : t.todayPills.add}
-                accessibilityState={pills ? { expanded: pillsOpen } : undefined}
-                style={[styles.widget, styles.widgetGrey]}>
-                <Text style={styles.widgetLabel}>{t.todayPills.title}</Text>
+            <PressScale
+              onPress={pills ? () => setPillsOpen((o) => !o) : addPills}
+              accessibilityRole="button"
+              accessibilityLabel={pills ? t.todayPills.summary(pills.taken, pills.total) : t.todayPills.add}
+              accessibilityState={pills ? { expanded: pillsOpen } : undefined}
+              style={v2.pills}>
+              <View>
+                <Text style={v2.label}>{t.todayPills.title}</Text>
                 {pills ? (
-                  <>
-                    <PillsRing taken={pills.taken} total={pills.total} />
-                    <Text style={styles.widgetLine}>
-                      {pills.next ? text.pillsLeft(showTime(pills.next)) : text.pillsAllTaken}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.widgetLine}>{t.todayPills.add}</Text>
-                )}
-              </PressScale>
-              </View>
-              <View style={styles.widgetSlot}>
-              <PressScale
-                onPress={() => router.push('/family/book')}
-                accessibilityRole="button"
-                accessibilityLabel={drafts.length ? `${text.bookWidget}, ${text.toReview(drafts.length)}` : text.bookWidget}
-                style={[styles.widget, styles.widgetBlack]}>
-                <Text style={[styles.widgetLabel, styles.widgetLabelOnInk]}>{text.bookWidget}</Text>
-                {drafts.length ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{text.toReview(drafts.length)}</Text>
+                  <View style={v2.caps}>
+                    {Array.from({ length: Math.min(pills.total, 6) }, (_, i) => (
+                      <View key={i} style={[v2.cap, i < pills.taken ? v2.capOn : v2.capOff]} />
+                    ))}
                   </View>
-                ) : null}
-                <View style={styles.widgetBot}>
-                  <LiveBot size={140} color={colors.background} eyeColor={colors.ink} />
-                </View>
-              </PressScale>
+                ) : (
+                  <Text style={v2.addPills}>{t.todayPills.add}</Text>
+                )}
               </View>
-            </View>
+              {pills ? (
+                <View style={v2.pillsRight}>
+                  <Text style={v2.count}>
+                    {pills.taken}/{pills.total}
+                  </Text>
+                  <Text style={v2.next}>{pills.next ? text.pillsLeft(showTime(pills.next)) : text.pillsAllTaken}</Text>
+                </View>
+              ) : null}
+            </PressScale>
           ) : null}
           {senior && pills && pillsOpen ? (
             <TodayPills key={reloadKey} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
           ) : null}
 
-          {/* A podium only when two people have called her this month */}
-          {senior && ranked.length >= 2 ? (
-            <PressScale
-              onPress={() => router.push('/family/talks')}
-              accessibilityRole="button"
-              accessibilityLabel={`${text.podiumTitle(senior.display_name)}. ${leader}`}
-              style={styles.podiumCard}>
-              <View style={styles.podiumHead}>
-                <Text style={styles.widgetLabel}>{text.podiumTitle(senior.display_name)}</Text>
-                <Text style={styles.widgetLabel}>›</Text>
-              </View>
-              <View style={styles.podium}>
-                {MINI_PODIUM.map((place) => {
-                  const m = ranked[place.rank - 1];
-                  if (!m) return <View key={place.rank} style={styles.place} />;
-                  const first = place.rank === 1;
-                  return (
-                    <View key={place.rank} style={styles.place}>
-                      <View
-                        style={[
-                          styles.podiumAvatar,
-                          { width: place.avatar, height: place.avatar, borderRadius: place.avatar / 2, backgroundColor: place.fill },
-                        ]}>
-                        <Text style={[styles.podiumInitial, first && styles.onInk]}>{m.name.trim().charAt(0).toUpperCase()}</Text>
-                      </View>
-                      <View style={[styles.podiumBar, { height: place.bar, backgroundColor: place.fill }]}>
-                        <Text style={[styles.podiumRank, first && styles.onInk]}>{place.rank}</Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-              <Text style={styles.podiumLeader}>{leader}</Text>
+          {/* New stories for the family to read */}
+          {senior && drafts.length ? (
+            <PressScale onPress={() => router.push('/family/book')} accessibilityRole="button" accessibilityLabel={`${text.bookWidget}, ${text.toReview(drafts.length)}`} style={v2.stories}>
+              <Text style={v2.storiesText}>{text.toReview(drafts.length)}</Text>
+              <Text style={v2.storiesText}>›</Text>
             </PressScale>
           ) : null}
 
-          {/* Her talks over 12 weeks: the week strip, further back */}
-          {senior ? (
-            <FamilyActivityGrid key={`grid-${reloadKey}`} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
+          {/* Without her phone Hilo can't talk with her or ring: the one thing to do (not before her first talk: the checklist has it) */}
+          {senior && !senior.user_id && !firstDay ? (
+            <View style={styles.phoneCard}>
+              <Text style={styles.phoneTitle}>{text.phoneMissing}</Text>
+              <Text style={styles.phoneBody}>{text.phoneMissingBody(senior.display_name)}</Text>
+              <PressScale onPress={pair} accessibilityRole="button" style={[styles.ringButton, styles.ringButtonPlain]}>
+                <Text style={[styles.ringLabel, styles.ringLabelPlain]}>{text.connect}</Text>
+              </PressScale>
+            </View>
           ) : null}
 
           {/* Before her first talk: the few steps that make Hilo work, ticked as they are done */}
           {senior && firstDay ? (
-            <View style={styles.list}>
+            <View style={[styles.list, v2.after]}>
               <Text style={styles.label}>{text.firstDay.toUpperCase()}</Text>
               <ListRow left={<DayDot state="done" size={40} />} title={text.stepAccount} />
               <ListRow
@@ -386,15 +293,7 @@ export default function TodayScreen() {
                 left={<DayDot state={firstDay.pills ? 'done' : 'later'} size={40} />}
                 title={text.stepPills}
                 detail={firstDay.pills ? undefined : text.optional}
-                onPress={
-                  firstDay.pills
-                    ? undefined
-                    : () =>
-                        router.push({
-                          pathname: '/onboarding/pills',
-                          params: { seniorId: senior.id, seniorName: senior.display_name, from: 'today' },
-                        })
-                }
+                onPress={firstDay.pills ? undefined : addPills}
               />
               <ListRow
                 left={<DayDot state={firstDay.family ? 'done' : 'later'} size={40} />}
@@ -405,12 +304,44 @@ export default function TodayScreen() {
               <Text style={styles.note}>{text.firstDayHint(senior.display_name)}</Text>
             </View>
           ) : null}
-
         </ScrollView>
       </WideFrame>
     </SafeAreaView>
   );
 }
+
+/** v2 (25 nov 2026): bold type, few words. Black, white and greys. */
+const v2 = StyleSheet.create({
+  screen: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48, gap: 0 },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  day: { fontSize: 17, fontWeight: fontWeight.semibold, color: colors.muted },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  name: { height: 44, borderRadius: 22, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: colors.surface, maxWidth: 140 },
+  nameText: { fontSize: 16, fontWeight: fontWeight.semibold, color: colors.ink },
+  call: { height: 44, borderRadius: 22, paddingLeft: 14, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.ink },
+  callOff: { opacity: 0.4 },
+  callText: { fontSize: 16, fontWeight: fontWeight.bold, color: colors.onAccent },
+  ringNote: { marginTop: 10, fontSize: 15, fontWeight: fontWeight.semibold, color: colors.ink, textAlign: 'right' },
+  bot: { marginTop: 28, alignItems: 'flex-start' },
+  big: { marginTop: 20, fontSize: 64, lineHeight: 62, fontWeight: fontWeight.bold, letterSpacing: -3, color: colors.ink },
+  sub: { marginTop: 10, fontSize: 18, fontWeight: fontWeight.semibold, color: colors.muted },
+  note: { marginTop: 28, borderRadius: 28, padding: 20, backgroundColor: colors.surface },
+  noteLabel: { fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
+  noteText: { marginTop: 6, fontSize: 22, lineHeight: 27, fontWeight: fontWeight.bold, letterSpacing: -0.5, color: colors.ink },
+  pills: { marginTop: 28, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  label: { fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted, textTransform: 'uppercase', letterSpacing: 1 },
+  caps: { marginTop: 12, flexDirection: 'row', gap: 8 },
+  cap: { width: 52, height: 28, borderRadius: 14 },
+  capOn: { backgroundColor: colors.ink },
+  capOff: { borderWidth: 3, borderColor: 'rgba(0,0,0,0.14)' },
+  addPills: { marginTop: 8, fontSize: 22, fontWeight: fontWeight.bold, color: colors.ink },
+  pillsRight: { alignItems: 'flex-end' },
+  count: { fontSize: 40, lineHeight: 42, fontWeight: fontWeight.bold, letterSpacing: -1.5, color: colors.ink },
+  next: { fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
+  stories: { marginTop: 24, height: 64, borderRadius: 32, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.ink },
+  after: { marginTop: 36 },
+  storiesText: { fontSize: 19, fontWeight: fontWeight.bold, color: colors.onAccent },
+});
 
 const styles = StyleSheet.create({
   safe: {
@@ -426,6 +357,8 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     gap: 28,
   },
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  gear: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   head: {
     flexDirection: 'row',
     alignItems: 'flex-start',

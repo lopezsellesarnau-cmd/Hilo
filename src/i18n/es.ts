@@ -275,6 +275,11 @@ export const es = {
   },
 
   today: {
+    // v2 (25 nov 2026): the big bold line at the top of Hoy
+    headTalked: (time: string) => `Habló\na las ${time}.`,
+    headNotYet: 'Aún sin\ncharla.',
+    subNotYet: (time: string) => `Su charla es a las ${time}`,
+    call: 'Llamar',
     // The day in one sentence at the top of Hoy: [before, bold (with an icon), after] per part
     hello: (hour: number): string => (hour < 14 ? 'Buenos días' : hour < 21 ? 'Buenas tardes' : 'Buenas noches'),
     sumTalked: (name: string, time: string): [string, string, string] => [`${name} ha `, 'charlado', ` a las ${time}`],
@@ -387,6 +392,16 @@ export const es = {
     loadFailed: 'No hemos podido cargar las pastillas. Comprueba tu conexión.',
   },
 
+  health: {
+    tab: 'Salud',
+    title: 'Salud',
+    locked: 'Cifrado. Solo tu familia puede abrirlo.',
+    pills: 'Pastillas',
+    weight: 'Peso',
+    docs: 'Documentos',
+    visits: 'Citas',
+    soon: 'Pronto',
+  },
   familyBook: {
     tab: 'Libro',
     title: 'Libro',

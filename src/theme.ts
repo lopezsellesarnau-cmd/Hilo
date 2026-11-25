@@ -24,8 +24,8 @@ export const colors = {
   /** Pill taken / not taken icons, from the Figma */
   taken: '#1dd900',
   missed: '#d70606',
-  /** "¿una llamada hoy?" in Familia: orange dark enough to read on white */
-  nudge: '#c2410c',
+  /** "¿una llamada hoy?" in Familia. Was orange until the v2 redesign (25 nov 2026): now ink, the weight does the work */
+  nudge: '#000000',
   /** Error messages (couldn't save, no connection, wrong code) */
   error: '#b3261e',
 } as const;

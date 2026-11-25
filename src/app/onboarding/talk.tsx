@@ -3,10 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
-import { ChoiceChips } from '@/components/choice-chips';
 import { OnboardingStep } from '@/components/onboarding-step';
 import { TextField } from '@/components/text-field';
 import { toast } from '@/components/toast';
+import { WheelPicker } from '@/components/wheel-picker';
 import { t } from '@/i18n';
 import { findPlace, type Place } from '@/lib/place';
 import { supabase } from '@/lib/supabase';
@@ -149,11 +149,11 @@ export default function TalkStep() {
         />
       }>
       <Text style={styles.label}>{t.talkStep.timeLabel}</Text>
-      <ChoiceChips label={t.talkStep.timeA11y} options={TIMES} value={time} onChange={setTime} />
+      <WheelPicker label={t.talkStep.timeA11y} options={TIMES} value={time} onChange={setTime} />
       {editing ? null : <Text style={styles.note}>{t.talkStep.timezone(deviceTimezone)}</Text>}
 
       <Text style={[styles.label, styles.spaced]}>{t.talkStep.langLabel}</Text>
-      <ChoiceChips label={t.talkStep.langA11y} options={LANGUAGES} value={language} onChange={setLanguage} />
+      <WheelPicker label={t.talkStep.langA11y} options={LANGUAGES} value={language} onChange={setLanguage} />
 
       <View style={styles.spaced}>
         <TextField

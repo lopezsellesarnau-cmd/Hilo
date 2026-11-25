@@ -26,7 +26,7 @@ async function loadBadges(): Promise<{ stories: number; callDue: boolean; messag
   return { stories: count ?? 0, callDue, messages };
 }
 
-/** The family app: Hoy, Charlas, Libro and Ajustes. Only with a trial or a subscription: otherwise, the paywall. */
+/** The family app: Hoy, Salud, Libro and Charlas (Ajustes is a button on Hoy). Only with a trial or a subscription: otherwise, the paywall. */
 export default function FamilyLayout() {
   const [allowed, setAllowed] = useState(false);
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function FamilyLayout() {
             backgroundColor: colors.ink,
             indicatorColor: colors.background,
             labelStyle: { fontWeight: '600', color: colors.onAccent },
-            badgeBackgroundColor: '#ff6a3d',
+            badgeBackgroundColor: colors.onAccent,
             badgeTextColor: colors.ink,
           }
         : {})}>
@@ -73,21 +73,22 @@ export default function FamilyLayout() {
         <NativeTabs.Trigger.Label>{t.today.title}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="sun.max" md="light_mode" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="health">
+        <NativeTabs.Trigger.Label>{t.health.tab}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="heart" md="favorite" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="book">
+        <NativeTabs.Trigger.Label>{t.familyBook.tab}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="book.closed" md="menu_book" />
+        {/* `hidden` showed a "0" on iOS: no badge at all when nothing waits */}
+        {badges.stories ? <NativeTabs.Trigger.Badge>{String(badges.stories)}</NativeTabs.Trigger.Badge> : null}
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="talks">
         <NativeTabs.Trigger.Label>{t.talks.tab}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="person.2" md="group" />
         <NativeTabs.Trigger.Badge hidden={!badges.messages && !badges.callDue}>
           {badges.messages ? String(badges.messages) : '!'}
         </NativeTabs.Trigger.Badge>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="book">
-        <NativeTabs.Trigger.Label>{t.familyBook.tab}</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="book.closed" md="menu_book" />
-        <NativeTabs.Trigger.Badge hidden={!badges.stories}>{String(badges.stories)}</NativeTabs.Trigger.Badge>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="settings">
-        <NativeTabs.Trigger.Label>{t.settings.title}</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="gearshape" md="settings" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

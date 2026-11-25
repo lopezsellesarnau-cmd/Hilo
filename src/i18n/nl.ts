@@ -273,6 +273,11 @@ export const nl: Strings = {
   },
 
   today: {
+    // v2 (25 nov 2026): the big bold line at the top of Hoy
+    headTalked: (time: string) => `Sprak\nom ${time}.`,
+    headNotYet: 'Nog geen\ngesprek.',
+    subNotYet: (time: string) => `Het gesprek is om ${time}`,
+    call: 'Bellen',
     // De dag in één zin bovenaan Vandaag: [voor, vet (met een icoon), na] per deel
     hello: (hour: number): string => (hour < 12 ? 'Goedemorgen' : hour < 18 ? 'Goedemiddag' : 'Goedenavond'),
     sumTalked: (name: string, time: string): [string, string, string] => [`${name} heeft om ${time} `, 'gepraat', ''],
@@ -384,6 +389,16 @@ export const nl: Strings = {
     loadFailed: 'De pillen konden niet worden geladen. Controleer je verbinding.',
   },
 
+  health: {
+    tab: 'Gezondheid',
+    title: 'Gezondheid',
+    locked: 'Versleuteld. Alleen je familie kan het openen.',
+    pills: 'Pillen',
+    weight: 'Gewicht',
+    docs: 'Documenten',
+    visits: 'Afspraken',
+    soon: 'Binnenkort',
+  },
   familyBook: {
     tab: 'Boek',
     title: 'Boek',

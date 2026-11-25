@@ -269,6 +269,11 @@ export const en: Strings = {
   },
 
   today: {
+    // v2 (25 nov 2026): the big bold line at the top of Hoy
+    headTalked: (time: string) => `Talked\nat ${time}.`,
+    headNotYet: 'No chat\nyet.',
+    subNotYet: (time: string) => `Their chat is at ${time}`,
+    call: 'Call',
     // The day in one sentence at the top of Today: [before, bold (with an icon), after] per part
     hello: (hour: number): string => (hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'),
     sumTalked: (name: string, time: string): [string, string, string] => [`${name} `, 'chatted', ` at ${time}`],
@@ -380,6 +385,16 @@ export const en: Strings = {
     loadFailed: "We couldn't load the pills. Check your connection.",
   },
 
+  health: {
+    tab: 'Health',
+    title: 'Health',
+    locked: 'Encrypted. Only your family can open it.',
+    pills: 'Pills',
+    weight: 'Weight',
+    docs: 'Documents',
+    visits: 'Visits',
+    soon: 'Soon',
+  },
   familyBook: {
     tab: 'Book',
     title: 'Book',
