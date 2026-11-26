@@ -419,6 +419,9 @@ export const nl: Strings = {
     emptyTitle: 'Nog geen verhalen',
     emptyText: 'Zodra hij of zij met Hilo gaat praten, verschijnen de verhalen hier zodat je ze kunt nakijken.',
     check: (n: number) => (n === 1 ? '1 woord om na te kijken' : `${n} woorden om na te kijken`),
+    herBook: 'Hun boek.',
+    newBadge: 'Nieuw',
+    waiting: (n: number) => `${n} te lezen`,
   },
 
   review: {

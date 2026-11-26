@@ -422,6 +422,9 @@ export const es = {
     emptyTitle: 'Aún no hay historias',
     emptyText: 'Cuando empiece a charlar con Hilo, aquí aparecerán sus historias para que las revises.',
     check: (n: number) => (n === 1 ? '1 palabra para revisar' : `${n} palabras para revisar`),
+    herBook: 'Su libro.',
+    newBadge: 'Nueva',
+    waiting: (n: number) => (n === 1 ? '1 por revisar' : `${n} por revisar`),
   },
 
   review: {

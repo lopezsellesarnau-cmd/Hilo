@@ -415,6 +415,9 @@ export const en: Strings = {
     emptyTitle: 'No stories yet',
     emptyText: 'When they start chatting with Hilo, their stories will appear here for you to review.',
     check: (n: number) => (n === 1 ? '1 word to check' : `${n} words to check`),
+    herBook: 'Their book.',
+    newBadge: 'New',
+    waiting: (n: number) => `${n} to review`,
   },
 
   review: {
