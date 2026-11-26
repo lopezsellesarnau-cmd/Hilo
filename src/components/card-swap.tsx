@@ -27,6 +27,8 @@ export type SwapItem = {
 type Props = {
   items: SwapItem[];
   onOpen: (id: string) => void;
+  /** Bring this card to the front (Ask Hilo found it) */
+  frontId?: string;
   /** Read aloud with the front card ("Double tap to open…") */
   hint: string;
   nextLabel: string;
@@ -48,7 +50,7 @@ function place(k: number) {
   return { x: k * STEP.x, y: -k * STEP.y, f: PERSP / (PERSP + k * STEP.z) };
 }
 
-export function CardSwap({ items, onOpen, hint, nextLabel, cardWidth: CW = 230, cardHeight: CH = 290 }: Props) {
+export function CardSwap({ items, onOpen, frontId, hint, nextLabel, cardWidth: CW = 230, cardHeight: CH = 290 }: Props) {
   const reduce = useReducedMotion();
   const n = items.length;
   const idKey = items.map((i) => i.id).join('|');
@@ -56,9 +58,22 @@ export function CardSwap({ items, onOpen, hint, nextLabel, cardWidth: CW = 230, 
   // The order is a turn of the list (newest first); a new list starts again from the front
   const [turn, setTurn] = useState({ key: idKey, by: 0 });
   if (turn.key !== idKey) setTurn({ key: idKey, by: 0 });
+  // Asked for a card: turn the stack until it's in front
+  const [asked, setAsked] = useState(frontId);
+  if (frontId !== asked) {
+    setAsked(frontId);
+    const i = items.findIndex((x) => x.id === frontId);
+    if (i >= 0) setTurn({ key: idKey, by: i });
+  }
   const by = turn.key === idKey ? turn.by : 0;
   const slotOf = (i: number) => (((i - by) % n) + n) % n;
   const [leaving, setLeaving] = useState<string | null>(null);
+  // After the first frame, cards that join the stack come in from the back
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   // Each card's own drag offset, so the one sent back carries its throw while it glides away
   const offsets = useRef(new Map<string, { x: SharedValue<number>; y: SharedValue<number> }>());
@@ -180,6 +195,7 @@ export function CardSwap({ items, onOpen, hint, nextLabel, cardWidth: CW = 230, 
             width={CW}
             height={CH}
             reduce={reduce}
+            fromBack={ready}
             register={(o) => {
               if (o) offsets.current.set(item.id, o);
               else offsets.current.delete(item.id);
@@ -199,12 +215,13 @@ type CardProps = {
   width: number;
   height: number;
   reduce: boolean;
+  fromBack: boolean;
   register: (o: { x: SharedValue<number>; y: SharedValue<number> } | null) => void;
   onSettled: () => void;
 };
 
-function Card({ item, slot, tone, width, height, reduce, register, onSettled }: CardProps) {
-  const s = useSharedValue(slot);
+function Card({ item, slot, tone, width, height, reduce, fromBack, register, onSettled }: CardProps) {
+  const s = useSharedValue(fromBack && !reduce ? SHOWN : slot);
   const ox = useSharedValue(0);
   const oy = useSharedValue(0);
   const [image, setImage] = useState<string | null>(null);

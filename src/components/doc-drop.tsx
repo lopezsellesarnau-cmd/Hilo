@@ -6,12 +6,15 @@ import { ActionSheetIOS, Alert, Platform, View } from 'react-native';
 import { creep, DropRow, DropZone, useChew } from '@/components/file-drop';
 import { toast } from '@/components/toast';
 import { dateLocale, t } from '@/i18n';
+import { read } from '@/lib/doc-read';
 import { addDocument, MAX_BYTES } from '@/lib/documents';
+
+import { canScan, recognize, scan } from '../../modules/hilo-docs';
 
 const text = t.docs;
 
-type Picked = { uri: string; mime: string; name: string; title: string; size?: number; thumb?: string };
-type Row = { key: string; picked: Picked; stage: 'locking' | 'uploading' | 'done'; progress: number; failed?: string };
+type Picked = { uri: string; mime: string; name: string; title: string; size?: number; thumb?: string; text?: string };
+type Row = { key: string; picked: Picked; stage: 'reading' | 'locking' | 'uploading' | 'done'; progress: number; failed?: string };
 
 const today = () => new Date().toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
 const noExt = (name: string) => name.replace(/\.[a-z0-9]{2,4}$/i, '');
@@ -19,7 +22,8 @@ const noExt = (name: string) => name.replace(/\.[a-z0-9]{2,4}$/i, '');
 /**
  * File drop for her documents: the zone with her Bot. Tap it and choose camera, photos or a PDF;
  * what you pick goes into the Bot's mouth, it chews, and each file comes out below as a row:
- * first it's locked on this phone, then it goes up. When they're up, `onAdded` refreshes the list.
+ * the phone reads it (no network) and names it, locks it, then it goes up. When they're up,
+ * `onAdded` refreshes the list. The scanner (VisionKit) straightens the pages into one PDF.
  */
 export function DocDrop({ onAdded }: { onAdded: () => void }) {
   const [rows, setRows] = useState<Row[]>([]);
@@ -39,6 +43,11 @@ export function DocDrop({ onAdded }: { onAdded: () => void }) {
       return [];
     }
   };
+  const pickScan = async (): Promise<Picked[]> => {
+    const res = await scan();
+    if (!res) return [];
+    return [{ uri: res.uri, mime: 'application/pdf', name: 'scan.pdf', title: text.scanTitle(today()), text: res.text }];
+  };
   const pickPhotos = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsMultipleSelection: true, selectionLimit: 10, quality: 0.7 });
     return res.canceled ? [] : fromImages(res.assets);
@@ -56,7 +65,7 @@ export function DocDrop({ onAdded }: { onAdded: () => void }) {
     const picked = await pick();
     if (!picked.length) return;
     chew();
-    const fresh: Row[] = picked.map((p) => ({ key: `${p.uri}-${Math.random()}`, picked: p, stage: 'locking', progress: 0 }));
+    const fresh: Row[] = picked.map((p) => ({ key: `${p.uri}-${Math.random()}`, picked: p, stage: 'reading', progress: 0 }));
     setRows((r) => [...r, ...fresh]);
     const set = (key: string, patch: Partial<Row> | ((x: Row) => Partial<Row>)) =>
       setRows((r) => r.map((x) => (x.key === key ? { ...x, ...(typeof patch === 'function' ? patch(x) : patch) } : x)));
@@ -70,7 +79,12 @@ export function DocDrop({ onAdded }: { onAdded: () => void }) {
       const timer = setInterval(() => set(row.key, (x) => ({ progress: creep(x.progress) })), 120);
       let ok = false;
       try {
-        ok = await addDocument(row.picked, () => set(row.key, { stage: 'uploading' }));
+        // Read on the phone, and named after what it is ("Informe · Cardiología") when it can tell
+        const words = row.picked.text ?? (await recognize(row.picked.uri));
+        const title = read(words).title ?? row.picked.title;
+        const picked = { ...row.picked, text: words, title };
+        set(row.key, { stage: 'locking', picked });
+        ok = await addDocument(picked, () => set(row.key, { stage: 'uploading' }));
       } catch {
         ok = false;
       }
@@ -87,7 +101,7 @@ export function DocDrop({ onAdded }: { onAdded: () => void }) {
 
   const choose = () => {
     const options = [
-      { label: text.fromCamera, run: () => add(pickCamera) },
+      canScan ? { label: text.fromScan, run: () => add(pickScan) } : { label: text.fromCamera, run: () => add(pickCamera) },
       { label: text.fromPhotos, run: () => add(pickPhotos) },
       { label: text.fromFiles, run: () => add(pickFiles) },
     ];
@@ -106,7 +120,7 @@ export function DocDrop({ onAdded }: { onAdded: () => void }) {
           key={row.key}
           thumb={row.picked.thumb}
           tag="PDF"
-          label={row.failed ?? (row.stage === 'locking' ? text.locking : row.stage === 'uploading' ? text.uploading : row.picked.title)}
+          label={row.failed ?? (row.stage === 'reading' ? text.reading : row.stage === 'locking' ? text.locking : row.stage === 'uploading' ? text.uploading : row.picked.title)}
           progress={row.progress}
           failed={Boolean(row.failed)}
           onRemove={row.failed ? () => setRows((r) => r.filter((x) => x.key !== row.key)) : undefined}

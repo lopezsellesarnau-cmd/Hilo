@@ -9,6 +9,7 @@ import { PressScale } from '@/components/press-scale';
 import { toast } from '@/components/toast';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
+import { tagLabel } from '@/lib/doc-read';
 import { cachedDoc, deleteDocument, docKind, imageUri, renameDocument, showPdf } from '@/lib/documents';
 import { colors, fontWeight } from '@/theme';
 
@@ -28,6 +29,7 @@ export default function DocumentScreen() {
   const [busy, setBusy] = useState(false);
   const [sure, setSure] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showText, setShowText] = useState(false);
 
   // Not open on this phone (the folder is locked after a restart): back to the list
   useEffect(() => {
@@ -95,6 +97,16 @@ export default function DocumentScreen() {
           <Text style={styles.sub}>
             {text.added(new Date(doc.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' }))}
           </Text>
+          {/* What the phone read it as: the type and the specialty */}
+          {doc.meta.kind || doc.meta.tags?.length ? (
+            <View style={styles.tags}>
+              {[doc.meta.kind, ...(doc.meta.tags ?? [])].filter(Boolean).map((id) => (
+                <Text key={id} style={styles.tag}>
+                  {tagLabel(id as string)}
+                </Text>
+              ))}
+            </View>
+          ) : null}
 
           {pdf ? (
             <PressScale onPress={openPdf} accessibilityRole="button" style={[styles.primary, busy && styles.busy]}>
@@ -112,6 +124,22 @@ export default function DocumentScreen() {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
+          {doc.meta.read ? (
+            <View style={styles.read}>
+              <Pressable onPress={() => setShowText((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: showText }} style={styles.readHead}>
+                <Text style={styles.readTitle}>{text.hiloRead}</Text>
+                <Text style={styles.readChev}>{showText ? '−' : '+'}</Text>
+              </Pressable>
+              {showText ? (
+                <Animated.View entering={reduce ? undefined : FadeIn.duration(200)}>
+                  <Text selectable style={styles.readText}>
+                    {doc.meta.text?.trim() || text.nothingRead}
+                  </Text>
+                </Animated.View>
+              ) : null}
+            </View>
+          ) : null}
+
           <Pressable onPress={remove} accessibilityRole="button" style={[styles.delete, sure && styles.deleteSure]}>
             <Text style={[styles.deleteText, sure && styles.deleteTextSure]}>{sure ? text.deleteSure : text.delete}</Text>
           </Pressable>
@@ -128,6 +156,13 @@ const styles = StyleSheet.create({
   backText: { fontSize: 17, fontWeight: fontWeight.semibold, color: colors.muted },
   title: { marginTop: 18, padding: 0, fontSize: 40, lineHeight: 44, fontWeight: fontWeight.bold, letterSpacing: -1.6, color: colors.ink },
   sub: { marginTop: 8, marginBottom: 24, fontSize: 16, fontWeight: fontWeight.semibold, color: colors.muted },
+  tags: { marginTop: -12, marginBottom: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tag: { overflow: 'hidden', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, fontSize: 14, fontWeight: fontWeight.bold, color: colors.ink, backgroundColor: colors.surface },
+  read: { marginTop: 28, borderRadius: 24, paddingHorizontal: 18, backgroundColor: colors.surface },
+  readHead: { height: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  readTitle: { fontSize: 17, fontWeight: fontWeight.bold, color: colors.ink },
+  readChev: { fontSize: 24, fontWeight: fontWeight.semibold, color: colors.muted },
+  readText: { paddingBottom: 18, fontSize: 15, lineHeight: 22, color: colors.ink },
   image: { width: '100%', aspectRatio: 3 / 4, borderRadius: 24, backgroundColor: colors.surface },
   loading: { aspectRatio: 3 / 4, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   primary: { height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },

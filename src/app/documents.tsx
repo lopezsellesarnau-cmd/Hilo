@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,16 +11,19 @@ import { PressScale } from '@/components/press-scale';
 import { toast } from '@/components/toast';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
-import { docKind, imageUri, listDocuments, type Doc } from '@/lib/documents';
+import { ask } from '@/lib/doc-read';
+import { docKind, imageUri, listDocuments, readLater, type Doc } from '@/lib/documents';
 import { approveDevice, askForAccess, createVault, recoverWithCode, removeDevice, vaultState, type Device, type VaultState } from '@/lib/vault';
 import { colors, fontWeight } from '@/theme';
+
+import { canRead } from '../../modules/hilo-docs';
 
 const text = t.docs;
 
 /**
- * Documentos (v2, phase A: the keys). Her documents, locked end to end: only the family's phones open them.
- * Here: create the folder (and save the recovery code, shown once), let a new phone in, or open it with the code.
- * Adding and finding documents comes in phase B.
+ * Documentos (v2). Her documents, locked end to end: only the family's phones open them.
+ * Closed: create the folder (and save the recovery code, shown once), ask to be let in, or open it with the code.
+ * Open: Ask Hilo (searched on this phone), the Card swap, the File drop with her Bot, the list, the phones.
  */
 export default function DocumentsScreen() {
   const reduce = useReducedMotion();
@@ -32,6 +35,37 @@ export default function DocumentsScreen() {
   const [sure, setSure] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [docs, setDocs] = useState<Doc[] | null>(null);
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState<{ q: string; ids: string[] } | null>(null);
+  const [front, setFront] = useState<string | undefined>(undefined);
+  const [readingOld, setReadingOld] = useState(false);
+  const readingRef = useRef(false);
+
+  // Documents added before this phone could read: read them once, one by one, on the phone
+  useEffect(() => {
+    if (!canRead || !docs || readingRef.current) return;
+    const unread = docs.filter((d) => !d.meta.read);
+    if (!unread.length) return;
+    readingRef.current = true;
+    (async () => {
+      setReadingOld(true);
+      for (const d of unread) await readLater(d).catch(() => false);
+      setReadingOld(false);
+      readingRef.current = false;
+    })();
+  }, [docs]);
+
+  const findIt = () => {
+    const q = question.trim();
+    if (!q || !docs) return;
+    const ids = ask(
+      q,
+      docs.map((d) => ({ id: d.id, title: d.meta.title, text: d.meta.text, kind: d.meta.kind, tags: d.meta.tags, date: d.meta.date, createdAt: d.createdAt })),
+    );
+    setAnswer({ q, ids });
+    setQuestion('');
+    if (ids[0]) setFront(ids[0]);
+  };
 
   const loadDocs = useCallback(() => {
     listDocuments()
@@ -193,17 +227,68 @@ export default function DocumentsScreen() {
               <Text style={styles.big} accessibilityRole="header">
                 {text.title}
               </Text>
+              {/* Ask Hilo: the question is matched on this phone, against what the phone read */}
+              {docs?.length ? (
+                answer ? (
+                  <Animated.View entering={enter} style={styles.answer}>
+                    <View style={styles.qRow}>
+                      <Text style={styles.qBubble}>{answer.q}</Text>
+                      <Pressable onPress={() => setAnswer(null)} accessibilityRole="button" accessibilityLabel={text.askClear} hitSlop={10} style={styles.x}>
+                        <Text style={styles.xText}>✕</Text>
+                      </Pressable>
+                    </View>
+                    <View style={styles.aRow} accessibilityLiveRegion="polite">
+                      <LiveBot size={44} />
+                      <Text style={styles.aText}>{answer.ids.length === 0 ? text.notFound : answer.ids.length === 1 ? text.here : text.hereMany}</Text>
+                    </View>
+                    {answer.ids.length === 0 ? <Text style={styles.aHint}>{text.notFoundHint}</Text> : null}
+                    {answer.ids.length > 1 ? (
+                      <View style={styles.chips}>
+                        {answer.ids.map((id) => {
+                          const d = docs.find((x) => x.id === id);
+                          return d ? (
+                            <PressScale key={id} onPress={() => setFront(id)} accessibilityRole="button" style={[styles.chip, front === id && styles.chipOn]}>
+                              <Text style={[styles.chipText, front === id && styles.chipTextOn]} numberOfLines={1}>
+                                {d.meta.title}
+                              </Text>
+                            </PressScale>
+                          ) : null;
+                        })}
+                      </View>
+                    ) : null}
+                  </Animated.View>
+                ) : (
+                  <View style={styles.askRow}>
+                    <TextInput
+                      value={question}
+                      onChangeText={setQuestion}
+                      onSubmitEditing={findIt}
+                      placeholder={text.askPlaceholder}
+                      placeholderTextColor="rgba(0,0,0,0.35)"
+                      returnKeyType="search"
+                      accessibilityLabel={text.askLabel}
+                      style={styles.askInput}
+                    />
+                    <PressScale onPress={findIt} accessibilityRole="button" accessibilityLabel={text.askSend} style={styles.askGo}>
+                      <LiveBot size={30} color={colors.onAccent} eyeColor={colors.ink} />
+                    </PressScale>
+                  </View>
+                )
+              ) : null}
+              {readingOld ? <Text style={styles.readingOld}>{text.readingOld}</Text> : null}
+
               {docs?.length ? (
                 <View style={styles.stack}>
                   <CardSwap
                     items={docs.map((d) => ({
                       id: d.id,
                       title: d.meta.title,
-                      sub: when(d.createdAt),
+                      sub: when(d.meta.date ? `${d.meta.date}T12:00:00` : d.createdAt),
                       tag: docKind(d) === 'PDF' ? 'PDF' : text.photoTag,
                       loadImage: docKind(d) === 'PDF' ? undefined : () => imageUri(d),
                     }))}
                     onOpen={openDoc}
+                    frontId={front}
                     hint={text.swapHint}
                     nextLabel={text.nextDoc}
                   />
@@ -289,7 +374,22 @@ const styles = StyleSheet.create({
   codeInput: { height: 58, borderRadius: 29, paddingHorizontal: 20, fontSize: 17, fontWeight: fontWeight.bold, letterSpacing: 1, color: colors.ink, backgroundColor: colors.surface, fontFamily: 'Menlo' },
   label: { marginTop: 8, marginBottom: 4, fontSize: 13, fontWeight: fontWeight.semibold, letterSpacing: 1, color: colors.muted },
   drop: { marginBottom: 28 },
-  stack: { marginTop: 4, marginBottom: 32, alignItems: 'center' },
+  askRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, paddingRight: 6, height: 60, borderRadius: 30, backgroundColor: colors.surface },
+  askInput: { flex: 1, height: 60, fontSize: 17, fontWeight: fontWeight.semibold, color: colors.ink },
+  askGo: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
+  answer: { marginTop: 18 },
+  qRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+  qBubble: { maxWidth: '82%', overflow: 'hidden', borderRadius: 24, borderBottomRightRadius: 8, paddingHorizontal: 18, paddingVertical: 12, fontSize: 18, lineHeight: 24, fontWeight: fontWeight.semibold, color: colors.onAccent, backgroundColor: colors.ink },
+  aRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  aText: { flex: 1, fontSize: 36, lineHeight: 40, fontWeight: fontWeight.bold, letterSpacing: -1.4, color: colors.ink },
+  aHint: { marginTop: 8, fontSize: 16, lineHeight: 22, fontWeight: fontWeight.semibold, color: colors.muted },
+  chips: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { maxWidth: '100%', height: 40, borderRadius: 20, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: colors.surface },
+  chipOn: { backgroundColor: colors.ink },
+  chipText: { fontSize: 15, fontWeight: fontWeight.bold, color: colors.ink },
+  chipTextOn: { color: colors.onAccent },
+  readingOld: { marginTop: 12, fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
+  stack: { marginTop: 24, marginBottom: 32, alignItems: 'center' },
   swipe: { marginTop: 18, fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
   labelGap: { marginTop: 36 },
   empty: { paddingVertical: 14, fontSize: 16, fontWeight: fontWeight.semibold, color: colors.muted },

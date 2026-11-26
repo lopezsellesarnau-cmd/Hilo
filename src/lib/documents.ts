@@ -12,6 +12,9 @@ import {
   to_string,
 } from 'react-native-libsodium';
 
+import { recognize } from '../../modules/hilo-docs';
+
+import { read } from '@/lib/doc-read';
 import { supabase } from '@/lib/supabase';
 import { me, vaultKey } from '@/lib/vault';
 
@@ -24,7 +27,9 @@ import { me, vaultKey } from '@/lib/vault';
 const BUCKET = 'family-docs';
 export const MAX_BYTES = 25 * 1024 * 1024;
 
-export type DocMeta = { title: string; mime: string; name: string };
+/** Locked with the document's key. text/kind/tags/date: what the phone read in it (phase C); `read` once it tried */
+export type DocMeta = { title: string; mime: string; name: string; text?: string; kind?: string; tags?: string[]; date?: string; read?: boolean };
+const MAX_TEXT = 20000;
 export type Doc = { id: string; path: string; size: number; createdAt: string; meta: DocMeta; key: Uint8Array };
 
 const isPdf = (mime: string) => mime === 'application/pdf';
@@ -70,13 +75,15 @@ export async function listDocuments(): Promise<Doc[]> {
 }
 
 /** Locks a file on this phone and uploads it. `onLocked` fires once it's locked, before the upload */
-export async function addDocument(file: { uri: string; mime: string; name: string; title: string }, onLocked?: () => void): Promise<boolean> {
+export async function addDocument(file: { uri: string; mime: string; name: string; title: string; text?: string }, onLocked?: () => void): Promise<boolean> {
   const fk = familyKey();
   const person = await me();
   const bytes = new Uint8Array(await (await fetch(file.uri)).arrayBuffer());
   if (!bytes.length || bytes.length > MAX_BYTES) return false;
   const key = randombytes_buf(32);
-  const meta: DocMeta = { title: file.title.slice(0, 120), mime: file.mime, name: file.name.slice(0, 120) };
+  const text = (file.text ?? '').slice(0, MAX_TEXT);
+  const seen = read(text);
+  const meta: DocMeta = { title: file.title.slice(0, 120), mime: file.mime, name: file.name.slice(0, 120), text, kind: seen.kind, tags: seen.tags, date: seen.date, read: true };
   const locked = lock(bytes, key);
   onLocked?.();
   const path = `${person.family_id}/${to_hex(randombytes_buf(16))}`;
@@ -133,9 +140,9 @@ export async function showPdf(doc: Doc) {
 
 const safeName = (s: string) => s.replace(/[^\p{L}\p{N} _-]/gu, '').trim().slice(0, 60) || 'documento';
 
-/** A new title (locked again with the document's own key) */
-export async function renameDocument(doc: Doc, title: string) {
-  const meta = { ...doc.meta, title: title.trim().slice(0, 120) || doc.meta.title };
+/** Changes the meta (locked again with the document's own key) */
+async function updateMeta(doc: Doc, patch: Partial<DocMeta>) {
+  const meta = { ...doc.meta, ...patch };
   const { error } = await supabase
     .from('documents')
     .update({ meta: to_base64(lock(new TextEncoder().encode(JSON.stringify(meta)), doc.key)) })
@@ -143,6 +150,29 @@ export async function renameDocument(doc: Doc, title: string) {
   if (error) return false;
   doc.meta = meta;
   return true;
+}
+
+/** A new title */
+export async function renameDocument(doc: Doc, title: string) {
+  return updateMeta(doc, { title: title.trim().slice(0, 120) || doc.meta.title });
+}
+
+/**
+ * Reads a document added before the phone could read (phase B): unlocked into a temporary file
+ * for the reader, removed right after. Titles stay as the family wrote them.
+ */
+export async function readLater(doc: Doc) {
+  const file = new File(Paths.cache, `read-${doc.id}.${isPdf(doc.meta.mime) ? 'pdf' : 'jpg'}`);
+  try {
+    if (file.exists) file.delete();
+    file.create();
+    file.write(await openBytes(doc));
+    const text = (await recognize(file.uri)).slice(0, MAX_TEXT);
+    const seen = read(text);
+    return updateMeta(doc, { text, kind: seen.kind, tags: seen.tags, date: seen.date, read: true });
+  } finally {
+    if (file.exists) file.delete();
+  }
 }
 
 /** Deletes the file and its row */
