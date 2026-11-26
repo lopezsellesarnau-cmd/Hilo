@@ -1,8 +1,8 @@
-import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { t } from '@/i18n';
 import { colors, fontSize, fontWeight, lineHeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 type Props = {
   /** Without a title only the back button shows (the talk) */
@@ -17,7 +17,7 @@ export function ScreenHeader({ title, subtitle, backLabel }: Props) {
     <View>
       {backLabel ? (
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBack('/')}
           accessibilityRole="button"
           accessibilityLabel={t.common.backTo(backLabel)}
           hitSlop={8}

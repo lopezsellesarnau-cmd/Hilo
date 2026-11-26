@@ -12,6 +12,7 @@ import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { localNow, showTime, type Dose } from '@/lib/time';
 import { colors, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const text = t.herPills;
 
@@ -85,7 +86,7 @@ export default function HerPillsScreen() {
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
           <View style={styles.top}>
-            <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12}>
+            <Pressable onPress={() => goBack('/family/health')} accessibilityRole="button" hitSlop={12}>
               <Text style={styles.back}>‹ {t.health.title}</Text>
             </Pressable>
             {senior ? (

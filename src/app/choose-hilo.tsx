@@ -10,6 +10,7 @@ import { WheelPicker } from '@/components/wheel-picker';
 import { t } from '@/i18n';
 import { getHiloShape, saveHiloShape, saveMyHiloShape } from '@/lib/hilo-shape';
 import { colors, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const text = t.chooseHilo;
 // Hexagon first: it's the app icon
@@ -33,7 +34,7 @@ export default function ChooseHilo() {
     setSaving(false);
     if (!ok) return toast.error(t.common.saveFailed);
     if (family) {
-      router.back();
+      goBack('/settings');
       toast(t.common.saved);
     } else router.replace('/home');
   };
@@ -48,7 +49,7 @@ export default function ChooseHilo() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.screen}>
         {family ? (
-          <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.back}>
+          <Pressable onPress={() => goBack('/settings')} accessibilityRole="button" hitSlop={12} style={styles.back}>
             <Text style={styles.backText}>‹ {t.settings.title}</Text>
           </Pressable>
         ) : null}

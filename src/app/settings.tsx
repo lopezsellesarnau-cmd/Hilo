@@ -14,6 +14,7 @@ import { forgetFamilyPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { forgetVault } from '@/lib/vault';
 import { colors, family, fontWeight, spacing } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
 
@@ -138,7 +139,7 @@ export default function SettingsScreen() {
       {/* iPad on its side: the bot on the left, this column on the right */}
       <WideFrame>
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.screen}>
-          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={12} style={styles.back}>
+          <Pressable onPress={() => goBack('/family/today')} accessibilityRole="button" accessibilityLabel={t.common.back} hitSlop={12} style={styles.back}>
             <Text style={styles.backText}>‹ {t.today.title}</Text>
           </Pressable>
           <View style={styles.head}>

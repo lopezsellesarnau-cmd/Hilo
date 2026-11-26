@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 type Senior = { id: string; family_id: string };
 
@@ -61,7 +62,7 @@ export default function WeightScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right', 'bottom']}>
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen}>
-          <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.back}>
+          <Pressable onPress={() => goBack('/family/health')} accessibilityRole="button" hitSlop={12} style={styles.back}>
             <Text style={styles.backText}>‹ {text.title}</Text>
           </Pressable>
 

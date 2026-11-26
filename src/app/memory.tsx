@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput } from 'react-native';
 
@@ -8,6 +8,7 @@ import { toast } from '@/components/toast';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors, family } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const text = t.memory;
 /** Same limit as the column (people.memory) */
@@ -46,7 +47,7 @@ export default function MemoryScreen() {
       .eq('id', seniorId);
     setSaving(false);
     if (e) return setError(t.common.saveFailed);
-    router.back();
+    goBack('/settings');
     toast(t.common.saved);
   };
 

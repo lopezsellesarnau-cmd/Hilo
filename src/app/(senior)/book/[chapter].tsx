@@ -13,6 +13,7 @@ import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { cachedBook, loadBook } from '@/lib/book';
 import { colors, fontSize, fontWeight, serif, spacing } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const text = t.chapter;
 
@@ -32,7 +33,7 @@ export default function ChapterScreen() {
 
   const back = (
     <Pressable
-      onPress={() => router.back()}
+      onPress={() => goBack('/book')}
       accessibilityRole="button"
       accessibilityLabel={text.backLabel}
       hitSlop={8}

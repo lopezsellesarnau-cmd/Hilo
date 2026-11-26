@@ -1,43 +1,21 @@
-import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { chapterShape } from '@/components/chapter-card';
-import { LiveBot } from '@/components/live-bot';
+import { ChapterCover } from '@/components/chapter-cover';
 import { RecordFlow, TRAY, type FlowItem } from '@/components/record-flow';
-import { dateLocale, t } from '@/i18n';
-import { loadFamilyBook, photoLinks, type Draft } from '@/lib/book';
+import { t } from '@/i18n';
+import { groupParts, loadFamilyBook, photoLinks, PARTS, type Draft } from '@/lib/book';
 import { colors, fontWeight } from '@/theme';
 
 const text = t.familyBook;
 
-/** Quiet tones for the covers, one per chapter, round and round (no colour in v2) */
-// all light: on the black page a dark cover read as a shadow block
-const TONES = ['#ffffff', '#e9e7e2', '#d9d6cf', '#f2f2f0', '#cfcbc2', '#ecebe7'];
-const LIGHT = new Set(TONES);
-
-/** '2026-10-14T…' → '14 oct' */
-const day = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
-
-/** A chapter's cover: its first photo, or else its Bot shape, big and calm, on a quiet tone */
-function Cover({ index, photo }: { index: number; photo?: string }) {
-  const tone = TONES[index % TONES.length];
-  if (photo) return <Image source={{ uri: photo }} style={[StyleSheet.absoluteFill, { backgroundColor: tone }]} contentFit="cover" transition={200} />;
-  const light = LIGHT.has(tone);
-  return (
-    <View style={[styles.cover, { backgroundColor: tone }]}>
-      <LiveBot size={120} shape={chapterShape(index + 1)} color={light ? colors.ink : colors.background} eyeColor={light ? colors.background : colors.ink} />
-    </View>
-  );
-}
-
 /**
- * Libro (v2, frame "7 · Her book"): black, her stories as records (the StackD Record flow, vertical).
- * Oldest at the top like her book; it opens on the first story waiting for the family, or the newest.
- * Tap the middle card to read it (and approve it, if it's new).
+ * Libro (v2, frame "7 · Her book"): black, the chapters of her life as records (the StackD Record flow, vertical),
+ * in the order of a life. It opens on the first chapter with a story waiting for the family, or the last one.
+ * Tap the middle card to open the chapter (frame "8 · A chapter") and its stories.
  */
 export default function FamilyBookScreen() {
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadFamilyBook>> | null>(null);
@@ -71,7 +49,8 @@ export default function FamilyBookScreen() {
   // Oldest first, like in her book
   const chapters: Draft[] = book && 'chapters' in book ? [...book.chapters].reverse() : [];
   const waiting = chapters.filter((c) => c.status === 'draft').length;
-  const firstNew = chapters.findIndex((c) => c.status === 'draft');
+  const parts = groupParts(chapters);
+  const firstNew = parts.findIndex((p) => p.waiting > 0);
   // Development only: with no stories yet, sample covers so the Record flow can be tried in the simulator
   const sample = __DEV__ && book !== null && 'chapters' in book && !chapters.length;
   const items: FlowItem[] = sample
@@ -80,15 +59,19 @@ export default function FamilyBookScreen() {
         title,
         sub: 'Sample (dev only)',
         badge: i === 5 ? t.familyBook.newBadge : undefined,
-        cover: <Cover index={i} />,
+        cover: <ChapterCover index={i} />,
       }))
-    : chapters.map((c, i) => ({
-    id: c.id,
-    title: c.title,
-    sub: day(c.createdAt),
-    badge: c.status === 'draft' ? t.familyBook.newBadge : undefined,
-    cover: <Cover index={i} photo={c.photos[0] ? covers[c.photos[0]] : undefined} />,
-  }));
+    : parts.map((p) => {
+        // The chapter's cover: the first photo in any of its stories
+        const photo = p.stories.find((c) => c.photos[0])?.photos[0];
+        return {
+          id: p.part,
+          title: text.parts[p.part],
+          sub: [text.stories(p.stories.length), p.years].filter(Boolean).join(' · '),
+          badge: p.waiting ? t.familyBook.newBadge : undefined,
+          cover: <ChapterCover index={PARTS.indexOf(p.part)} photo={photo ? covers[photo] : undefined} />,
+        };
+      });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -118,7 +101,9 @@ export default function FamilyBookScreen() {
             key={items.length}
             items={items}
             start={firstNew >= 0 ? firstNew : items.length - 1}
-            onOpen={(i) => router.push({ pathname: '/review/[id]', params: { id: chapters[i]?.id ?? items[i].id } })}
+            onOpen={(i) =>
+              sample ? router.push({ pathname: '/review/[id]', params: { id: items[i].id } }) : router.push({ pathname: '/book-part/[part]', params: { part: parts[i].part } })
+            }
             label={text.herBook}
           />
         </View>
@@ -135,5 +120,4 @@ const styles = StyleSheet.create({
   empty: { paddingHorizontal: 24, paddingTop: 40 },
   emptyTitle: { fontSize: 28, fontWeight: fontWeight.bold, color: colors.onAccent },
   flow: { flex: 1, marginTop: 8, marginBottom: 84 },
-  cover: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 30 },
 });

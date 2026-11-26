@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
@@ -12,6 +12,7 @@ import { dateLocale, t } from '@/i18n';
 import { tagLabel } from '@/lib/doc-read';
 import { cachedDoc, deleteDocument, docKind, imageUri, renameDocument, showPdf } from '@/lib/documents';
 import { colors, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const text = t.docs;
 
@@ -33,7 +34,7 @@ export default function DocumentScreen() {
 
   // Not open on this phone (the folder is locked after a restart): back to the list
   useEffect(() => {
-    if (!doc) router.back();
+    if (!doc) goBack('/documents');
   }, [doc]);
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function DocumentScreen() {
     if (!sure) return setSure(true);
     if (await deleteDocument(doc)) {
       toast(text.deleted);
-      router.back();
+      goBack('/documents');
     } else toast.error(t.common.saveFailed);
   };
 
@@ -80,7 +81,7 @@ export default function DocumentScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-          <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.back}>
+          <Pressable onPress={() => goBack('/documents')} accessibilityRole="button" hitSlop={12} style={styles.back}>
             <Text style={styles.backText}>‹ {text.docsLabel}</Text>
           </Pressable>
 

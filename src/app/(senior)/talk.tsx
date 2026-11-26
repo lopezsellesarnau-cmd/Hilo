@@ -19,6 +19,7 @@ import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
 import { supabase } from '@/lib/supabase';
 import { leaveTalk, sendTurn } from '@/lib/talk';
 import { colors, fontSize, fontWeight, seniorScreen, size } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const labels: Record<BotMood, string> = t.talk.moods;
 
@@ -390,7 +391,7 @@ export default function TalkScreen() {
           unpaired ? (
             <BigButton label={t.talk.pairAgain} onPress={pairAgain} />
           ) : (
-            <BigButton label={t.talk.backHome} onPress={() => router.back()} />
+            <BigButton label={t.talk.backHome} onPress={() => goBack('/home')} />
           )
         ) : null}
       </Animated.View>

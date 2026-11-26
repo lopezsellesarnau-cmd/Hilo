@@ -15,6 +15,7 @@ import { ask } from '@/lib/doc-read';
 import { docKind, imageUri, listDocuments, readLater, type Doc } from '@/lib/documents';
 import { approveDevice, askForAccess, createVault, recoverWithCode, removeDevice, vaultState, type Device, type VaultState } from '@/lib/vault';
 import { colors, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 import { canRead } from '../../modules/hilo-docs';
 
@@ -128,7 +129,7 @@ export default function DocumentsScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-          <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.back}>
+          <Pressable onPress={() => goBack('/family/health')} accessibilityRole="button" hitSlop={12} style={styles.back}>
             <Text style={styles.backText}>‹ {t.health.title}</Text>
           </Pressable>
 

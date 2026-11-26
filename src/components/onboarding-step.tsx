@@ -8,6 +8,7 @@ import { WideSplit } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { useWide, wideBotSize } from '@/lib/layout';
 import { colors, family, fontWeight, spacing } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const TOTAL_STEPS = 6;
 
@@ -34,7 +35,7 @@ export function OnboardingStep({ step, question, hint, children, footer, mood = 
       {/* Hidden when the user resumed here after signing in: there is nothing behind */}
       {router.canGoBack() ? (
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBack('/')}
           accessibilityRole="button"
           accessibilityLabel={t.common.back}
           hitSlop={12}

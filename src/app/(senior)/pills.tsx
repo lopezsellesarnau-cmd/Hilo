@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-reanimated';
@@ -17,6 +17,7 @@ import { loadSeniorDay, type SeniorMe } from '@/lib/senior-day';
 import { useWide } from '@/lib/layout';
 import { localNow, msToNextMinute, showTime } from '@/lib/time';
 import { colors, fontSize, fontWeight, seniorScreen } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 /** How long "Recuérdamelo en un rato" waits */
 const SNOOZE_MINUTES = 30;
@@ -245,7 +246,7 @@ export default function PillsScreen() {
             {undoPill ? (
               <>
                 <BigButton variant="outline" label={t.pills.undoA11y} onPress={() => undo(undoPill)} />
-                <BigButton label={t.talk.backHome} onPress={() => router.back()} />
+                <BigButton label={t.talk.backHome} onPress={() => goBack('/home')} />
               </>
             ) : due ? (
               <>

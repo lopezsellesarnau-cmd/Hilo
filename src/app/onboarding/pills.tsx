@@ -11,6 +11,7 @@ import { WheelPicker } from '@/components/wheel-picker';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 // The wheels: any hour of her day, in quarters
 const HOURS = Array.from({ length: 19 }, (_, i) => String(i + 5).padStart(2, '0')).map((h) => ({ value: h, label: h }));
@@ -97,7 +98,7 @@ export default function PillsStep() {
   };
 
   const next = () => {
-    if (from) return router.back();
+    if (from) return goBack('/family/today');
     router.push({ pathname: '/onboarding/pair', params: { seniorId, seniorName } });
   };
 

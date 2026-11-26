@@ -11,6 +11,7 @@ import { t } from '@/i18n';
 import { findPlace, type Place } from '@/lib/place';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const TIMES = [
   { value: '09:00', label: '9:00' },
@@ -128,7 +129,7 @@ export default function TalkStep() {
       return;
     }
     if (editing) {
-      router.back();
+      goBack('/family/today');
       toast(t.common.saved);
       return;
     }

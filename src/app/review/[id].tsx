@@ -1,5 +1,5 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,11 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LiveBot } from '@/components/live-bot';
 import { PhotoDrop } from '@/components/photo-drop';
 import { PressScale } from '@/components/press-scale';
+import { StoryPlayer, type StoryPlayerHandle } from '@/components/story-player';
+import { WheelPicker } from '@/components/wheel-picker';
 import { toast } from '@/components/toast';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
-import { deleteChapter, loadFamilyBook, saveChapterText, setChapterPhotos, setChapterStatus, type Draft } from '@/lib/book';
+import { deleteChapter, loadFamilyBook, PARTS, saveChapterText, setChapterPart, setChapterPhotos, setChapterStatus, type Draft, type Part } from '@/lib/book';
 import { colors, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const text = t.review;
 
@@ -37,6 +40,9 @@ export default function ReviewScreen() {
   const [added, setAdded] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const player = useRef<StoryPlayerHandle>(null);
+  // Moving it to another chapter of her book: the wheel, open
+  const [moving, setMoving] = useState<Part | null>(null);
 
   useEffect(() => {
     // Development only: the sample covers in Libro open a sample story (nothing is saved)
@@ -50,6 +56,8 @@ export default function ReviewScreen() {
         unheardWords: ['Visitación'],
         familyId: '',
         photos: [],
+        part: 'childhood',
+        year: null,
         paragraphs: [
           'That winter the river froze from one bank to the other. Nobody in Alcoy had seen it like that.',
           'My brother Pepe and I slid on our shoes all the way to the mill, and my mother shouted from the window that we would drown.',
@@ -87,7 +95,7 @@ export default function ReviewScreen() {
     setSaving(false);
     if (!ok) return setError(text.error);
     setTimeout(() => {
-      router.back();
+      goBack('/family/book');
       toast(done);
     }, wait);
   };
@@ -137,6 +145,19 @@ export default function ReviewScreen() {
   // the word as it's written in her story (capital and accents), for the chips
   const asWritten = (w: string) => paragraphs.join(' ').split(/[^\p{L}\p{N}]+/u).find((x) => bare(x) === w) ?? w;
   const marked = new Set(draft ? unsure : []);
+  const movePart = async () => {
+    const to = moving;
+    setMoving(null);
+    if (!to || to === chapter.part) return;
+    if (__DEV__ && id.startsWith('sample')) return setChapter({ ...chapter, part: to });
+    if (await setChapterPart(chapter.id, to)) {
+      setChapter({ ...chapter, part: to });
+      toast(t.familyBook.moved(t.familyBook.parts[to]));
+    } else toast.error(t.common.saveFailed);
+  };
+
+  // In her book (approved) and real: Hilo can read it aloud
+  const listenable = chapter.status === 'approved' && !(__DEV__ && id.startsWith('sample'));
   const told = new Date(chapter.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
   const layout = reduce ? undefined : LinearTransition.springify().damping(18).stiffness(220);
 
@@ -144,9 +165,9 @@ export default function ReviewScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {white}
       <WideFrame>
-        <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-          <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.back}>
-            <Text style={styles.backText}>‹ {t.familyBook.tab}</Text>
+        <ScrollView contentContainerStyle={[styles.screen, listenable && styles.screenPlayer]} keyboardShouldPersistTaps="handled">
+          <Pressable onPress={() => goBack('/family/book')} accessibilityRole="button" hitSlop={12} style={styles.back}>
+            <Text style={styles.backText}>‹ {t.familyBook.parts[chapter.part]}</Text>
           </Pressable>
           {/* Development only: say clearly that the sample saves nothing */}
           {__DEV__ && id.startsWith('sample') ? (
@@ -159,9 +180,27 @@ export default function ReviewScreen() {
           </Text>
           <Text style={styles.meta}>{text.inWords(told)}</Text>
 
+          {/* Its chapter in her book: tap to move it */}
+          {moving ? (
+            <Animated.View entering={reduce ? undefined : FadeIn.duration(200)} style={styles.move}>
+              <Text style={styles.label}>{t.familyBook.moveTitle.toUpperCase()}</Text>
+              <WheelPicker options={PARTS.map((p) => ({ value: p, label: t.familyBook.parts[p] }))} value={moving} onChange={setMoving} label={t.familyBook.moveTitle} itemHeight={48} fontSize={22} />
+              <PressScale onPress={movePart} accessibilityRole="button" style={styles.fixDone}>
+                <Text style={styles.fixDoneText}>{text.fixDone}</Text>
+              </PressScale>
+            </Animated.View>
+          ) : (
+            <PressScale onPress={() => setMoving(chapter.part)} accessibilityRole="button" accessibilityHint={t.familyBook.moveTitle} style={styles.partChip}>
+              <Text style={styles.partChipText}>
+                {t.familyBook.chapterLabel}: {t.familyBook.parts[chapter.part]}
+                {chapter.year ? ` · ${chapter.year}` : ''} ›
+              </Text>
+            </PressScale>
+          )}
+
           <View style={styles.story}>
             {paragraphs.map((p, i) => (
-              <Pressable key={i} onPress={() => setFocus((f) => (f === i ? null : i))} accessibilityRole="text">
+              <Pressable key={i} onPress={() => (listenable ? player.current?.seekToParagraph(i) : setFocus((f) => (f === i ? null : i)))} accessibilityRole="text">
                 <Text style={[styles.paragraph, focus !== null && focus !== i && styles.dim]}>
                   {p.split(/(\p{L}+)/u).map((part, k) =>
                     marked.has(bare(part)) ? (
@@ -270,12 +309,20 @@ export default function ReviewScreen() {
             {error ? <Text style={styles.error}>{error}</Text> : null}
           </View>
         </ScrollView>
+        {/* Frame 9: Hilo reads her story aloud, with her voice */}
+        {listenable ? (
+          <View style={styles.playerDock}>
+            <StoryPlayer ref={player} chapterId={chapter.id} title={chapter.title} paragraphs={paragraphs} onParagraph={setFocus} />
+          </View>
+        ) : null}
       </WideFrame>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  screenPlayer: { paddingBottom: 150 },
+  playerDock: { position: 'absolute', left: 16, right: 16, bottom: 28 },
   sample: { marginTop: 12, padding: 14, borderRadius: 16, overflow: 'hidden', fontSize: 14, lineHeight: 20, fontWeight: '600', color: '#fff', backgroundColor: '#c0392b' },
   safe: { flex: 1, backgroundColor: colors.background },
   pad: { padding: 24 },
@@ -285,6 +332,9 @@ const styles = StyleSheet.create({
   big: { marginTop: 20, fontSize: 56, lineHeight: 56, fontWeight: fontWeight.bold, letterSpacing: -2.6, color: colors.ink },
   title: { marginTop: 22, fontSize: 44, lineHeight: 46, fontWeight: fontWeight.bold, letterSpacing: -2, color: colors.ink },
   titleSmall: { marginTop: 18, fontSize: 26, lineHeight: 30, letterSpacing: -0.8 },
+  partChip: { alignSelf: 'flex-start', marginTop: 14, height: 36, borderRadius: 18, paddingHorizontal: 14, justifyContent: 'center', backgroundColor: colors.surface },
+  partChipText: { fontSize: 14, fontWeight: fontWeight.bold, color: colors.ink },
+  move: { marginTop: 14, padding: 16, gap: 8, borderRadius: 24, backgroundColor: colors.surface },
   meta: { marginTop: 10, fontSize: 15, fontWeight: fontWeight.semibold, color: colors.muted },
   story: { marginTop: 24, gap: 16 },
   paragraph: { fontSize: 21, lineHeight: 28, fontWeight: fontWeight.semibold, letterSpacing: -0.3, color: colors.ink },

@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, LinearTransition, useReducedMotion } from 'react-native-reanimated';
@@ -12,6 +12,7 @@ import { dateLocale, t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { addVisit, deleteVisit, loadVisits, visitWhen, zonedIso, type Visit } from '@/lib/visits';
 import { colors, fontWeight } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const text = t.visits;
 type Senior = { id: string; family_id: string; timezone: string };
@@ -87,7 +88,7 @@ export default function VisitsScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <WideFrame>
         <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
-          <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.back}>
+          <Pressable onPress={() => goBack('/family/health')} accessibilityRole="button" hitSlop={12} style={styles.back}>
             <Text style={styles.backText}>‹ {t.health.title}</Text>
           </Pressable>
           <Text style={styles.big} accessibilityRole="header">

@@ -55,7 +55,44 @@ export type Draft = Omit<Chapter, 'number'> & {
   familyId: string;
   /** Storage paths in 'chapter-photos' */
   photos: string[];
+  /** The part of her life it belongs to (frame "8 · A chapter"); stories from before have none: 'more' */
+  part: Part;
+  /** The year it happened, when she said it */
+  year: number | null;
 };
+
+/** The parts of her book, in the order of a life */
+export const PARTS = ['childhood', 'school', 'youth', 'love', 'work', 'children', 'home', 'travels', 'traditions', 'today', 'more'] as const;
+export type Part = (typeof PARTS)[number];
+
+export type BookPart = { part: Part; number: number; stories: Draft[]; years: string; waiting: number };
+
+/** The stories grouped in their parts, in the order of a life; each part's stories in the order they were told */
+export function groupParts(stories: Draft[]): BookPart[] {
+  const parts: BookPart[] = [];
+  for (const part of PARTS) {
+    const mine = stories.filter((s) => s.part === part).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    if (!mine.length) continue;
+    const years = mine.map((s) => s.year).filter((y): y is number => y !== null);
+    const lo = Math.min(...years);
+    const hi = Math.max(...years);
+    parts.push({
+      part,
+      number: parts.length + 1,
+      stories: mine,
+      // "1934–46", "1952", or nothing
+      years: !years.length ? '' : lo === hi ? String(lo) : `${lo}–${Math.floor(lo / 100) === Math.floor(hi / 100) ? String(hi).slice(2) : hi}`,
+      waiting: mine.filter((s) => s.status === 'draft').length,
+    });
+  }
+  return parts;
+}
+
+/** Moves a story to another part of her book */
+export async function setChapterPart(id: string, part: Part) {
+  const { error } = await supabase.from('chapters').update({ part }).eq('id', id);
+  return !error;
+}
 
 /** The family's view of the book: every chapter of their senior, drafts included (RLS), newest first */
 export async function loadFamilyBook(): Promise<{ name: string; chapters: Draft[] } | { error: string }> {
@@ -64,15 +101,17 @@ export async function loadFamilyBook(): Promise<{ name: string; chapters: Draft[
 
   const { data, error } = await supabase
     .from('chapters')
-    .select('id, title, quote, paragraphs, status, unheard_words, created_at, family_id, photos')
+    .select('id, title, quote, paragraphs, status, unheard_words, created_at, family_id, photos, part, year')
     .eq('person_id', senior.id)
     .order('created_at', { ascending: false });
   if (error) return { error: t.common.loadFailed };
 
   return {
     name: senior.display_name,
-    chapters: data.map(({ unheard_words, created_at, family_id, photos, ...c }) => ({
+    chapters: data.map(({ unheard_words, created_at, family_id, photos, part, year, ...c }) => ({
       ...c,
+      part: (PARTS as readonly string[]).includes(part) ? (part as Part) : 'more',
+      year: year ?? null,
       unheardWords: unheard_words,
       createdAt: created_at,
       familyId: family_id,
