@@ -829,6 +829,23 @@ async function nameFullChapter(admin: SupabaseClient, me: Senior, chapterId: str
   if (title) await admin.from('books').update({ title }).eq('id', book.id).is('title', null);
 }
 
+/** Old chapters named per talk at most: a few small calls, so catching up never costs much at once */
+const CATCH_UP_TITLES = 6;
+
+/**
+ * Chapters filled before Hilo named them (stories placed by the books migration) get their names now, a few each
+ * talk: every chapter but her last is full. When a third chapter is named, its book is too.
+ */
+async function nameOldChapters(admin: SupabaseClient, me: Senior) {
+  const { data: books } = await admin.from('books').select('id, number').eq('person_id', me.id).order('number');
+  const { data: chapters } = await admin.from('book_chapters').select('id, book_id, number, title').eq('person_id', me.id);
+  if (!books?.length || !chapters?.length) return;
+  const order = new Map(books.map((b) => [b.id, b.number]));
+  const all = [...chapters].sort((a, b) => (order.get(a.book_id)! - order.get(b.book_id)!) || a.number - b.number);
+  const closed = all.slice(0, -1).filter((c) => !c.title).slice(0, CATCH_UP_TITLES);
+  for (const c of closed) await nameFullChapter(admin, me, c.id);
+}
+
 /** Writes the draft chapter of a finished talk. Runs after the goodbye is sent, so it never slows the talk */
 async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string, transcript: Turn[]) {
   const hers = transcript.filter((t) => t.speaker === 'senior').map((t) => t.text);
@@ -909,6 +926,7 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
     if (placeError) return console.error('place story', placeError.message);
     const { chapter_id, is_full } = placed as { chapter_id: string | null; is_full: boolean };
     if (chapter_id && is_full) await nameFullChapter(admin, me, chapter_id);
+    await nameOldChapters(admin, me);
   } catch (e) {
     console.error('chapter', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
   }
