@@ -43,6 +43,20 @@ export type VaultState =
 let familyKey: Uint8Array | null = null;
 export const vaultKey = () => familyKey;
 
+const forgetters = new Set<() => void>();
+/** Something that holds opened documents registers here, to drop them when the vault is forgotten */
+export const onForget = (fn: () => void) => forgetters.add(fn);
+
+/**
+ * Signing out: the family key and everything opened leave memory.
+ * Deleting the account (`keys`): this phone's key pair leaves the Keychain too (its row went with the account).
+ */
+export async function forgetVault({ keys = false } = {}) {
+  familyKey = null;
+  forgetters.forEach((fn) => fn());
+  if (keys) await Promise.all([SecureStore.deleteItemAsync(SK), SecureStore.deleteItemAsync(PK)]).catch(() => {});
+}
+
 /** This phone's key pair, made the first time */
 async function myKeys() {
   let sk = await SecureStore.getItemAsync(SK);

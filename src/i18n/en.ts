@@ -605,7 +605,7 @@ export const en: Strings = {
     deleteAccount: 'Delete my account',
     deleteTitle: 'Delete your account?',
     deleteText:
-      "If you're the only family member in Hilo, everything about your family is deleted too: their pills, their chats and their book. This can't be undone.",
+      "If you're the only family member in Hilo, everything about your family is deleted too: their pills, their chats, their book and their documents. This can't be undone.",
     deleteYes: 'Yes, delete everything',
     deleting: 'Deleting…',
     deleteFailed: "We couldn't delete the account. Check your connection and try again.",

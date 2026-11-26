@@ -609,7 +609,7 @@ export const nl: Strings = {
     deleteAccount: 'Mijn account verwijderen',
     deleteTitle: 'Je account verwijderen?',
     deleteText:
-      'Ben je het enige familielid in Hilo, dan wordt ook alles van je familie gewist: de pillen, de gesprekken en het boek. Dit kan niet ongedaan worden gemaakt.',
+      'Ben je het enige familielid in Hilo, dan wordt ook alles van je familie gewist: de pillen, de gesprekken, het boek en de documenten. Dit kan niet ongedaan worden gemaakt.',
     deleteYes: 'Ja, alles verwijderen',
     deleting: 'Verwijderen…',
     deleteFailed: 'Het account kon niet worden verwijderd. Controleer je verbinding en probeer het opnieuw.',

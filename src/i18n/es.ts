@@ -614,7 +614,7 @@ export const es = {
     deleteAccount: 'Borrar mi cuenta',
     deleteTitle: '¿Borrar tu cuenta?',
     deleteText:
-      'Si eres el único familiar en Hilo, también se borra todo lo de tu familia: sus pastillas, sus charlas y su libro. No se puede deshacer.',
+      'Si eres el único familiar en Hilo, también se borra todo lo de tu familia: sus pastillas, sus charlas, su libro y sus documentos. No se puede deshacer.',
     deleteYes: 'Sí, borrar todo',
     deleting: 'Borrando…',
     deleteFailed: 'No hemos podido borrar la cuenta. Comprueba tu conexión y vuelve a probar.',

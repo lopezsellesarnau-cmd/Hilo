@@ -16,7 +16,7 @@ import { recognize } from '../../modules/hilo-docs';
 
 import { read } from '@/lib/doc-read';
 import { supabase } from '@/lib/supabase';
-import { me, vaultKey } from '@/lib/vault';
+import { me, onForget, vaultKey } from '@/lib/vault';
 
 /**
  * Her documents (phase B of vault Senior-App/11-documentos-cifrados-plan).
@@ -115,6 +115,11 @@ async function openBytes(doc: Doc) {
 
 // Photos already unlocked this session (in memory only)
 const images = new Map<string, string>();
+
+onForget(() => {
+  cache = [];
+  images.clear();
+});
 
 /** A photo, ready for <Image> (stays in memory, never on disk) */
 export async function imageUri(doc: Doc) {

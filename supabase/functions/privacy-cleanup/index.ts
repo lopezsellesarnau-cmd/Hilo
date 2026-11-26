@@ -2,6 +2,7 @@
 // Today: the recordings of "Escuchar mi historia" whose chapter was discarded, taken back to draft or
 // deleted with the account. Within an hour of the family deleting something, its audio is gone too.
 // The same for the photos on her stories (family app v2): a discarded story, a photo taken off, a deleted account.
+// And her documents (locked on the family's phones): a deleted document, a deleted account, a half-finished upload.
 // Also the anonymous accounts of pairings that never finished (wrong code), after 7 days, and her talks word
 // for word 90 days after each talk.
 
@@ -9,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
 const BUCKET = 'chapter-audio';
 const PHOTOS = 'chapter-photos';
+const DOCS = 'family-docs';
 /** Storage removes at most this many files per call */
 const BATCH = 100;
 
@@ -56,9 +58,20 @@ Deno.serve(async (req) => {
     else photosDeleted += data?.length ?? 0;
   }
 
+  // Locked documents with no row
+  const { data: docPaths, error: de } = await admin.rpc('orphan_family_docs');
+  if (de) console.error('docs list', de.message);
+  const docs = (docPaths ?? []) as string[];
+  let docsDeleted = 0;
+  for (let i = 0; i < docs.length; i += BATCH) {
+    const { data, error: e } = await admin.storage.from(DOCS).remove(docs.slice(i, i + BATCH));
+    if (e) console.error('docs remove', e.message);
+    else docsDeleted += data?.length ?? 0;
+  }
+
   const { data: users, error: u } = await admin.rpc('delete_orphan_anonymous_users');
   if (u) console.error('anonymous', u.message);
   const { data: turns, error: t } = await admin.rpc('delete_old_turns');
   if (t) console.error('turns', t.message);
-  return json({ found: files.length, deleted, photos: photos.length, photosDeleted, anonymous: users ?? null, turns: turns ?? null });
+  return json({ found: files.length, deleted, photos: photos.length, photosDeleted, docs: docs.length, docsDeleted, anonymous: users ?? null, turns: turns ?? null });
 });

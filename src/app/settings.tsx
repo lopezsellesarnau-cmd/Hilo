@@ -12,6 +12,7 @@ import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
 import { useHiloShape } from '@/lib/hilo-shape';
 import { forgetFamilyPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
+import { forgetVault } from '@/lib/vault';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
 const SUBSCRIPTIONS_URL = 'https://apps.apple.com/account/subscriptions';
@@ -111,6 +112,7 @@ export default function SettingsScreen() {
 
   const signOut = async () => {
     await forgetFamilyPush();
+    await forgetVault();
     await supabase.auth.signOut();
     router.replace('/');
   };
@@ -125,7 +127,8 @@ export default function SettingsScreen() {
       setError(text.deleteFailed);
       return;
     }
-    // The user no longer exists; this only clears the session stored on the phone
+    // The user no longer exists; this only clears the session (and the documents' key pair) stored on the phone
+    await forgetVault({ keys: true });
     await supabase.auth.signOut({ scope: 'local' });
     router.replace('/');
   };

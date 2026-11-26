@@ -11,6 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.arnolop.hilo",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": true,
         "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait"
         ],
