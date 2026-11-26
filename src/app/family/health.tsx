@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeIn, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { dateLocale, t } from '@/i18n';
 import { cachedDocs } from '@/lib/documents';
 import { supabase } from '@/lib/supabase';
 import { showTime, type Dose } from '@/lib/time';
+import { loadVisitNotes, type VisitNotes } from '@/lib/visit-notes';
 import { loadVisits, visitDay, visitWhen, type Visit } from '@/lib/visits';
 import { colors, fontWeight } from '@/theme';
 
@@ -55,13 +56,18 @@ function Line({ a, b, dark, right }: { a: string; b: string; dark?: boolean; rig
     </View>
   );
 }
-type BlockId = 'pills' | 'weight' | 'docs' | 'visits';
+type BlockId = 'pills' | 'weight' | 'docs' | 'visits' | 'notes';
+const DAY = 86_400_000;
+const kg = (n: number) => n.toFixed(1).replace('.', ',');
+const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${kg(Math.abs(n))}`;
 
 export default function HealthScreen() {
   const text = t.health;
   const reduce = useReducedMotion();
   const [senior, setSenior] = useState<Senior | null>(null);
   const [docCount, setDocCount] = useState<number | null>(null);
+  // "Ready for Friday": only with a visit in the next two weeks
+  const [notes, setNotes] = useState<VisitNotes | null>(null);
   const [doses, setDoses] = useState<Dose[] | null>(null);
   const [weights, setWeights] = useState<WeightPoint[]>([]);
   const [visits, setVisits] = useState<Visit[] | null>(null);
@@ -73,7 +79,14 @@ export default function HealthScreen() {
     if (!s) return;
     setSenior(s as Senior);
     setTz(s.timezone);
-    loadVisits(s.id).then(setVisits).catch(() => {});
+    loadVisits(s.id)
+      .then((v) => {
+        setVisits(v);
+        const soon = v[0] && Date.parse(v[0].startsAt) - Date.now() < 14 * DAY;
+        if (soon) loadVisitNotes(s.id, s.timezone).then(setNotes).catch(() => {});
+        else setNotes(null);
+      })
+      .catch(() => {});
     // How many documents (the server can count them; it can't read them)
     supabase
       .from('documents')
@@ -101,6 +114,30 @@ export default function HealthScreen() {
   const delta = recent.length >= 2 ? recent[recent.length - 1].kg - recent[0].kg : null;
   const opened = cachedDocs().slice(0, 3); // only if the folder is open on this phone
   const next = visits?.[0];
+  // The weight a month before the last one
+  const monthAgo = last ? weights.find((w) => Date.parse(w.at) <= Date.parse(last.at) - 25 * DAY) : undefined;
+  const weightLine = last ? `${kg(last.kg)} kg` : text.noWeight;
+  const weightSub = last && monthAgo ? text.inAMonth(signed(last.kg - monthAgo.kg)) : '';
+  const missedLine = (n: VisitNotes) =>
+    n.missed.length
+      ? `${n.missed
+          .slice(0, 2)
+          .map((m) => `${m.name} · ${new Date(`${m.date}T12:00:00`).toLocaleDateString(dateLocale, { weekday: 'short' }).replace('.', '')} ${showTime(m.time)}`)
+          .join(', ')}${n.missed.length > 2 ? ` +${n.missed.length - 2}` : ''}`
+      : text.noneMissed;
+  const shareNotes = () => {
+    if (!notes || !senior || !next) return;
+    Share.share({
+      message: [
+        text.notesHead(senior.display_name, next.title, visitWhen(next.startsAt, tz)),
+        `${text.pillsTaken(notes.taken, notes.expected)}${notes.missed.length ? ` ${text.missedList(notes.missed.map((m) => `${m.name} ${new Date(`${m.date}T12:00:00`).toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric' })} ${showTime(m.time)}`).join(', '))}` : ''}`,
+        last ? `${text.weight}: ${weightLine}${weightSub ? ` (${weightSub})` : ''}` : '',
+        text.talked(notes.talkedDays, notes.days),
+      ]
+        .filter(Boolean)
+        .join('\n'),
+    });
+  };
   const go = (label: string, onPress: () => void, dark?: boolean) => (
     <PressScale onPress={onPress} accessibilityRole="button" style={[styles.go, dark && styles.goDark]}>
       <Text style={[styles.goText, dark && styles.goTextDark]}>{label} →</Text>
@@ -127,9 +164,8 @@ export default function HealthScreen() {
       ) : (
         <Text style={[styles.doseTime, styles.pad]}>{text.pillsNone}</Text>
       ),
-      more: senior
-        ? go(text.editPills, () => router.push({ pathname: '/onboarding/pills', params: { seniorId: senior.id, seniorName: senior.display_name, from: 'today' } }), true)
-        : undefined,
+      // the big cards and "Next 21:00": its own page, like the frame "4 · Her pills"
+      more: go(text.herPills, () => router.push('/her-pills'), true),
     },
     weight: {
       small: text.weight,
@@ -177,11 +213,20 @@ export default function HealthScreen() {
       // the list and the form with the wheels
       more: go(text.allVisits, () => router.push('/visits')),
     },
+    notes: {
+      small: next ? text.readyFor(visitDay(next.startsAt, tz)) : '',
+      big: text.visitNotes,
+      detail: notes ? (
+        <>
+          <Line a={text.pillsTaken(notes.taken, notes.expected)} b={missedLine(notes)} />
+          <Line a={weightLine} b={weightSub || text.weight} />
+          <Line a={text.talked(notes.talkedDays, notes.days)} b={text.lastDays} />
+        </>
+      ) : null,
+      more: go(text.shareNotes, shareNotes),
+    },
   };
-  const ROWS: BlockId[][] = [
-    ['pills', 'weight'],
-    ['docs', 'visits'],
-  ];
+  const ROWS: BlockId[][] = [['pills', 'weight'], ['docs', 'visits'], ...(notes && next ? [['notes'] as BlockId[]] : [])];
   const openRow = ROWS.findIndex((r) => r.includes(open as BlockId));
   const layout = reduce ? undefined : LinearTransition.springify().damping(16).stiffness(280).mass(0.8);
 
