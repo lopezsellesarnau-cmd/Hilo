@@ -194,7 +194,13 @@ export default function HealthScreen() {
       ) : (
         <Text style={[styles.lineB, styles.pad]}>{docCount ? text.docsLocked : text.docsNone}</Text>
       ),
-      more: go(text.openDocs, () => router.push('/documents')),
+      // Ask Hilo (frame 5) only when there's something to find
+      more: (
+        <View style={styles.goRow}>
+          {go(text.openDocs, () => router.push('/documents'))}
+          {docCount ? go(t.docs.askLabel, () => router.push('/ask')) : null}
+        </View>
+      ),
     },
     visits: {
       small: text.visits,
@@ -330,6 +336,7 @@ const styles = StyleSheet.create({
   detail: { marginTop: 14 },
   pad: { paddingVertical: 12 },
   more: { marginTop: 'auto', paddingTop: 16 },
+  goRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   go: { alignSelf: 'flex-start', height: 44, borderRadius: 22, paddingHorizontal: 18, justifyContent: 'center', backgroundColor: colors.ink },
   goDark: { backgroundColor: colors.onAccent },
   goText: { fontSize: 16, fontWeight: fontWeight.bold, color: colors.onAccent },

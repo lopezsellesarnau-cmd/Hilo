@@ -11,7 +11,6 @@ import { PressScale } from '@/components/press-scale';
 import { toast } from '@/components/toast';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
-import { ask } from '@/lib/doc-read';
 import { docKind, imageUri, listDocuments, readLater, type Doc } from '@/lib/documents';
 import { approveDevice, askForAccess, createVault, recoverWithCode, removeDevice, vaultState, type Device, type VaultState } from '@/lib/vault';
 import { colors, fontWeight } from '@/theme';
@@ -36,9 +35,6 @@ export default function DocumentsScreen() {
   const [sure, setSure] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [docs, setDocs] = useState<Doc[] | null>(null);
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<{ q: string; ids: string[] } | null>(null);
-  const [front, setFront] = useState<string | undefined>(undefined);
   const [readingOld, setReadingOld] = useState(false);
   const readingRef = useRef(false);
 
@@ -56,17 +52,6 @@ export default function DocumentsScreen() {
     })();
   }, [docs]);
 
-  const findIt = () => {
-    const q = question.trim();
-    if (!q || !docs) return;
-    const ids = ask(
-      q,
-      docs.map((d) => ({ id: d.id, title: d.meta.title, text: d.meta.text, kind: d.meta.kind, tags: d.meta.tags, date: d.meta.date, createdAt: d.createdAt })),
-    );
-    setAnswer({ q, ids });
-    setQuestion('');
-    if (ids[0]) setFront(ids[0]);
-  };
 
   const loadDocs = useCallback(() => {
     listDocuments()
@@ -228,53 +213,16 @@ export default function DocumentsScreen() {
               <Text style={styles.big} accessibilityRole="header">
                 {text.title}
               </Text>
-              {/* Ask Hilo: the question is matched on this phone, against what the phone read */}
+              {/* Ask Hilo (frame 5): its own screen */}
               {docs?.length ? (
-                answer ? (
-                  <Animated.View entering={enter} style={styles.answer}>
-                    <View style={styles.qRow}>
-                      <Text style={styles.qBubble}>{answer.q}</Text>
-                      <Pressable onPress={() => setAnswer(null)} accessibilityRole="button" accessibilityLabel={text.askClear} hitSlop={10} style={styles.x}>
-                        <Text style={styles.xText}>✕</Text>
-                      </Pressable>
-                    </View>
-                    <View style={styles.aRow} accessibilityLiveRegion="polite">
-                      <LiveBot size={44} />
-                      <Text style={styles.aText}>{answer.ids.length === 0 ? text.notFound : answer.ids.length === 1 ? text.here : text.hereMany}</Text>
-                    </View>
-                    {answer.ids.length === 0 ? <Text style={styles.aHint}>{text.notFoundHint}</Text> : null}
-                    {answer.ids.length > 1 ? (
-                      <View style={styles.chips}>
-                        {answer.ids.map((id) => {
-                          const d = docs.find((x) => x.id === id);
-                          return d ? (
-                            <PressScale key={id} onPress={() => setFront(id)} accessibilityRole="button" style={[styles.chip, front === id && styles.chipOn]}>
-                              <Text style={[styles.chipText, front === id && styles.chipTextOn]} numberOfLines={1}>
-                                {d.meta.title}
-                              </Text>
-                            </PressScale>
-                          ) : null;
-                        })}
-                      </View>
-                    ) : null}
-                  </Animated.View>
-                ) : (
-                  <View style={styles.askRow}>
-                    <TextInput
-                      value={question}
-                      onChangeText={setQuestion}
-                      onSubmitEditing={findIt}
-                      placeholder={text.askPlaceholder}
-                      placeholderTextColor="rgba(0,0,0,0.35)"
-                      returnKeyType="search"
-                      accessibilityLabel={text.askLabel}
-                      style={styles.askInput}
-                    />
-                    <PressScale onPress={findIt} accessibilityRole="button" accessibilityLabel={text.askSend} style={styles.askGo}>
-                      <LiveBot size={30} color={colors.onAccent} eyeColor={colors.ink} />
-                    </PressScale>
+                <PressScale onPress={() => router.push('/ask')} accessibilityRole="button" style={styles.askRow}>
+                  <Text style={styles.askFake} numberOfLines={1}>
+                    {text.askButton}
+                  </Text>
+                  <View style={styles.askGo}>
+                    <LiveBot size={30} color={colors.onAccent} eyeColor={colors.ink} />
                   </View>
-                )
+                </PressScale>
               ) : null}
               {readingOld ? <Text style={styles.readingOld}>{text.readingOld}</Text> : null}
 
@@ -289,7 +237,6 @@ export default function DocumentsScreen() {
                       loadImage: docKind(d) === 'PDF' ? undefined : () => imageUri(d),
                     }))}
                     onOpen={openDoc}
-                    frontId={front}
                     hint={text.swapHint}
                     nextLabel={text.nextDoc}
                   />
@@ -376,19 +323,8 @@ const styles = StyleSheet.create({
   label: { marginTop: 8, marginBottom: 4, fontSize: 13, fontWeight: fontWeight.semibold, letterSpacing: 1, color: colors.muted },
   drop: { marginBottom: 28 },
   askRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, paddingRight: 6, height: 60, borderRadius: 30, backgroundColor: colors.surface },
-  askInput: { flex: 1, height: 60, fontSize: 17, fontWeight: fontWeight.semibold, color: colors.ink },
+  askFake: { flex: 1, fontSize: 17, fontWeight: fontWeight.semibold, color: 'rgba(0,0,0,0.4)' },
   askGo: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
-  answer: { marginTop: 18 },
-  qRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
-  qBubble: { maxWidth: '82%', overflow: 'hidden', borderRadius: 24, borderBottomRightRadius: 8, paddingHorizontal: 18, paddingVertical: 12, fontSize: 18, lineHeight: 24, fontWeight: fontWeight.semibold, color: colors.onAccent, backgroundColor: colors.ink },
-  aRow: { marginTop: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  aText: { flex: 1, fontSize: 36, lineHeight: 40, fontWeight: fontWeight.bold, letterSpacing: -1.4, color: colors.ink },
-  aHint: { marginTop: 8, fontSize: 16, lineHeight: 22, fontWeight: fontWeight.semibold, color: colors.muted },
-  chips: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { maxWidth: '100%', height: 40, borderRadius: 20, paddingHorizontal: 16, justifyContent: 'center', backgroundColor: colors.surface },
-  chipOn: { backgroundColor: colors.ink },
-  chipText: { fontSize: 15, fontWeight: fontWeight.bold, color: colors.ink },
-  chipTextOn: { color: colors.onAccent },
   readingOld: { marginTop: 12, fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
   stack: { marginTop: 24, marginBottom: 32, alignItems: 'center' },
   swipe: { marginTop: 18, fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
