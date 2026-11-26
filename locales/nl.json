@@ -1,6 +1,6 @@
 {
   "ios": {
-    "NSMicrophoneUsageDescription": "Hilo gebruikt de microfoon om naar u te luisteren als u op de knop tikt om te praten.",
+    "NSMicrophoneUsageDescription": "Hilo gebruikt de microfoon om naar u te luisteren als u met Hilo praat en bij gesprekken met uw familie.",
     "NSSpeechRecognitionUsageDescription": "Hilo zet wat u vertelt om in tekst om het in uw boek te bewaren.",
     "NSCameraUsageDescription": "Hilo gebruikt de camera om de QR-code te lezen die u van uw familie krijgt en om documenten te fotograferen.",
     "NSPhotoLibraryUsageDescription": "Om foto's toe te voegen aan de verhalen in hun boek. Alleen je familie ziet ze."

@@ -1,7 +1,7 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DayDot } from '@/components/day-dot';
@@ -187,11 +187,11 @@ export default function TodayScreen() {
               {/* Always there: without her phone connected yet, it says so instead of hiding */}
               {senior ? (
                 <PressScale
-                  onPress={ringing ? undefined : canCall ? callNow : () => setRing('noPhone')}
+                  onPress={canCall ? () => router.push('/call') : () => setRing('noPhone')}
                   accessibilityRole="button"
                   accessibilityLabel={text.ring(senior.display_name)}
                   accessibilityHint={text.ringHint}
-                  style={[v2.call, (ringing || !canCall) && v2.callOff]}>
+                  style={[v2.call, !canCall && v2.callOff]}>
                   <PhoneIcon size={16} color={colors.onAccent} />
                   <Text style={v2.callText}>{text.call}</Text>
                 </PressScale>
@@ -207,6 +207,12 @@ export default function TodayScreen() {
             </Text>
           ) : senior && canCall && callDue ? (
             <Text style={v2.ringNote}>{text.callDue(senior.display_name)}</Text>
+          ) : null}
+          {/* Hilo rings her for a chat (not the family's own call) */}
+          {senior && canCall && !ringing ? (
+            <Pressable onPress={callNow} accessibilityRole="button" hitSlop={8} style={v2.hiloNow}>
+              <Text style={v2.hiloNowText}>{t.voiceCall.hiloNow}</Text>
+            </Pressable>
           ) : null}
 
           {/* Her Bot: big, its eyes follow your finger on the screen */}
@@ -339,6 +345,8 @@ const v2 = StyleSheet.create({
   call: { height: 44, borderRadius: 22, paddingLeft: 14, paddingRight: 16, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.ink },
   callOff: { opacity: 0.4 },
   callText: { fontSize: 16, fontWeight: fontWeight.bold, color: colors.onAccent },
+  hiloNow: { alignSelf: 'flex-end', marginTop: 8 },
+  hiloNowText: { fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted, textDecorationLine: 'underline' },
   ringNote: { marginTop: 10, fontSize: 15, fontWeight: fontWeight.semibold, color: colors.ink, textAlign: 'right' },
   bot: { marginTop: 28, alignItems: 'flex-start' },
   big: { marginTop: 20, fontSize: 64, lineHeight: 62, fontWeight: fontWeight.bold, letterSpacing: -3, color: colors.ink },

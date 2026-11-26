@@ -4,6 +4,10 @@
   "version": "1.0.0",
   "dependencies": {
     "@config-plugins/react-native-callkeep": "^14.0.2",
+    "@config-plugins/react-native-webrtc": "15.0.2",
+    "@livekit/react-native": "3.2.0",
+    "@livekit/react-native-expo-plugin": "1.2.0",
+    "@livekit/react-native-webrtc": "150.2.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-masked-view/masked-view": "0.3.2",
@@ -33,6 +37,7 @@
     "expo-symbols": "~57.0.3",
     "expo-system-ui": "~57.0.4",
     "expo-web-browser": "~57.0.3",
+    "livekit-client": "2.25.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",

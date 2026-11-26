@@ -5,6 +5,7 @@ import RNCallKeep from 'react-native-callkeep';
 import HiloVoip from '../../modules/hilo-voip';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
+import { callKitAudio, connectRoom, endCall as endVoiceCall, joinCall, leaveRoom, prepareVoice, setMuted, type Room } from '@/lib/voice-room';
 
 /**
  * Hilo rings like a phone call (CallKit): the family presses "Llamar ahora" and her phone rings, even locked.
@@ -26,8 +27,55 @@ const openTalk = () => {
   if (Date.now() - at < RECENT_MS) router.push('/talk');
 };
 
-// She answered: the family sees it; the talk opens now if Hilo is in front, or when she unlocks and opens it
-const answer = (callUUID: string) => {
+/**
+ * A family member calling her (voice_calls), not Hilo: answering joins the call right there, on the call screen,
+ * even locked; Hilo doesn't open. CallKit owns the audio, so WebRTC is told when iOS turns it on and off.
+ */
+let voice: { uuid: string; room: Room | null } | null = null;
+let callAudio = false; // CallKit's audio is on (it can come before the room is ready)
+let toldWebRTC = false;
+
+const isVoice = async (uuid: string) => {
+  const { data } = await supabase.from('voice_calls').select('id').eq('id', uuid).maybeSingle();
+  return Boolean(data);
+};
+
+const audioOn = () => {
+  if (!voice || toldWebRTC || !callAudio) return;
+  callKitAudio(true);
+  toldWebRTC = true;
+};
+
+// The call ends: she hung up (CallKit), or the family member left the room (then the call screen goes too)
+const hangUpVoice = async (uuid: string, otherLeft = false) => {
+  if (voice?.uuid !== uuid) return;
+  const room = voice.room;
+  voice = null;
+  await leaveRoom(room);
+  endVoiceCall(uuid);
+  if (otherLeft) RNCallKeep.endCall(uuid);
+};
+
+const answerVoice = async (uuid: string) => {
+  voice = { uuid, room: null };
+  try {
+    const room = await connectRoom(await joinCall(uuid), (here) => {
+      if (!here) hangUpVoice(uuid, true);
+    });
+    // She hung up while it was connecting
+    if (voice?.uuid !== uuid) return leaveRoom(room);
+    voice.room = room;
+    audioOn();
+  } catch {
+    // Too late (the family gave up) or no network: the call screen goes
+    voice = null;
+    RNCallKeep.endCall(uuid);
+  }
+};
+
+// She answered: a family member's call joins at once; Hilo's call opens the talk (now, or when she opens Hilo)
+const answer = async (callUUID: string) => {
+  if (await isVoice(callUUID)) return answerVoice(callUUID);
   supabase.rpc('answer_ring', { ring_id: callUUID });
   pending = { uuid: callUUID, at: Date.now() };
   if (AppState.currentState === 'active') return openTalk();
@@ -41,27 +89,48 @@ const answer = (callUUID: string) => {
 
 let ready: Promise<void> | null = null;
 
-const setup = () =>
-  (ready ??= RNCallKeep.setup({
+const setup = () => {
+  // WebRTC for the family's calls, before any room
+  prepareVoice();
+  return (ready ??= RNCallKeep.setup({
     ios: { appName: 'Hilo', imageName: 'CallIcon', supportsVideo: false, includesCallsInRecents: false },
     android: { alertTitle: '', alertDescription: '', cancelButton: '', okButton: '', additionalPermissions: [] },
   }).then(async () => {
     RNCallKeep.addEventListener('answerCall', ({ callUUID }) => answer(callUUID));
     // She opened Hilo (the Hilo button on the call screen, or the icon after unlocking)
     AppState.addEventListener('change', (state) => state === 'active' && openTalk());
-    // She hung up on the call screen before opening Hilo: nothing to open
+    // She hung up on the call screen: nothing to open, or the family's call ends (or she declined it)
     RNCallKeep.addEventListener('endCall', ({ callUUID }) => {
       if (pending?.uuid === callUUID) pending = null;
+      if (voice?.uuid === callUUID) return void hangUpVoice(callUUID);
+      isVoice(callUUID).then((v) => v && endVoiceCall(callUUID));
+    });
+    // The mute button on iOS's call screen
+    RNCallKeep.addEventListener('didPerformSetMutedCallAction', ({ muted, callUUID }) => {
+      if (voice?.uuid === callUUID) setMuted(voice.room, muted);
+    });
+    // CallKit turns the call's audio on and off: WebRTC has to follow
+    RNCallKeep.addEventListener('didActivateAudioSession', () => {
+      callAudio = true;
+      audioOn();
+    });
+    RNCallKeep.addEventListener('didDeactivateAudioSession', () => {
+      callAudio = false;
+      if (toldWebRTC) callKitAudio(false);
+      toldWebRTC = false;
     });
     RNCallKeep.addEventListener('didDisplayIncomingCall', ({ error, errorCode }) => {
       if (error) console.warn('call not shown', errorCode, error);
     });
     // Answered while Hilo was closed: the answer came before this code was running
     for (const event of await RNCallKeep.getInitialEvents()) {
+      if (event.name === 'RNCallKeepDidActivateAudioSession') callAudio = true;
       if (event.name === 'RNCallKeepPerformAnswerCallAction') answer(event.data.callUUID);
+      if (event.name === 'RNCallKeepPerformEndCallAction') isVoice(event.data.callUUID).then((v) => v && endVoiceCall(event.data.callUUID));
     }
     RNCallKeep.clearInitialEvents();
   }));
+};
 
 const saveToken = (token: string) => supabase.rpc('save_voip_token', { device_token: token });
 

@@ -148,3 +148,36 @@ export function LockIcon({ size = 20, color = 'rgba(0,0,0,0.3)' }: Props) {
     </Svg>
   );
 }
+
+/** Loudspeaker: a filled speaker with two waves (the call's "Speaker" button) */
+export function SpeakerIcon({ size = 26, color = colors.onAccent }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M4 9.2C4 8.5 4.5 8 5.2 8H8l4.3-3.6c.7-.6 1.7-.1 1.7.8v13.6c0 .9-1 1.4-1.7.8L8 16H5.2C4.5 16 4 15.5 4 14.8V9.2Z" fill={color} />
+      <Path d="M16.8 9.2a4 4 0 0 1 0 5.6M19.3 6.7a7.6 7.6 0 0 1 0 10.6" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** Microphone off: the filled microphone with a line through it (the call's "Mute" button) */
+export function MicOffIcon({ size = 26, color = colors.onAccent }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Rect x={9} y={3} width={6} height={11} rx={3} fill={color} />
+      <Path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M4 4l16 16" stroke={color} strokeWidth={2.2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** Hang up: the filled handset, turned down */
+export function HangUpIcon({ size = 30, color = colors.onAccent }: Props) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        d="M12 9c-3.6 0-6.9 1-9.2 2.8-.6.5-.8 1.3-.5 2l.9 2c.3.7 1.1 1 1.8.8l3-1c.6-.2 1-.8 1-1.4v-1.6c1-.3 2-.4 3-.4s2 .1 3 .4v1.6c0 .6.4 1.2 1 1.4l3 1c.7.2 1.5-.1 1.8-.8l.9-2c.3-.7.1-1.5-.5-2C18.9 10 15.6 9 12 9Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}

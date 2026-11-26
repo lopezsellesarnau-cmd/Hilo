@@ -1,6 +1,6 @@
 {
   "ios": {
-    "NSMicrophoneUsageDescription": "Hilo uses the microphone to listen to you when you tap the button to talk.",
+    "NSMicrophoneUsageDescription": "Hilo uses the microphone to listen to you when you talk with Hilo and in calls with your family.",
     "NSSpeechRecognitionUsageDescription": "Hilo turns what you say into text to keep it in your book.",
     "NSCameraUsageDescription": "Hilo uses the camera to read the QR code your family gives you and to photograph documents.",
     "NSPhotoLibraryUsageDescription": "To add photos to the stories in their book. Only your family sees them."
