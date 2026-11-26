@@ -758,6 +758,77 @@ async function mentionsPrivate(admin: SupabaseClient, me: Senior, text: string, 
   }
 }
 
+const TITLE_SCHEMA = {
+  type: 'object',
+  properties: { titulo: { type: 'string' } },
+  required: ['titulo'],
+  additionalProperties: false,
+};
+
+const TITLE_WRITER = `Pones título a una parte del libro de la vida de una persona mayor, escrito con sus palabras.
+Recibes los títulos y el texto de sus historias. Devuelve un título corto (2-6 palabras) que diga lo que tienen en común,
+cálido y sencillo, como el título de un capítulo de unas memorias ("Los veranos en el pueblo", "Cuando llegaron los niños").
+Sin comillas, sin punto final, sin inventar nada que no esté en las historias. General: nada de detalles íntimos ni de salud.`;
+
+const TITLE_LANGUAGE: Record<Lang, string> = { es: '', nl: '\n\nEl título, en neerlandés.', en: '\n\nEl título, en inglés.' };
+
+/** A short title from what she told, or null if it can't be made (then it stays "Chapter N" / "Book N") */
+async function writeTitle(admin: SupabaseClient, me: Senior, what: string): Promise<string | null> {
+  try {
+    const res = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 200,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: TITLE_SCHEMA } },
+      system: TITLE_WRITER,
+      messages: [{ role: 'user', content: what + TITLE_LANGUAGE[lang(me.locale)] }],
+    });
+    await admin.rpc('add_usage', {
+      pid: me.id,
+      usage_day: localNow(me.timezone).date,
+      input_tokens: res.usage.input_tokens,
+      output_tokens: res.usage.output_tokens,
+      characters: 0,
+    });
+    if (res.stop_reason !== 'end_turn') return null;
+    const raw = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    const title = (JSON.parse(raw) as { titulo: string }).titulo.trim().replace(/^[«"“]|[»"”.]$/g, '').trim();
+    return title ? title.slice(0, 120) : null;
+  } catch (e) {
+    console.error('title', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
+    return null;
+  }
+}
+
+/**
+ * A chapter just filled up: Hilo names it from its stories. When it was the book's third, the book is full too
+ * and gets its name from its chapters. The family can rename either. Never overwrites a name already there.
+ */
+async function nameFullChapter(admin: SupabaseClient, me: Senior, chapterId: string) {
+  const { data: chapter } = await admin.from('book_chapters').select('id, book_id, number, title').eq('id', chapterId).maybeSingle();
+  if (!chapter) return;
+  if (!chapter.title) {
+    const { data: stories } = await admin.from('chapters').select('title, paragraphs').eq('book_chapter_id', chapterId).order('created_at');
+    if (!stories?.length) return;
+    const text = stories.map((st) => `## ${st.title}\n${(st.paragraphs as string[]).join('\n')}`).join('\n\n');
+    const title = await writeTitle(admin, me, `Las historias de este capítulo:\n\n${text}`);
+    if (title) await admin.from('book_chapters').update({ title }).eq('id', chapterId).is('title', null);
+  }
+  if (chapter.number < 3) return;
+
+  const { data: book } = await admin.from('books').select('id, title').eq('id', chapter.book_id).maybeSingle();
+  if (!book || book.title) return;
+  const { data: chapters } = await admin.from('book_chapters').select('id, number, title').eq('book_id', book.id).order('number');
+  const { data: stories } = await admin.from('chapters').select('book_chapter_id, title').in('book_chapter_id', (chapters ?? []).map((c) => c.id));
+  const outline = (chapters ?? [])
+    .map((c) => `Capítulo ${c.number}: ${c.title ?? ''}\n${(stories ?? []).filter((st) => st.book_chapter_id === c.id).map((st) => `- ${st.title}`).join('\n')}`)
+    .join('\n\n');
+  const title = await writeTitle(admin, me, `Este libro tiene tres capítulos; ponle título al libro entero:\n\n${outline}`);
+  if (title) await admin.from('books').update({ title }).eq('id', book.id).is('title', null);
+}
+
 /** Writes the draft chapter of a finished talk. Runs after the goodbye is sent, so it never slows the talk */
 async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string, transcript: Turn[]) {
   const hers = transcript.filter((t) => t.speaker === 'senior').map((t) => t.text);
@@ -834,8 +905,10 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
     if (error) return console.error('chapter', error.message);
     console.log('chapter written', title);
     // Into her book: the open chapter, the next one, or a new book (vault Senior-App/13-libro-en-libros-plan)
-    const { error: placeError } = await admin.rpc('place_story', { p_story: written.id });
-    if (placeError) console.error('place story', placeError.message);
+    const { data: placed, error: placeError } = await admin.rpc('place_story', { p_story: written.id }).single();
+    if (placeError) return console.error('place story', placeError.message);
+    const { chapter_id, is_full } = placed as { chapter_id: string | null; is_full: boolean };
+    if (chapter_id && is_full) await nameFullChapter(admin, me, chapter_id);
   } catch (e) {
     console.error('chapter', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
   }
