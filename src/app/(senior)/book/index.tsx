@@ -1,120 +1,103 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { setStatusBarStyle } from 'expo-status-bar';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { SideCover } from '@/components/book-cover';
-import { ChapterCard } from '@/components/chapter-card';
-import { PressScale } from '@/components/press-scale';
-import { ScreenHeader } from '@/components/screen-header';
-import { ScrollFade, useScrollFade } from '@/components/scroll-fade';
-import { WideFrame } from '@/components/wide-split';
+import { ChapterCover } from '@/components/chapter-cover';
+import { RecordFlow, TRAY, type FlowItem } from '@/components/record-flow';
 import { t } from '@/i18n';
-import { cachedBook, loadBook } from '@/lib/book';
-import { colors, fontSize, fontWeight, serif, spacing } from '@/theme';
+import { cachedBook, loadBook, photoLinks, type HerBook } from '@/lib/book';
+import { goBack } from '@/lib/nav';
+import { colors, fontSize, fontWeight } from '@/theme';
 
 const text = t.book;
+const names = t.familyBook;
 
+/** A book's cover: the first photo in any of its stories */
+const firstPhoto = (b: HerBook) => b.chapters.flatMap((c) => c.stories).find((s) => s.photos[0])?.photos[0];
+
+/**
+ * Mi libro (vault Senior-App/13-libro-en-libros-plan): her books as records, black like the family's,
+ * the same scroll. Only what the family approved. It opens on her newest book; tap the middle one to open it.
+ */
 export default function BookScreen() {
-  const fade = useScrollFade();
   // The book Home already loaded: no empty page while the screen comes in
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadBook>> | null>(cachedBook);
+  const [covers, setCovers] = useState<Record<string, string>>({});
 
   // Again each time she comes back: the family may have approved a new story
   useFocusEffect(
     useCallback(() => {
       loadBook().then(setBook);
+      setStatusBarStyle('light');
+      return () => setStatusBarStyle('dark');
     }, []),
   );
 
-  // Loaded (her name and stories) or the reason it couldn't load; null while loading
-  const ready = book && 'chapters' in book ? book : null;
+  const ready = book && 'books' in book ? book : null;
   const failed = book && 'error' in book ? book.error : null;
-  const chapters = ready?.chapters ?? [];
-  // iPad on its side: her book big on the left, the chapters on the right
-  const bigCover = ready ? <SideCover name={ready.name} /> : <View />;
+  const books = useMemo(() => ready?.books ?? [], [ready]);
+
+  useEffect(() => {
+    const firsts = books.map(firstPhoto).filter((p): p is string => Boolean(p));
+    if (!firsts.length) return;
+    let live = true;
+    photoLinks(firsts)
+      .then((links) => live && setCovers(links))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [books]);
+
+  const items: FlowItem[] = books.map((b) => {
+    const photo = firstPhoto(b);
+    return {
+      id: b.id,
+      title: b.title ?? names.bookN(b.number),
+      sub: names.stories(b.stories),
+      cover: <ChapterCover index={b.number - 1} photo={photo ? covers[photo] : undefined} />,
+    };
+  });
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <WideFrame side={bigCover}>
-        <ScrollView contentContainerStyle={styles.screen} {...fade.scrollProps}>
-          <ScreenHeader backLabel={text.back} />
+      <View style={styles.head}>
+        <Pressable onPress={() => goBack('/home')} accessibilityRole="button" hitSlop={12} style={styles.back}>
+          <Text style={styles.backText}>‹ {text.back}</Text>
+        </Pressable>
+        <Text style={styles.title} accessibilityRole="header">
+          {text.title}.
+        </Text>
+        {ready ? <Text style={styles.count}>{text.count(ready.chapters.length)}</Text> : null}
+      </View>
 
-          {/* Like the cover of her book: the title in the book's letters, how many stories on the right */}
-          <View accessibilityRole="header" style={styles.titles}>
-            <Text style={styles.title}>{text.title}</Text>
-            {ready ? <Text style={styles.subtitle}>{text.count(chapters.length)}</Text> : null}
-          </View>
+      {failed ? <Text style={styles.note}>{failed}</Text> : null}
+      {ready && !books.length ? <Text style={styles.note}>{text.empty}</Text> : null}
 
-          {failed ? <Text style={styles.note}>{failed}</Text> : null}
-          {ready && !chapters.length ? <Text style={styles.note}>{text.empty}</Text> : null}
-
-          <View style={styles.list}>
-            {chapters.map((chapter, i) => (
-              <Animated.View key={chapter.id} entering={FadeInDown.duration(400).delay(120 + Math.min(i, 6) * 70)}>
-                <PressScale
-                  onPress={() =>
-                    router.push({
-                      pathname: '/book/[chapter]',
-                      params: { chapter: chapter.id },
-                    })
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={text.chapterA11y(chapter.number, chapter.title)}>
-                  <ChapterCard title={chapter.title} index={i} number={chapter.number} />
-                </PressScale>
-              </Animated.View>
-            ))}
-          </View>
-        </ScrollView>
-      </WideFrame>
-      <ScrollFade visible={fade.visible} />
+      {items.length ? (
+        <View style={styles.flow}>
+          <RecordFlow
+            key={items.length}
+            items={items}
+            start={items.length - 1}
+            onOpen={(i) => router.push({ pathname: '/book/volume/[id]', params: { id: books[i].id } })}
+            label={text.title}
+          />
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  screen: {
-    width: '100%',
-    maxWidth: spacing.contentMax,
-    alignSelf: 'center',
-    paddingHorizontal: spacing.screenX,
-    paddingTop: spacing.screenTop,
-    paddingBottom: 72,
-  },
-  titles: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  title: {
-    fontFamily: serif,
-    fontSize: fontSize.title,
-    fontWeight: fontWeight.bold,
-    letterSpacing: -0.5,
-    color: colors.ink,
-  },
-  subtitle: {
-    fontSize: 17,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
-  },
-  list: {
-    marginTop: 18,
-    gap: 16,
-  },
-  note: {
-    marginTop: 40,
-    fontSize: fontSize.talk,
-    lineHeight: 30,
-    fontWeight: fontWeight.semibold,
-    color: colors.muted,
-    textAlign: 'center',
-  },
+  safe: { flex: 1, backgroundColor: TRAY },
+  head: { paddingHorizontal: 24, paddingTop: 8 },
+  back: { alignSelf: 'flex-start', paddingVertical: 8 },
+  backText: { fontSize: 20, fontWeight: fontWeight.semibold, color: 'rgba(255,255,255,0.55)' },
+  title: { marginTop: 12, fontSize: 56, lineHeight: 58, fontWeight: fontWeight.bold, letterSpacing: -2.6, color: colors.onAccent },
+  count: { marginTop: 8, fontSize: 20, fontWeight: fontWeight.semibold, color: 'rgba(255,255,255,0.55)' },
+  note: { marginTop: 40, paddingHorizontal: 24, fontSize: fontSize.talk, lineHeight: 30, fontWeight: fontWeight.semibold, color: 'rgba(255,255,255,0.7)' },
+  flow: { flex: 1, marginTop: 8, marginBottom: 24 },
 });

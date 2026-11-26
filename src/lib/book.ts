@@ -10,12 +10,18 @@ export type Chapter = {
   /** One sentence of hers, word for word, shown large in the middle of the chapter */
   quote: string | null;
   paragraphs: string[];
+  /** Storage paths in 'chapter-photos' (the first is the book's cover) */
+  photos: string[];
 };
 
-type Book = { name: string; chapters: Chapter[] } | { error: string };
+/** One of her books on her phone: its chapters with the stories the family approved */
+export type HerBook = { id: string; number: number; title: string | null; chapters: { id: string; number: number; title: string | null; stories: Chapter[] }[]; stories: number };
+
+type Loaded = { name: string; chapters: Chapter[]; books: HerBook[] };
+type Book = Loaded | { error: string };
 
 /** The last book loaded on this phone: Mi libro and the chapter open with it at once, then refresh */
-let lastBook: { name: string; chapters: Chapter[] } | null = null;
+let lastBook: Loaded | null = null;
 export const cachedBook = () => lastBook;
 
 /**
@@ -35,15 +41,31 @@ export async function loadBook(): Promise<Book> {
   const me = found.data;
   if (!me) return { error: missing(found) ? t.common.notPaired : t.common.offline };
 
-  const { data, error } = await supabase
-    .from('chapters')
-    .select('id, title, quote, paragraphs')
-    .eq('person_id', me.id)
-    .eq('status', 'approved')
-    .order('created_at');
+  const [{ data, error }, { data: books }, { data: parts }] = await Promise.all([
+    supabase.from('chapters').select('id, title, quote, paragraphs, photos, book_chapter_id').eq('person_id', me.id).eq('status', 'approved').order('created_at'),
+    supabase.from('books').select('id, number, title').eq('person_id', me.id).order('number'),
+    supabase.from('book_chapters').select('id, book_id, number, title').eq('person_id', me.id).order('number'),
+  ]);
   if (error) return { error: t.common.offline };
 
-  lastBook = { name: me.display_name, chapters: data.map((c, i) => ({ ...c, number: i + 1 })) };
+  const chapters: (Chapter & { bookChapterId: string | null })[] = data.map(({ book_chapter_id, photos, ...c }, i) => ({
+    ...c,
+    photos: photos ?? [],
+    number: i + 1,
+    bookChapterId: book_chapter_id ?? null,
+  }));
+  // Her books (vault Senior-App/13-libro-en-libros-plan): only what has an approved story; anything not placed, at the end
+  const herBooks: HerBook[] = (books ?? []).map((b) => {
+    const mine = (parts ?? [])
+      .filter((p) => p.book_id === b.id)
+      .map((p) => ({ id: p.id, number: p.number, title: p.title, stories: chapters.filter((c) => c.bookChapterId === p.id) }))
+      .filter((p) => p.stories.length);
+    return { id: b.id, number: b.number, title: b.title, chapters: mine, stories: mine.reduce((n, p) => n + p.stories.length, 0) };
+  });
+  const loose = chapters.filter((c) => !c.bookChapterId || !(parts ?? []).some((p) => p.id === c.bookChapterId));
+  if (loose.length) herBooks.push({ id: 'loose', number: (books?.length ?? 0) + 1, title: null, chapters: [{ id: 'loose', number: 1, title: null, stories: loose }], stories: loose.length });
+
+  lastBook = { name: me.display_name, chapters, books: herBooks.filter((b) => b.stories) };
   return lastBook;
 }
 
