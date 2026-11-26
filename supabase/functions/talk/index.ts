@@ -819,7 +819,7 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
     const quote = story.cita.trim().replace(/^[«"“]|[»"”]$/g, '');
     const hersQuote = quote && bare(hers.join(' ')).includes(bare(quote)) ? quote.slice(0, 400) : null;
 
-    const { error } = await admin.from('chapters').insert({
+    const { data: written, error } = await admin.from('chapters').insert({
       family_id: me.family_id,
       person_id: me.id,
       session_id: sessionId,
@@ -830,9 +830,12 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
       // The part of her life (frame "8 · A chapter"), and the year only when she said it
       part: story.capitulo,
       year: Number.isInteger(story.anio) && story.anio! >= 1900 && story.anio! <= new Date().getFullYear() ? story.anio : null,
-    });
-    if (error) console.error('chapter', error.message);
-    else console.log('chapter written', title);
+    }).select('id').single();
+    if (error) return console.error('chapter', error.message);
+    console.log('chapter written', title);
+    // Into her book: the open chapter, the next one, or a new book (vault Senior-App/13-libro-en-libros-plan)
+    const { error: placeError } = await admin.rpc('place_story', { p_story: written.id });
+    if (placeError) console.error('place story', placeError.message);
   } catch (e) {
     console.error('chapter', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
   }
