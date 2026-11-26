@@ -23,7 +23,7 @@
         "NSPhotoLibraryUsageDescription": "Para añadir fotos a las historias de su libro. Solo las ve tu familia."
       },
       "requireFullScreen": true,
-      "buildNumber": "26"
+      "buildNumber": "27"
     },
     "android": {
       "package": "com.arnolop.hilo",
