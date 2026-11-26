@@ -1,12 +1,14 @@
 // Hilo: deletes what must not be kept. Run every hour by Supabase Cron (same secret as quiet-alert).
 // Today: the recordings of "Escuchar mi historia" whose chapter was discarded, taken back to draft or
 // deleted with the account. Within an hour of the family deleting something, its audio is gone too.
+// The same for the photos on her stories (family app v2): a discarded story, a photo taken off, a deleted account.
 // Also the anonymous accounts of pairings that never finished (wrong code), after 7 days, and her talks word
 // for word 90 days after each talk.
 
 import { createClient } from 'npm:@supabase/supabase-js@2.117.3';
 
 const BUCKET = 'chapter-audio';
+const PHOTOS = 'chapter-photos';
 /** Storage removes at most this many files per call */
 const BATCH = 100;
 
@@ -43,9 +45,20 @@ Deno.serve(async (req) => {
     else deleted += data?.length ?? 0;
   }
 
+  // Story photos with no story (or no longer on it)
+  const { data: photoPaths, error: pe } = await admin.rpc('orphan_chapter_photos');
+  if (pe) console.error('photos list', pe.message);
+  const photos = (photoPaths ?? []) as string[];
+  let photosDeleted = 0;
+  for (let i = 0; i < photos.length; i += BATCH) {
+    const { data, error: e } = await admin.storage.from(PHOTOS).remove(photos.slice(i, i + BATCH));
+    if (e) console.error('photos remove', e.message);
+    else photosDeleted += data?.length ?? 0;
+  }
+
   const { data: users, error: u } = await admin.rpc('delete_orphan_anonymous_users');
   if (u) console.error('anonymous', u.message);
   const { data: turns, error: t } = await admin.rpc('delete_old_turns');
   if (t) console.error('turns', t.message);
-  return json({ found: files.length, deleted, anonymous: users ?? null, turns: turns ?? null });
+  return json({ found: files.length, deleted, photos: photos.length, photosDeleted, anonymous: users ?? null, turns: turns ?? null });
 });

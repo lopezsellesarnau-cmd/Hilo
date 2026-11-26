@@ -16,6 +16,8 @@ import { loadCalls, loadMonth, type MemberCalls } from '@/lib/calls';
 import { registerFamilyPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { localNow, showTime } from '@/lib/time';
+import { flapText, loadVisits, type Visit } from '@/lib/visits';
+import { SplitFlap } from '@/components/split-flap';
 import { colors, family, fontWeight, spacing } from '@/theme';
 
 type Senior = { id: string; display_name: string; talk_time: string | null; user_id: string | null; timezone: string };
@@ -53,6 +55,8 @@ export default function TodayScreen() {
   const [pillsOpen, setPillsOpen] = useState(false);
   const [, setMonth] = useState<MemberCalls[]>([]);
   const [note, setNote] = useState<string | null>(null);
+  // Her next medical visit, if it's within two weeks: the split-flap board
+  const [visit, setVisit] = useState<Visit | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Nobody in the family has talked with her for CALL_DAYS: one of the things to do today
   const [callDue, setCallDue] = useState(false);
@@ -115,6 +119,9 @@ export default function TodayScreen() {
         loadMonth(data.id, data.timezone).catch(() => []),
       ]);
     setTalks(talkedToday(rows ?? [], data.timezone));
+    loadVisits(data.id)
+      .then((v) => setVisit(v.find((x) => Date.parse(x.startsAt) > Date.now() && Date.parse(x.startsAt) - Date.now() < 14 * 86_400_000) ?? null))
+      .catch(() => {});
     setMe(mine?.display_name ?? '');
     setPills(
       doses?.length
@@ -260,6 +267,16 @@ export default function TodayScreen() {
             <TodayPills key={reloadKey} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
           ) : null}
 
+          {/* Her next visit, like a departure board; tap for all of them */}
+          {senior && visit ? (
+            <PressScale onPress={() => router.push('/visits')} accessibilityRole="button" style={v2.visit}>
+              <Text style={v2.label}>{visit.title.toUpperCase()}</Text>
+              <View style={v2.flap}>
+                <SplitFlap value={flapText(visit.startsAt, senior.timezone)} length={9} size={40} />
+              </View>
+            </PressScale>
+          ) : null}
+
           {/* New stories for the family to read */}
           {senior && drafts.length ? (
             <PressScale onPress={() => router.push('/family/book')} accessibilityRole="button" accessibilityLabel={`${text.bookWidget}, ${text.toReview(drafts.length)}`} style={v2.stories}>
@@ -340,6 +357,8 @@ const v2 = StyleSheet.create({
   next: { fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
   stories: { marginTop: 24, height: 64, borderRadius: 32, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.ink },
   after: { marginTop: 36 },
+  visit: { marginTop: 28 },
+  flap: { marginTop: 10 },
   storiesText: { fontSize: 19, fontWeight: fontWeight.bold, color: colors.onAccent },
 });
 

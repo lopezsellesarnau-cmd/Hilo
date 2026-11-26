@@ -255,7 +255,7 @@ export default function ReviewScreen() {
               <Animated.View entering={reduce ? undefined : FadeIn.duration(200)} style={styles.confirm}>
                 <Text style={styles.confirmTitle}>{text.discardTitle}</Text>
                 <Text style={styles.confirmText}>{text.discardText}</Text>
-                <PressScale onPress={() => save(() => deleteChapter(chapter.id), text.toastDeleted)} accessibilityRole="button" style={styles.primary}>
+                <PressScale onPress={() => save(() => deleteChapter(chapter.id, chapter.photos), text.toastDeleted)} accessibilityRole="button" style={styles.primary}>
                   <Text style={styles.primaryText}>{text.discardYes}</Text>
                 </PressScale>
                 <Pressable onPress={() => setConfirming(false)} accessibilityRole="button" style={styles.quiet}>

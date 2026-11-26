@@ -90,9 +90,10 @@ export async function setChapterStatus(id: string, status: 'draft' | 'approved')
   return !error;
 }
 
-/** Discard a story for good */
-export async function deleteChapter(id: string) {
+/** Discard a story for good, and its photos right away (the hourly cleanup catches any left) */
+export async function deleteChapter(id: string, photos: string[] = []) {
   const { error } = await supabase.from('chapters').delete().eq('id', id);
+  if (!error && photos.length) await supabase.storage.from('chapter-photos').remove(photos);
   return !error;
 }
 

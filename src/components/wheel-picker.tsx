@@ -35,12 +35,14 @@ type Props<T extends string> = {
   itemHeight?: number;
   /** The page colour behind it, for the fades. */
   background?: string;
+  /** Size of the labels. Default 34. */
+  fontSize?: number;
 };
 
 const ROWS = 3.4; // the wheel's height, in rows
 const STEP = 24; // degrees between two rows on the wheel
 
-export function WheelPicker<T extends string>({ options, value, onChange, label, itemHeight = 60, background = colors.background }: Props<T>) {
+export function WheelPicker<T extends string>({ options, value, onChange, label, itemHeight = 60, background = colors.background, fontSize = 34 }: Props<T>) {
   const h = itemHeight;
   const height = Math.round(h * ROWS);
   const pad = (height - h) / 2;
@@ -124,7 +126,7 @@ export function WheelPicker<T extends string>({ options, value, onChange, label,
         contentOffset={{ x: 0, y: index * h }}
         contentContainerStyle={{ paddingVertical: pad }}>
         {options.map((o, i) => (
-          <Row key={o.value} label={o.label} i={i} h={h} y={y} spinning={spinning} />
+          <Row key={o.value} label={o.label} i={i} h={h} y={y} spinning={spinning} fontSize={fontSize} />
         ))}
       </Animated.ScrollView>
       {/* the top and bottom fade away */}
@@ -134,7 +136,7 @@ export function WheelPicker<T extends string>({ options, value, onChange, label,
   );
 }
 
-function Row({ label, i, h, y, spinning }: { label: string; i: number; h: number; y: SharedValue<number>; spinning: SharedValue<number> }) {
+function Row({ label, i, h, y, spinning, fontSize }: { label: string; i: number; h: number; y: SharedValue<number>; spinning: SharedValue<number>; fontSize: number }) {
   const style = useAnimatedStyle(() => {
     const d = i - y.value / h; // rows from the middle
     const near = Math.max(0, 1 - Math.abs(d));
@@ -147,7 +149,9 @@ function Row({ label, i, h, y, spinning }: { label: string; i: number; h: number
   });
   return (
     <Animated.View style={[styles.row, { height: h }, style]}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { fontSize }]} numberOfLines={1}>
+        {label}
+      </Text>
     </Animated.View>
   );
 }

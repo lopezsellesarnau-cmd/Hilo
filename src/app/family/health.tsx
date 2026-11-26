@@ -12,6 +12,7 @@ import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { showTime, type Dose } from '@/lib/time';
+import { loadVisits, visitDay, type Visit } from '@/lib/visits';
 import { colors, fontWeight } from '@/theme';
 
 /**
@@ -29,12 +30,16 @@ export default function HealthScreen() {
   const [, setSenior] = useState<Senior | null>(null);
   const [doses, setDoses] = useState<Dose[] | null>(null);
   const [weights, setWeights] = useState<WeightPoint[]>([]);
+  const [visits, setVisits] = useState<Visit[] | null>(null);
+  const [tz, setTz] = useState('UTC');
   const [open, setOpen] = useState<BlockId | null>(null);
 
   const load = useCallback(async () => {
     const { data: s } = await supabase.from('people').select('id, family_id, timezone').eq('role', 'senior').limit(1).maybeSingle();
     if (!s) return;
     setSenior(s as Senior);
+    setTz(s.timezone);
+    loadVisits(s.id).then(setVisits).catch(() => {});
     const [d, { data: w }] = await Promise.all([
       loadTodayDoses(s.id, s.timezone).catch(() => null),
       supabase.from('weights').select('kg, measured_at').eq('person_id', s.id).order('measured_at', { ascending: false }).limit(400),
@@ -81,7 +86,12 @@ export default function HealthScreen() {
       go: () => router.push('/weight'),
     },
     docs: { small: text.docs, big: text.soon, soon: true },
-    visits: { small: text.visits, big: text.soon, soon: true },
+    visits: {
+      small: text.visits,
+      big: visits?.[0] ? visitDay(visits[0].startsAt, tz) : visits ? '–' : '',
+      // its own page: the list and the form with the wheels
+      go: () => router.push('/visits'),
+    },
   };
   const ROWS: BlockId[][] = [
     ['pills', 'weight'],
