@@ -47,14 +47,14 @@
         "expo-image-picker",
         {
           "photosPermission": "Para añadir fotos a las historias de su libro. Solo las ve tu familia.",
-          "cameraPermission": false,
+          "cameraPermission": "Hilo usa la cámara para leer el código QR que te da tu familia y para fotografiar documentos.",
           "microphonePermission": false
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Hilo usa la cámara para leer el código QR que te da tu familia.",
+          "cameraPermission": "Hilo usa la cámara para leer el código QR que te da tu familia y para fotografiar documentos.",
           "microphonePermission": "Hilo usa el micrófono para escucharte cuando tocas el botón para hablar.",
           "recordAudioAndroid": false
         }

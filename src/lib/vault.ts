@@ -57,7 +57,7 @@ async function myKeys() {
   return { sk: from_base64(sk), pk: from_base64(pk), pkB64: pk };
 }
 
-async function me() {
+export async function me() {
   const { data: auth } = await supabase.auth.getUser();
   const { data } = await supabase.from('people').select('id, family_id, display_name').eq('user_id', auth.user?.id ?? '').eq('role', 'member').maybeSingle();
   if (!data) throw new Error('not a family member');

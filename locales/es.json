@@ -2,7 +2,7 @@
   "ios": {
     "NSMicrophoneUsageDescription": "Hilo usa el micrófono para escucharte cuando tocas el botón para hablar.",
     "NSSpeechRecognitionUsageDescription": "Hilo convierte lo que cuentas en texto para guardarlo en tu libro.",
-    "NSCameraUsageDescription": "Hilo usa la cámara para leer el código QR que te da tu familia.",
+    "NSCameraUsageDescription": "Hilo usa la cámara para leer el código QR que te da tu familia y para fotografiar documentos.",
     "NSPhotoLibraryUsageDescription": "Para añadir fotos a las historias de su libro. Solo las ve tu familia."
   }
 }

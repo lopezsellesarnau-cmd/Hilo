@@ -4,11 +4,13 @@ import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, Text
 import Animated, { FadeIn, FadeInDown, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DocDrop } from '@/components/doc-drop';
 import { LiveBot } from '@/components/live-bot';
 import { PressScale } from '@/components/press-scale';
 import { toast } from '@/components/toast';
 import { WideFrame } from '@/components/wide-split';
-import { t } from '@/i18n';
+import { dateLocale, t } from '@/i18n';
+import { docKind, listDocuments, type Doc } from '@/lib/documents';
 import { approveDevice, askForAccess, createVault, recoverWithCode, removeDevice, vaultState, type Device, type VaultState } from '@/lib/vault';
 import { colors, fontWeight } from '@/theme';
 
@@ -28,12 +30,21 @@ export default function DocumentsScreen() {
   const [typed, setTyped] = useState('');
   const [sure, setSure] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [docs, setDocs] = useState<Doc[] | null>(null);
 
-  const load = useCallback(() => {
-    vaultState()
-      .then(setState)
+  const loadDocs = useCallback(() => {
+    listDocuments()
+      .then(setDocs)
       .catch(() => setError(t.common.loadFailed));
   }, []);
+  const load = useCallback(() => {
+    vaultState()
+      .then((s) => {
+        setState(s);
+        if (s.kind === 'open') loadDocs();
+      })
+      .catch(() => setError(t.common.loadFailed));
+  }, [loadDocs]);
   useFocusEffect(load);
 
   const run = async (fn: () => Promise<unknown>) => {
@@ -173,15 +184,42 @@ export default function DocumentsScreen() {
             </Animated.View>
           ) : null}
 
-          {/* Open: the phones that can see the documents (documents themselves: phase B) */}
+          {/* Open: add (File drop with her Bot), the documents, and the phones that can open them */}
           {!code && state?.kind === 'open' ? (
             <Animated.View entering={enter} layout={layout}>
               <Text style={styles.big} accessibilityRole="header">
                 {text.title}
               </Text>
-              <Text style={styles.body}>{text.emptyForNow}</Text>
+              <View style={styles.drop}>
+                <DocDrop onAdded={loadDocs} />
+              </View>
 
-              <Text style={styles.label}>{text.phones.toUpperCase()}</Text>
+              <Text style={styles.label}>{text.docsLabel.toUpperCase()}</Text>
+              {docs && !docs.length ? <Text style={styles.empty}>{text.empty}</Text> : null}
+              {docs?.map((d) => (
+                <Animated.View key={d.id} entering={enter} layout={layout}>
+                  <Pressable
+                    onPress={() => router.push({ pathname: '/document/[id]', params: { id: d.id } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={d.meta.title}
+                    style={({ pressed }) => [styles.doc, pressed && styles.docPressed]}>
+                    <View style={[styles.docTag, docKind(d) === 'PDF' && styles.docTagDark]}>
+                      <Text style={[styles.docTagText, docKind(d) === 'PDF' && styles.docTagTextDark]}>{docKind(d) === 'PDF' ? 'PDF' : text.photoTag}</Text>
+                    </View>
+                    <View style={styles.deviceText}>
+                      <Text style={styles.deviceName} numberOfLines={1}>
+                        {d.meta.title}
+                      </Text>
+                      <Text style={styles.deviceSub}>
+                        {new Date(d.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })} · {size(d.size)}
+                      </Text>
+                    </View>
+                    <Text style={styles.chev}>›</Text>
+                  </Pressable>
+                </Animated.View>
+              ))}
+
+              <Text style={[styles.label, styles.labelGap]}>{text.phones.toUpperCase()}</Text>
               {state.devices.map((d) => (
                 <Animated.View key={d.id} layout={layout} style={styles.device}>
                   <View style={styles.deviceText}>
@@ -210,6 +248,8 @@ export default function DocumentsScreen() {
   );
 }
 
+const size = (b: number) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB`);
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   screen: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 56 },
@@ -230,6 +270,16 @@ const styles = StyleSheet.create({
   codeEntry: { marginTop: 16, gap: 10 },
   codeInput: { height: 58, borderRadius: 29, paddingHorizontal: 20, fontSize: 17, fontWeight: fontWeight.bold, letterSpacing: 1, color: colors.ink, backgroundColor: colors.surface, fontFamily: 'Menlo' },
   label: { marginTop: 8, marginBottom: 4, fontSize: 13, fontWeight: fontWeight.semibold, letterSpacing: 1, color: colors.muted },
+  drop: { marginBottom: 28 },
+  labelGap: { marginTop: 36 },
+  empty: { paddingVertical: 14, fontSize: 16, fontWeight: fontWeight.semibold, color: colors.muted },
+  doc: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(0,0,0,0.12)' },
+  docPressed: { opacity: 0.6 },
+  docTag: { width: 48, height: 60, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  docTagDark: { backgroundColor: colors.ink },
+  docTagText: { fontSize: 12, fontWeight: fontWeight.bold, letterSpacing: 0.5, color: colors.ink },
+  docTagTextDark: { color: colors.onAccent },
+  chev: { fontSize: 26, fontWeight: fontWeight.semibold, color: 'rgba(0,0,0,0.25)' },
   device: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(0,0,0,0.12)' },
   deviceText: { flex: 1 },
   deviceName: { fontSize: 19, fontWeight: fontWeight.bold, color: colors.ink },
