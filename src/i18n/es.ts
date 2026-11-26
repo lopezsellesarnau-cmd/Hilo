@@ -575,6 +575,8 @@ export const es = {
       today: 'Hoy en día',
       more: 'Más historias',
     },
+    bookN: (n: number) => `Libro ${n}`,
+    chapters: (n: number) => (n === 1 ? '1 capítulo' : `${n} capítulos`),
     chapterN: (n: number) => `Capítulo ${n}`,
     stories: (n: number) => (n === 1 ? '1 historia' : `${n} historias`),
     chapterLabel: 'Capítulo',

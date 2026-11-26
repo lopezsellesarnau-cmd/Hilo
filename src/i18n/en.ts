@@ -568,6 +568,8 @@ export const en: Strings = {
       today: 'These days',
       more: 'More stories',
     },
+    bookN: (n: number) => `Book ${n}`,
+    chapters: (n: number) => (n === 1 ? '1 chapter' : `${n} chapters`),
     chapterN: (n: number) => `Chapter ${n}`,
     stories: (n: number) => (n === 1 ? '1 story' : `${n} stories`),
     chapterLabel: 'Chapter',

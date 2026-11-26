@@ -572,6 +572,8 @@ export const nl: Strings = {
       today: 'Nu',
       more: 'Meer verhalen',
     },
+    bookN: (n: number) => `Boek ${n}`,
+    chapters: (n: number) => (n === 1 ? '1 hoofdstuk' : `${n} hoofdstukken`),
     chapterN: (n: number) => `Hoofdstuk ${n}`,
     stories: (n: number) => (n === 1 ? '1 verhaal' : `${n} verhalen`),
     chapterLabel: 'Hoofdstuk',

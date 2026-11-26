@@ -58,6 +58,7 @@ export default function ReviewScreen() {
         photos: [],
         part: 'childhood',
         year: null,
+        bookChapterId: null,
         paragraphs: [
           'That winter the river froze from one bank to the other. Nobody in Alcoy had seen it like that.',
           'My brother Pepe and I slid on our shoes all the way to the mill, and my mother shouted from the window that we would drown.',

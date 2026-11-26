@@ -9,32 +9,33 @@ import { ChapterCover } from '@/components/chapter-cover';
 import { TRAY } from '@/components/record-flow';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
-import { groupParts, loadFamilyBook, photoLinks, PARTS, type BookPart, type Part } from '@/lib/book';
+import { loadFamilyBooks, photoLinks, type LifeBook } from '@/lib/book';
 import { colors, fontWeight } from '@/theme';
 import { goBack } from '@/lib/nav';
 
 const text = t.familyBook;
 
 /**
- * One chapter of her book (v2, frame "8 · A chapter"): black like the book. Its cover, "Chapter 2 · 6 stories · 1934–46",
- * the name big, and its stories in the order she told them. A new one says so; tap one to read it (frame 9).
+ * One of her books (vault Senior-App/13-libro-en-libros-plan): black like the scroll. Its cover,
+ * "Book 2 · 3 chapters · 9 stories", its name big, then each chapter with its stories in the order she told them.
+ * A new one says so; tap one to read and review it.
  */
-export default function BookPartScreen() {
-  const { part = 'more' } = useLocalSearchParams<{ part: Part }>();
+export default function HerBookScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const reduce = useReducedMotion();
-  const [chapter, setChapter] = useState<BookPart | null>(null);
+  const [book, setBook] = useState<LifeBook | null>(null);
   const [empty, setEmpty] = useState(false);
   const [cover, setCover] = useState<string | undefined>(undefined);
 
   const load = useCallback(() => {
-    loadFamilyBook().then((book) => {
-      if (!('chapters' in book)) return;
-      const found = groupParts(book.chapters).find((p) => p.part === part) ?? null;
-      setChapter(found);
-      // moved its last story away: nothing left here
+    loadFamilyBooks().then((all) => {
+      if (!('books' in all)) return;
+      const found = all.books.find((b) => b.id === id) ?? null;
+      setBook(found);
+      // its last story was deleted: nothing left here
       setEmpty(!found);
     });
-  }, [part]);
+  }, [id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,7 +46,7 @@ export default function BookPartScreen() {
   );
 
   // The cover: the first photo in any of its stories
-  const firstPhoto = chapter?.stories.find((s) => s.photos[0])?.photos[0];
+  const firstPhoto = book?.chapters.flatMap((c) => c.stories).find((s) => s.photos[0])?.photos[0];
   useEffect(() => {
     if (!firstPhoto) return;
     let live = true;
@@ -56,7 +57,7 @@ export default function BookPartScreen() {
   }, [firstPhoto]);
 
   const told = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
-  const name = text.parts[part as Part] ?? text.parts.more;
+  let n = 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -68,46 +69,60 @@ export default function BookPartScreen() {
 
           <Animated.View entering={reduce ? undefined : FadeInDown.springify().damping(16)} style={styles.headRow}>
             <View style={styles.thumb}>
-              <ChapterCover index={PARTS.indexOf(part as Part)} photo={firstPhoto ? cover : undefined} size={48} />
+              <ChapterCover index={(book?.number ?? 1) - 1} photo={firstPhoto ? cover : undefined} size={48} />
             </View>
-            {chapter ? (
+            {book ? (
               <Text style={styles.meta}>
-                {text.chapterN(chapter.number)}
+                {text.bookN(book.number)}
                 {'\n'}
-                {[text.stories(chapter.stories.length), chapter.years].filter(Boolean).join(' · ')}
+                {[text.chapters(book.chapters.length), text.stories(book.stories), book.years].filter(Boolean).join(' · ')}
               </Text>
             ) : null}
           </Animated.View>
 
-          <Animated.Text entering={reduce ? undefined : FadeInDown.delay(60).springify().damping(16)} style={styles.title} accessibilityRole="header">
-            {name}.
-          </Animated.Text>
+          {book ? (
+            <Animated.Text entering={reduce ? undefined : FadeInDown.delay(60).springify().damping(16)} style={styles.title} accessibilityRole="header">
+              {book.title ?? text.bookN(book.number)}.
+            </Animated.Text>
+          ) : null}
 
           {empty ? <Text style={styles.meta}>{text.emptyTitle}</Text> : null}
 
-          <View style={styles.list}>
-            {chapter?.stories.map((s, i) => (
-              <Animated.View key={s.id} entering={reduce ? undefined : FadeInDown.delay(100 + 50 * i).springify().damping(16)}>
-                <Pressable
-                  onPress={() => router.push({ pathname: '/review/[id]', params: { id: s.id } })}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${s.title}${s.status === 'draft' ? `, ${text.newBadge}` : ''}`}
-                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-                  <Text style={styles.n}>{String(i + 1).padStart(2, '0')}</Text>
-                  <Text style={styles.story} numberOfLines={2}>
-                    {s.title}
-                  </Text>
-                  {s.status === 'draft' ? (
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{text.newBadge}</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.when}>{s.year ?? told(s.createdAt)}</Text>
-                  )}
-                </Pressable>
-              </Animated.View>
-            ))}
-          </View>
+          {book?.chapters.map((c, ci) => (
+            <Animated.View key={c.id} entering={reduce ? undefined : FadeInDown.delay(100 + 60 * ci).springify().damping(16)} style={styles.chapter}>
+              <Text style={styles.chapterN}>{text.chapterN(c.number)}</Text>
+              {c.title ? (
+                <Text style={styles.chapterTitle} accessibilityRole="header">
+                  {c.title}
+                </Text>
+              ) : null}
+              <View style={styles.list}>
+                {c.stories.map((s) => {
+                  n += 1;
+                  return (
+                    <Pressable
+                      key={s.id}
+                      onPress={() => router.push({ pathname: '/review/[id]', params: { id: s.id } })}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${s.title}${s.status === 'draft' ? `, ${text.newBadge}` : ''}`}
+                      style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+                      <Text style={styles.n}>{String(n).padStart(2, '0')}</Text>
+                      <Text style={styles.story} numberOfLines={2}>
+                        {s.title}
+                      </Text>
+                      {s.status === 'draft' ? (
+                        <View style={styles.badge}>
+                          <Text style={styles.badgeText}>{text.newBadge}</Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.when}>{s.year ?? told(s.createdAt)}</Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </Animated.View>
+          ))}
         </ScrollView>
       </WideFrame>
     </SafeAreaView>
@@ -123,7 +138,10 @@ const styles = StyleSheet.create({
   thumb: { width: 92, height: 92, borderRadius: 20, overflow: 'hidden' },
   meta: { paddingBottom: 4, fontSize: 15, lineHeight: 21, fontWeight: fontWeight.semibold, color: 'rgba(255,255,255,0.45)' },
   title: { marginTop: 20, fontSize: 56, lineHeight: 56, fontWeight: fontWeight.bold, letterSpacing: -2.6, color: colors.onAccent },
-  list: { marginTop: 28 },
+  chapter: { marginTop: 36 },
+  chapterN: { fontSize: 15, fontWeight: fontWeight.semibold, color: 'rgba(255,255,255,0.45)' },
+  chapterTitle: { marginTop: 4, fontSize: 28, lineHeight: 32, fontWeight: fontWeight.bold, letterSpacing: -0.9, color: colors.onAccent },
+  list: { marginTop: 14 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.12)' },
   pressed: { opacity: 0.6 },
   n: { width: 28, fontSize: 15, fontWeight: fontWeight.bold, color: 'rgba(255,255,255,0.3)', fontVariant: ['tabular-nums'] },
