@@ -271,7 +271,10 @@ export default function TodayScreen() {
             </PressScale>
           ) : null}
           {senior && pills && pillsOpen ? (
-            <TodayPills key={reloadKey} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
+            // Its own space below the capsules: the list's grey card used to sit on them
+            <View style={v2.pillsList}>
+              <TodayPills key={reloadKey} seniorId={senior.id} seniorName={senior.display_name} timezone={senior.timezone} />
+            </View>
           ) : null}
 
           {/* Her next visit, like a departure board; tap for all of them */}
@@ -362,6 +365,7 @@ const v2 = StyleSheet.create({
   capOff: { borderWidth: 3, borderColor: 'rgba(0,0,0,0.14)' },
   addPills: { marginTop: 8, fontSize: 22, fontWeight: fontWeight.bold, color: colors.ink },
   pillsRight: { alignItems: 'flex-end' },
+  pillsList: { marginTop: 20 },
   count: { fontSize: 40, lineHeight: 42, fontWeight: fontWeight.bold, letterSpacing: -1.5, color: colors.ink },
   next: { fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
   stories: { marginTop: 24, height: 64, borderRadius: 32, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.ink },
