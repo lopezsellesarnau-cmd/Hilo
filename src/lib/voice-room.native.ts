@@ -37,16 +37,24 @@ export const joinCall = (callId: string) => call<Joined>({ action: 'join', call_
 /** Declined, not answered or hung up (quiet if it fails: the server ends stale calls by their status) */
 export const endCall = (callId: string) => call<{ status: string }>({ action: 'end', call_id: callId }).catch(() => null);
 
-/** Into the room with the microphone on. `onOther` hears the other person arrive and leave. */
-export async function connectRoom(joined: Joined, onOther: (here: boolean) => void) {
+/**
+ * Into the room with the microphone on. `onOther` hears the other person arrive and leave.
+ * `callKit` (her phone): CallKit turns the audio on itself. Starting it here too fails while the phone is
+ * locked (an app in the background can't take the audio), and the call ended at once.
+ */
+export async function connectRoom(joined: Joined, onOther: (here: boolean) => void, callKit = false) {
   prepareVoice();
   await AudioSession.configureAudio({ ios: { defaultOutput: 'earpiece' } });
-  await AudioSession.startAudioSession();
+  if (!callKit) await AudioSession.startAudioSession();
   const room = new Room({ adaptiveStream: false, dynacast: false });
   room.on(RoomEvent.ParticipantConnected, () => onOther(true));
   room.on(RoomEvent.ParticipantDisconnected, () => onOther(room.remoteParticipants.size > 0));
   await room.connect(joined.url, joined.token);
-  await room.localParticipant.setMicrophoneEnabled(true);
+  // Locked, the microphone may only open once CallKit's audio is on: then call.ts tries again
+  await room.localParticipant.setMicrophoneEnabled(true).catch((e) => {
+    if (!callKit) throw e;
+    console.warn('voice: microphone later', e);
+  });
   if (room.remoteParticipants.size) onOther(true);
   return room;
 }

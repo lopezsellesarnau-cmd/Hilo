@@ -41,9 +41,11 @@ const isVoice = async (uuid: string) => {
 };
 
 const audioOn = () => {
-  if (!voice || toldWebRTC || !callAudio) return;
+  if (!voice?.room || toldWebRTC || !callAudio) return;
   callKitAudio(true);
   toldWebRTC = true;
+  // If the microphone couldn't open while the phone was locked, now it can (already on: nothing changes)
+  setMuted(voice.room, false);
 };
 
 // The call ends: she hung up (CallKit), or the family member left the room (then the call screen goes too)
@@ -59,14 +61,19 @@ const hangUpVoice = async (uuid: string, otherLeft = false) => {
 const answerVoice = async (uuid: string) => {
   voice = { uuid, room: null };
   try {
-    const room = await connectRoom(await joinCall(uuid), (here) => {
-      if (!here) hangUpVoice(uuid, true);
+    const joined = await joinCall(uuid).catch((e) => {
+      console.warn('voice: join failed', e?.status);
+      throw e;
     });
+    const room = await connectRoom(joined, (here) => {
+      if (!here) hangUpVoice(uuid, true);
+    }, true);
     // She hung up while it was connecting
     if (voice?.uuid !== uuid) return leaveRoom(room);
     voice.room = room;
     audioOn();
-  } catch {
+  } catch (e) {
+    console.warn('voice: answer failed', e);
     // Too late (the family gave up) or no network: the call screen goes
     voice = null;
     RNCallKeep.endCall(uuid);

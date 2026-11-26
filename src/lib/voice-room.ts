@@ -11,7 +11,7 @@ const unsupported = () => Promise.reject(Object.assign(new Error('voice-call'), 
 export const startCall = (): Promise<Joined & { call_id: string }> => unsupported();
 export const joinCall = (_callId: string): Promise<Joined> => unsupported();
 export const endCall = async (_callId: string) => null;
-export const connectRoom = (_joined: Joined, _onOther: (here: boolean) => void): Promise<Room> => unsupported();
+export const connectRoom = (_joined: Joined, _onOther: (here: boolean) => void, _callKit = false): Promise<Room> => unsupported();
 export const leaveRoom = async (_room: Room | null) => {};
 export const otherLevel = (_room: Room | null) => 0;
 export const setMuted = async (_room: Room | null, _muted: boolean) => {};
