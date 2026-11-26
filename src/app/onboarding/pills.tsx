@@ -1,29 +1,21 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 
 import { BigButton } from '@/components/big-button';
-import { MultiChoiceChips } from '@/components/choice-chips';
 import { OnboardingStep } from '@/components/onboarding-step';
+import { PressScale } from '@/components/press-scale';
 import { TextField } from '@/components/text-field';
+import { WheelPicker } from '@/components/wheel-picker';
 import { t } from '@/i18n';
 import { supabase } from '@/lib/supabase';
-import { hhmm } from '@/lib/time';
 import { colors, family, fontWeight } from '@/theme';
 
-const TIMES = [
-  { value: '08:00', label: '8:00' },
-  { value: '09:00', label: '9:00' },
-  { value: '13:00', label: '13:00' },
-  { value: '14:00', label: '14:00' },
-  { value: '20:00', label: '20:00' },
-  { value: '21:00', label: '21:00' },
-  { value: '22:00', label: '22:00' },
-] as const;
+// The wheels: any hour of her day, in quarters
+const HOURS = Array.from({ length: 19 }, (_, i) => String(i + 5).padStart(2, '0')).map((h) => ({ value: h, label: h }));
+const MINUTES = ['00', '15', '30', '45'].map((m) => ({ value: m, label: m }));
 
-/** The chip that opens the phone's time picker, for any other time */
-const OTHER = 'other';
 /** medications.times allows up to 8 */
 const MAX_TIMES = 8;
 type Medication = { id: string; name: string; times: string[] };
@@ -41,9 +33,11 @@ export default function PillsStep() {
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [pills, setPills] = useState<Medication[]>([]);
   const [name, setName] = useState('');
+  const reduce = useReducedMotion();
   const [times, setTimes] = useState<string[]>(['09:00']);
-  // iPhone: the time wheel shows under the chips until "Add this time"
-  const [picking, setPicking] = useState<Date | null>(null);
+  // The wheels: the time to add next
+  const [hour, setHour] = useState('21');
+  const [minute, setMinute] = useState('00');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const canAdd = name.trim().length > 0 && times.length > 0 && familyId !== null && !saving;
@@ -84,35 +78,13 @@ export default function PillsStep() {
     setTimes(['09:00']);
   };
 
-  const addTime = (d: Date) => {
-    const v = hhmm(d);
-    setTimes((ts) => (ts.includes(v) || ts.length >= MAX_TIMES ? ts : [...ts, v]));
+  // The time on the wheels joins the list (in order, once)
+  const addTime = () => {
+    const v = `${hour}:${minute}`;
+    setTimes((ts) => (ts.includes(v) || ts.length >= MAX_TIMES ? ts : [...ts, v].sort()));
   };
-
-  const pickOther = () => {
-    const start = new Date();
-    start.setHours(10, 0, 0, 0);
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: start,
-        mode: 'time',
-        is24Hour: true,
-        onChange: (e, d) => e.type === 'set' && d && addTime(d),
-      });
-    } else setPicking(start);
-  };
-
-  // The usual times plus the ones picked by hand, in order, and "Other time" last (not on the web: no picker there)
-  const options = [
-    ...[...TIMES, ...times.filter((v) => !TIMES.some((o) => o.value === v)).map((v) => ({ value: v, label: showTime(v) }))].sort(
-      (a, b) => a.value.localeCompare(b.value),
-    ),
-    ...(Platform.OS === 'web' ? [] : [{ value: OTHER, label: t.pillsStep.otherTime }]),
-  ];
-  const changeTimes = (v: string[]) => {
-    if (v.includes(OTHER)) pickOther();
-    setTimes(v.filter((x) => x !== OTHER));
-  };
+  const dropTime = (v: string) => setTimes((ts) => ts.filter((x) => x !== v));
+  const layout = reduce ? undefined : LinearTransition.springify().damping(16);
 
   const remove = async (id: string) => {
     setError(null);
@@ -172,26 +144,30 @@ export default function PillsStep() {
         returnKeyType="done"
       />
       <Text style={styles.label}>{t.pillsStep.timeLabel}</Text>
-      <MultiChoiceChips label={t.pillsStep.timesA11y} options={options} value={times} onChange={changeTimes} />
-      {picking ? (
-        <>
-          <DateTimePicker
-            value={picking}
-            mode="time"
-            display="spinner"
-            themeVariant="light"
-            onChange={(_, d) => d && setPicking(d)}
-          />
-          <BigButton
-            scale="family"
-            label={t.pillsStep.addTime}
-            onPress={() => {
-              addTime(picking);
-              setPicking(null);
-            }}
-          />
-        </>
-      ) : null}
+      {/* The times so far, as capsules: tap one to take it off */}
+      <Animated.View layout={layout} style={styles.caps} accessibilityLabel={t.pillsStep.timesA11y}>
+        {times.map((v) => (
+          <Animated.View key={v} layout={layout} entering={reduce ? undefined : FadeIn.springify().damping(14)} exiting={reduce ? undefined : FadeOut.duration(140)}>
+            <PressScale onPress={() => dropTime(v)} accessibilityRole="button" accessibilityLabel={t.pillsStep.removeTime(showTime(v))} style={styles.cap}>
+              <Text style={styles.capText}>{showTime(v)}</Text>
+              <Text style={styles.capX}>✕</Text>
+            </PressScale>
+          </Animated.View>
+        ))}
+      </Animated.View>
+      {/* The wheels, and the button that adds their time */}
+      <View style={styles.wheels}>
+        <View style={styles.wheel}>
+          <WheelPicker options={HOURS} value={hour} onChange={setHour} label={t.visits.hour} itemHeight={52} fontSize={30} />
+        </View>
+        <Text style={styles.colon}>:</Text>
+        <View style={styles.wheel}>
+          <WheelPicker options={MINUTES} value={minute} onChange={setMinute} label={t.visits.minute} itemHeight={52} fontSize={30} />
+        </View>
+        <PressScale onPress={addTime} accessibilityRole="button" accessibilityLabel={`${t.pillsStep.addTime}: ${showTime(`${hour}:${minute}`)}`} style={[styles.addTime, times.length >= MAX_TIMES && styles.addTimeOff]}>
+          <Text style={styles.addTimeText}>+</Text>
+        </PressScale>
+      </View>
       <Text style={styles.note}>{from === 'settings' ? t.pillsStep.everyDay : t.pillsStep.everyDayLater}</Text>
 
       <BigButton
@@ -234,6 +210,16 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textDecorationLine: 'underline',
   },
+  caps: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  cap: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 18, paddingRight: 14, borderRadius: 22, backgroundColor: colors.ink },
+  capText: { fontSize: 18, fontWeight: fontWeight.bold, color: colors.onAccent, fontVariant: ['tabular-nums'] },
+  capX: { fontSize: 12, fontWeight: fontWeight.bold, color: 'rgba(255,255,255,0.55)' },
+  wheels: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  wheel: { flex: 1 },
+  colon: { fontSize: 30, fontWeight: fontWeight.bold, color: colors.ink, marginBottom: 4 },
+  addTime: { width: 56, height: 56, marginLeft: 8, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
+  addTimeOff: { opacity: 0.3 },
+  addTimeText: { fontSize: 28, lineHeight: 30, fontWeight: fontWeight.bold, color: colors.onAccent },
   label: {
     fontSize: family.fontSize.note,
     fontWeight: fontWeight.semibold,

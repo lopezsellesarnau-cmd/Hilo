@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeIn, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,25 +10,58 @@ import { PressScale } from '@/components/press-scale';
 import { loadTodayDoses } from '@/components/today-pills';
 import { type WeightPoint } from '@/components/weight-chart';
 import { WideFrame } from '@/components/wide-split';
-import { t } from '@/i18n';
+import { dateLocale, t } from '@/i18n';
+import { cachedDocs } from '@/lib/documents';
 import { supabase } from '@/lib/supabase';
 import { showTime, type Dose } from '@/lib/time';
-import { loadVisits, visitDay, type Visit } from '@/lib/visits';
+import { loadVisits, visitDay, visitWhen, type Visit } from '@/lib/visits';
 import { colors, fontWeight } from '@/theme';
 
 /**
- * Salud (v2): the folder for her health. A grid that opens like the StackD Image accordion:
- * press a block and it takes its row, the row grows, the other row folds down to one line.
- * Pills and weight are real; documents and visits come next (see the vault plan).
+ * Salud (v2, frame "3 · Health"): the folder for her health. A grid that opens like the StackD Image accordion:
+ * press a block and it takes its row, the row grows, the other row folds down to one line. Inside, a short
+ * look (today's pills, the weight line, the last documents, the next visit) and an arrow to its own page.
  */
 
-type Senior = { id: string; family_id: string; timezone: string };
+type Senior = { id: string; family_id: string; timezone: string; display_name: string };
+
+/** The weight line, small: the last points, oldest on the left */
+function Spark({ points, width = 280, height = 70 }: { points: number[]; width?: number; height?: number }) {
+  if (points.length < 2) return null;
+  const lo = Math.min(...points) - 0.3;
+  const hi = Math.max(...points) + 0.3;
+  const xy = points.map((v, i) => [4 + (i / (points.length - 1)) * (width - 8), 6 + (height - 12) * (1 - (v - lo) / (hi - lo))] as const);
+  const d = xy.map(([x, y], i) => (i ? `C${(xy[i - 1][0] + x) / 2} ${xy[i - 1][1]} ${(xy[i - 1][0] + x) / 2} ${y} ${x} ${y}` : `M${x} ${y}`)).join(' ');
+  return (
+    <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+      <Path d={d} fill="none" stroke={colors.ink} strokeWidth={4} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** A line in an open block: bold first line, quiet second */
+function Line({ a, b, dark, right }: { a: string; b: string; dark?: boolean; right?: ReactNode }) {
+  return (
+    <View style={[styles.line, dark && styles.lineDark]}>
+      <View style={styles.lineText}>
+        <Text style={[styles.lineA, dark && styles.onInk]} numberOfLines={1}>
+          {a}
+        </Text>
+        <Text style={[styles.lineB, dark && styles.lineBDark]} numberOfLines={1}>
+          {b}
+        </Text>
+      </View>
+      {right}
+    </View>
+  );
+}
 type BlockId = 'pills' | 'weight' | 'docs' | 'visits';
 
 export default function HealthScreen() {
   const text = t.health;
   const reduce = useReducedMotion();
-  const [, setSenior] = useState<Senior | null>(null);
+  const [senior, setSenior] = useState<Senior | null>(null);
+  const [docCount, setDocCount] = useState<number | null>(null);
   const [doses, setDoses] = useState<Dose[] | null>(null);
   const [weights, setWeights] = useState<WeightPoint[]>([]);
   const [visits, setVisits] = useState<Visit[] | null>(null);
@@ -35,11 +69,16 @@ export default function HealthScreen() {
   const [open, setOpen] = useState<BlockId | null>(null);
 
   const load = useCallback(async () => {
-    const { data: s } = await supabase.from('people').select('id, family_id, timezone').eq('role', 'senior').limit(1).maybeSingle();
+    const { data: s } = await supabase.from('people').select('id, family_id, timezone, display_name').eq('role', 'senior').limit(1).maybeSingle();
     if (!s) return;
     setSenior(s as Senior);
     setTz(s.timezone);
     loadVisits(s.id).then(setVisits).catch(() => {});
+    // How many documents (the server can count them; it can't read them)
+    supabase
+      .from('documents')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count }) => setDocCount(count ?? 0));
     const [d, { data: w }] = await Promise.all([
       loadTodayDoses(s.id, s.timezone).catch(() => null),
       supabase.from('weights').select('kg, measured_at').eq('person_id', s.id).order('measured_at', { ascending: false }).limit(400),
@@ -57,8 +96,18 @@ export default function HealthScreen() {
 
   const taken = doses?.filter((d) => d.takenAt).length ?? 0;
   const last = weights[0];
+  // The weight over the three months before the last weighing, oldest first
+  const recent = last ? weights.filter((w) => Date.parse(w.at) > Date.parse(last.at) - 92 * 86_400_000).reverse() : [];
+  const delta = recent.length >= 2 ? recent[recent.length - 1].kg - recent[0].kg : null;
+  const opened = cachedDocs().slice(0, 3); // only if the folder is open on this phone
+  const next = visits?.[0];
+  const go = (label: string, onPress: () => void, dark?: boolean) => (
+    <PressScale onPress={onPress} accessibilityRole="button" style={[styles.go, dark && styles.goDark]}>
+      <Text style={[styles.goText, dark && styles.goTextDark]}>{label} →</Text>
+    </PressScale>
+  );
 
-  const blocks: Record<BlockId, { small: string; big: string; dark?: boolean; soon?: boolean; detail?: ReactNode; go?: () => void }> = {
+  const blocks: Record<BlockId, { small: string; big: string; dark?: boolean; soon?: boolean; detail?: ReactNode; more?: ReactNode }> = {
     pills: {
       small: text.pills,
       big: doses?.length ? `${taken}/${doses.length}` : '–',
@@ -78,19 +127,55 @@ export default function HealthScreen() {
       ) : (
         <Text style={[styles.doseTime, styles.pad]}>{text.pillsNone}</Text>
       ),
+      more: senior
+        ? go(text.editPills, () => router.push({ pathname: '/onboarding/pills', params: { seniorId: senior.id, seniorName: senior.display_name, from: 'today' } }), true)
+        : undefined,
     },
     weight: {
       small: text.weight,
       big: last ? String(last.kg).replace('.', ',') : '–',
-      // its own white page, like the frame "6 · Weight"
-      go: () => router.push('/weight'),
+      detail: (
+        <>
+          <Spark points={recent.map((w) => w.kg)} />
+          {delta !== null ? (
+            <Line
+              a={text.since(`${delta > 0 ? '+' : delta < 0 ? '−' : '±'}${Math.abs(delta).toFixed(1).replace('.', ',')}`, new Date(recent[0].at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' }))}
+              b={last ? `${String(last.kg).replace('.', ',')} kg · ${new Date(last.at).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}` : ''}
+            />
+          ) : (
+            <Text style={[styles.lineB, styles.pad]}>{text.weightEmpty}</Text>
+          )}
+        </>
+      ),
+      // the tape and the full chart: its own white page, like the frame "6 · Weight"
+      more: go(text.weigh, () => router.push('/weight')),
     },
-    docs: { small: text.docs, big: '–', go: () => router.push('/documents') },
+    docs: {
+      small: text.docs,
+      big: docCount === null ? '' : String(docCount),
+      detail: opened.length ? (
+        opened.map((d) => <Line key={d.id} a={d.meta.title} b={new Date(d.meta.date ? `${d.meta.date}T12:00:00` : d.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })} />)
+      ) : (
+        <Text style={[styles.lineB, styles.pad]}>{docCount ? text.docsLocked : text.docsNone}</Text>
+      ),
+      more: go(text.openDocs, () => router.push('/documents')),
+    },
     visits: {
       small: text.visits,
-      big: visits?.[0] ? visitDay(visits[0].startsAt, tz) : visits ? '–' : '',
-      // its own page: the list and the form with the wheels
-      go: () => router.push('/visits'),
+      big: next ? visitDay(next.startsAt, tz) : visits ? '–' : '',
+      detail: next ? (
+        <>
+          <Text style={styles.visitWhat} numberOfLines={2}>
+            {next.title}
+          </Text>
+          <Text style={styles.lineB}>{[visitWhen(next.startsAt, tz), next.place].filter(Boolean).join(' · ')}</Text>
+          {visits && visits.length > 1 ? <Line a={visits[1].title} b={visitWhen(visits[1].startsAt, tz)} /> : null}
+        </>
+      ) : (
+        <Text style={[styles.lineB, styles.pad]}>{t.visits.none}</Text>
+      ),
+      // the list and the form with the wheels
+      more: go(text.allVisits, () => router.push('/visits')),
     },
   };
   const ROWS: BlockId[][] = [
@@ -137,10 +222,15 @@ export default function HealthScreen() {
                             <Animated.View entering={reduce ? undefined : FadeIn.delay(120).duration(220)} style={styles.detail}>
                               {b.detail}
                             </Animated.View>
+                            {b.more ? (
+                              <Animated.View entering={reduce ? undefined : FadeIn.delay(220).duration(220)} style={styles.more}>
+                                {b.more}
+                              </Animated.View>
+                            ) : null}
                           </View>
                         ) : (
                           <PressScale
-                            onPress={b.soon ? undefined : b.go ?? (() => setOpen(id))}
+                            onPress={b.soon ? undefined : () => setOpen(id)}
                             disabled={b.soon}
                             accessibilityRole="button"
                             accessibilityLabel={`${b.small}: ${b.big}`}
@@ -183,7 +273,7 @@ const styles = StyleSheet.create({
   cell: { flex: 1 },
   block: { minHeight: 178, borderRadius: 30, padding: 20, justifyContent: 'space-between', backgroundColor: colors.surface },
   blockFold: { minHeight: 72, paddingVertical: 0, justifyContent: 'center' },
-  blockOpen: { justifyContent: 'flex-start' },
+  blockOpen: { minHeight: 340, justifyContent: 'flex-start' },
   dark: { backgroundColor: colors.ink },
   foldLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   small: { fontSize: 15, fontWeight: fontWeight.semibold, color: colors.muted },
@@ -194,6 +284,18 @@ const styles = StyleSheet.create({
   soon: { marginTop: 70, fontSize: 22, fontWeight: fontWeight.bold, letterSpacing: -0.5, color: 'rgba(0,0,0,0.25)' },
   detail: { marginTop: 14 },
   pad: { paddingVertical: 12 },
+  more: { marginTop: 'auto', paddingTop: 16 },
+  go: { alignSelf: 'flex-start', height: 44, borderRadius: 22, paddingHorizontal: 18, justifyContent: 'center', backgroundColor: colors.ink },
+  goDark: { backgroundColor: colors.onAccent },
+  goText: { fontSize: 16, fontWeight: fontWeight.bold, color: colors.onAccent },
+  goTextDark: { color: colors.ink },
+  line: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(0,0,0,0.12)' },
+  lineDark: { borderTopColor: 'rgba(255,255,255,0.18)' },
+  lineText: { flex: 1, paddingRight: 12 },
+  lineA: { fontSize: 19, fontWeight: fontWeight.bold, letterSpacing: -0.4, color: colors.ink },
+  lineB: { marginTop: 2, fontSize: 15, fontWeight: fontWeight.semibold, color: colors.muted },
+  lineBDark: { color: 'rgba(255,255,255,0.55)' },
+  visitWhat: { fontSize: 30, lineHeight: 33, fontWeight: fontWeight.bold, letterSpacing: -1, color: colors.ink, marginBottom: 6 },
   doseRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(255,255,255,0.18)' },
   doseText: { flex: 1, paddingRight: 12 },
   doseName: { fontSize: 22, fontWeight: fontWeight.bold, letterSpacing: -0.6 },

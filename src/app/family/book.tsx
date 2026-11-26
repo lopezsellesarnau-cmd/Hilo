@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
@@ -8,7 +9,7 @@ import { chapterShape } from '@/components/chapter-card';
 import { LiveBot } from '@/components/live-bot';
 import { RecordFlow, TRAY, type FlowItem } from '@/components/record-flow';
 import { dateLocale, t } from '@/i18n';
-import { loadFamilyBook, type Draft } from '@/lib/book';
+import { loadFamilyBook, photoLinks, type Draft } from '@/lib/book';
 import { colors, fontWeight } from '@/theme';
 
 const text = t.familyBook;
@@ -21,9 +22,10 @@ const LIGHT = new Set(TONES);
 /** '2026-10-14T…' → '14 oct' */
 const day = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' });
 
-/** A chapter's cover: its Bot shape, big and calm, on a quiet tone */
-function Cover({ index }: { index: number }) {
+/** A chapter's cover: its first photo, or else its Bot shape, big and calm, on a quiet tone */
+function Cover({ index, photo }: { index: number; photo?: string }) {
   const tone = TONES[index % TONES.length];
+  if (photo) return <Image source={{ uri: photo }} style={[StyleSheet.absoluteFill, { backgroundColor: tone }]} contentFit="cover" transition={200} />;
   const light = LIGHT.has(tone);
   return (
     <View style={[styles.cover, { backgroundColor: tone }]}>
@@ -39,6 +41,20 @@ function Cover({ index }: { index: number }) {
  */
 export default function FamilyBookScreen() {
   const [book, setBook] = useState<Awaited<ReturnType<typeof loadFamilyBook>> | null>(null);
+  // Short-lived links to each story's first photo (private bucket), for the covers
+  const [covers, setCovers] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!book || !('chapters' in book)) return;
+    const firsts = book.chapters.map((c) => c.photos[0]).filter(Boolean);
+    let live = true;
+    photoLinks(firsts)
+      .then((links) => live && setCovers(links))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [book]);
 
   useEffect(() => {
     loadFamilyBook().then(setBook);
@@ -71,7 +87,7 @@ export default function FamilyBookScreen() {
     title: c.title,
     sub: day(c.createdAt),
     badge: c.status === 'draft' ? t.familyBook.newBadge : undefined,
-    cover: <Cover index={i} />,
+    cover: <Cover index={i} photo={c.photos[0] ? covers[c.photos[0]] : undefined} />,
   }));
 
   return (

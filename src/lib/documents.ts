@@ -56,6 +56,7 @@ function familyKey() {
 // The list, open in memory (so the viewer finds a document without fetching it again)
 let cache: Doc[] = [];
 export const cachedDoc = (id: string) => cache.find((d) => d.id === id);
+export const cachedDocs = () => cache;
 
 /** The family's documents, newest first, opened on this phone */
 export async function listDocuments(): Promise<Doc[]> {
