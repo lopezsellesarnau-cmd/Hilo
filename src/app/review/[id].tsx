@@ -148,6 +148,10 @@ export default function ReviewScreen() {
           <Pressable onPress={() => router.back()} accessibilityRole="button" hitSlop={12} style={styles.back}>
             <Text style={styles.backText}>‹ {t.familyBook.tab}</Text>
           </Pressable>
+          {/* Development only: say clearly that the sample saves nothing */}
+          {__DEV__ && id.startsWith('sample') ? (
+            <Text style={styles.sample}>Sample story (development only): photos and &quot;Add to book&quot; are not saved.</Text>
+          ) : null}
 
           {draft ? <Text style={styles.big}>{text.checkTitle}</Text> : null}
           <Text style={[styles.title, draft && styles.titleSmall]} accessibilityRole="header">
@@ -272,6 +276,7 @@ export default function ReviewScreen() {
 }
 
 const styles = StyleSheet.create({
+  sample: { marginTop: 12, padding: 14, borderRadius: 16, overflow: 'hidden', fontSize: 14, lineHeight: 20, fontWeight: '600', color: '#fff', backgroundColor: '#c0392b' },
   safe: { flex: 1, backgroundColor: colors.background },
   pad: { padding: 24 },
   screen: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 56 },
