@@ -85,7 +85,7 @@ export default function HealthScreen() {
       // its own white page, like the frame "6 · Weight"
       go: () => router.push('/weight'),
     },
-    docs: { small: text.docs, big: text.soon, soon: true },
+    docs: { small: text.docs, big: '–', go: () => router.push('/documents') },
     visits: {
       small: text.visits,
       big: visits?.[0] ? visitDay(visits[0].startsAt, tz) : visits ? '–' : '',
