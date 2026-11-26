@@ -2,6 +2,7 @@ import { isAuthApiError } from '@supabase/supabase-js';
 import type { Href } from 'expo-router';
 
 import { missing } from '@/lib/found';
+import { CONSENT_VERSION, ORG_CONSENT_VERSION } from '@/lib/consent';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -66,6 +67,8 @@ export async function startRoute(): Promise<Href | null> {
       .from('consents')
       .select('id', { count: 'exact', head: true })
       .eq('person_id', found.data.id)
+      // Only the current text counts: a new one is shown once more before Home
+      .in('version', [CONSENT_VERSION, ORG_CONSENT_VERSION])
       .is('revoked_at', null);
     return count || error ? '/home' : { pathname: '/consent', params: { personId: found.data.id } };
   }

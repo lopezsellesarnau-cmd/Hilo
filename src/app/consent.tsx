@@ -8,18 +8,12 @@ import { LiveBot } from '@/components/live-bot';
 import { ScreenHeader } from '@/components/screen-header';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
+import { CONSENT_VERSION, ORG_CONSENT_VERSION } from '@/lib/consent';
 import { useWide } from '@/lib/layout';
 import { askForReminders } from '@/lib/reminders';
 import { supabase } from '@/lib/supabase';
 import { colors, fontSize, fontWeight, spacing } from '@/theme';
 
-/** Bump when the text below changes, so people accept the new version. */
-// v2 (20 oct): one sentence for the family about what she talked about
-// v3 (30 oct): her voice is never kept (it said it was); the talks' text is deleted after 90 days
-// v4 (10 nov): messages she asks Hilo to send, and the alert to her family after a fall or feeling unwell (org-v2 too)
-const CONSENT_VERSION = '2026-11-v4';
-// When an organisation signed her up: a text of its own, so its version is recorded apart
-const ORG_CONSENT_VERSION = '2026-11-org-v2';
 const KINDS = ['terms', 'voice_recording', 'life_story', 'health_data'] as const;
 
 /**
@@ -37,10 +31,17 @@ export default function ConsentScreen() {
   const [error, setError] = useState<string | null>(null);
   // undefined while loading, null for a family without an organisation
   const [org, setOrg] = useState<string | null | undefined>(undefined);
+  // She had said yes to an older text: after this one, straight back Home (her Hilo is already chosen)
+  const [again, setAgain] = useState(false);
 
   useEffect(() => {
+    supabase
+      .from('consents')
+      .select('id', { count: 'exact', head: true })
+      .eq('person_id', personId)
+      .then(({ count }) => setAgain(Boolean(count)));
     supabase.rpc('my_organisation_name').then(({ data, error: e }) => setOrg(e ? undefined : ((data as string | null) ?? null)));
-  }, []);
+  }, [personId]);
 
   const points = org ? t.consent.orgPoints(org) : t.consent.points;
 
@@ -84,8 +85,8 @@ export default function ConsentScreen() {
               onPress={async () => {
                 // The screen just promised "Hilo te avisará": ask for notifications now, when it makes sense
                 await askForReminders();
-                // v2: first she picks the shape of her Hilo
-                router.replace('/choose-hilo');
+                // v2: first she picks the shape of her Hilo (not again when she only accepted a new text)
+                router.replace(again ? '/home' : '/choose-hilo');
               }}
             />
           </View>
