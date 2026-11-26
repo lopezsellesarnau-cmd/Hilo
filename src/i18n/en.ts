@@ -79,6 +79,8 @@ export const en: Strings = {
   },
 
   talkStep: {
+    callsTitle: (time: string) => `Hilo calls them at ${time}`,
+    callsHint: "Their phone rings like a call. If they don't answer, Hilo tries again 10 minutes later and lets you know.",
     question: (name: string) => (name ? `What time does ${name} chat?` : 'What time is the chat with Hilo?'),
     hint: 'Every day at that time, Hilo will remind them to chat for a while.',
     timeLabel: 'TIME',

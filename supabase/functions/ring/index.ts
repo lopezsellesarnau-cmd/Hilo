@@ -45,8 +45,9 @@ async function ringPhone(token: string, payload: object): Promise<'sent' | 'gone
         'apns-topic': `${Deno.env.get('APNS_TOPIC') ?? 'com.arnolop.hilo'}.voip`,
         'apns-push-type': 'voip',
         'apns-priority': '10',
-        // A call that couldn't ring now is not delivered later
-        'apns-expiration': '0',
+        // A locked, sleeping phone may be offline for a moment: Apple keeps trying for 30 s, then drops it
+        // (a call that rings minutes late is worse than none). '0' meant "now or never" and lost calls.
+        'apns-expiration': String(Math.floor(Date.now() / 1000) + 30),
       },
       body: JSON.stringify(payload),
     });

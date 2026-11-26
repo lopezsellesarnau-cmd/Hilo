@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import RNCallKeep from 'react-native-callkeep';
 
 import HiloVoip from '../../modules/hilo-voip';
@@ -9,13 +9,34 @@ import { supabase } from '@/lib/supabase';
 /**
  * Hilo rings like a phone call (CallKit): the family presses "Llamar ahora" and her phone rings, even locked.
  * The ring arrives as a VoIP push (modules/hilo-voip); when she answers, the talk opens. iPhone only for now.
+ *
+ * Answering on a locked phone leaves Hilo behind the lock screen. So the call stays "connected" in iOS's call screen
+ * (with its Hilo button) until Hilo comes to the front: only then the call screen goes and the talk opens.
+ * An answer older than RECENT_MS opens nothing: opening Hilo by hand later lands on Home, not on an old talk.
  */
+const RECENT_MS = 2 * 60 * 1000;
+let pending: { uuid: string; at: number } | null = null;
 
-// She answered: the family sees it, and the talk opens
+// Hilo is in front: end the call screen and open the talk, if she answered just now
+const openTalk = () => {
+  if (!pending) return;
+  const { uuid, at } = pending;
+  pending = null;
+  RNCallKeep.endCall(uuid);
+  if (Date.now() - at < RECENT_MS) router.push('/talk');
+};
+
+// She answered: the family sees it; the talk opens now if Hilo is in front, or when she unlocks and opens it
 const answer = (callUUID: string) => {
   supabase.rpc('answer_ring', { ring_id: callUUID });
-  RNCallKeep.endCall(callUUID);
-  router.push('/talk');
+  pending = { uuid: callUUID, at: Date.now() };
+  if (AppState.currentState === 'active') return openTalk();
+  // Never opened: after a while the call screen goes by itself
+  setTimeout(() => {
+    if (pending?.uuid !== callUUID) return;
+    pending = null;
+    RNCallKeep.endCall(callUUID);
+  }, RECENT_MS);
 };
 
 let ready: Promise<void> | null = null;
@@ -26,6 +47,12 @@ const setup = () =>
     android: { alertTitle: '', alertDescription: '', cancelButton: '', okButton: '', additionalPermissions: [] },
   }).then(async () => {
     RNCallKeep.addEventListener('answerCall', ({ callUUID }) => answer(callUUID));
+    // She opened Hilo (the Hilo button on the call screen, or the icon after unlocking)
+    AppState.addEventListener('change', (state) => state === 'active' && openTalk());
+    // She hung up on the call screen before opening Hilo: nothing to open
+    RNCallKeep.addEventListener('endCall', ({ callUUID }) => {
+      if (pending?.uuid === callUUID) pending = null;
+    });
     RNCallKeep.addEventListener('didDisplayIncomingCall', ({ error, errorCode }) => {
       if (error) console.warn('call not shown', errorCode, error);
     });

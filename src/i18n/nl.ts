@@ -83,6 +83,8 @@ export const nl: Strings = {
   },
 
   talkStep: {
+    callsTitle: (time: string) => `Hilo belt om ${time}`,
+    callsHint: 'Hun telefoon gaat over als een gesprek. Nemen ze niet op, dan belt Hilo 10 minuten later nog eens en laat het je weten.',
     question: (name: string) => (name ? `Hoe laat praat ${name} met Hilo?` : 'Hoe laat is het praatje met Hilo?'),
     hint: 'Elke dag op dat tijdstip nodigt Hilo hem of haar uit voor een praatje.',
     timeLabel: 'TIJD',

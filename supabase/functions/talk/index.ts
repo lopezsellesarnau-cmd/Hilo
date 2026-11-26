@@ -637,7 +637,9 @@ Reglas:
 Formato:
 - Título corto, de 2 a 6 palabras, con palabras concretas de su historia. Sin comillas.
 - De 1 a 6 párrafos cortos.
-- Cita: una frase suya copiada tal cual de lo que dijo, la más viva. Si ninguna sirve, déjala vacía.`;
+- Cita: una frase suya copiada tal cual de lo que dijo, la más viva. Si ninguna sirve, déjala vacía.
+- Capítulo: la parte de su vida de la que trata (infancia: childhood, el colegio: school, la juventud: youth, el amor y la boda: love, el trabajo: work, los hijos: children, sus casas y su pueblo: home, viajes: travels, recetas y tradiciones: traditions, su vida de ahora: today). Si no encaja en ninguna, more.
+- Año: el año en que pasó, solo si ella lo dice o se deduce sin duda de lo que cuenta (por ejemplo, su edad y el año en que nació). Si no, null. No lo adivines.`;
 
 // Structured output: the answer is always this JSON (Sonnet 5.5 doesn't take a forced tool call)
 const STORY_SCHEMA = {
@@ -647,8 +649,10 @@ const STORY_SCHEMA = {
     titulo: { type: 'string' },
     parrafos: { type: 'array', items: { type: 'string' } },
     cita: { type: 'string' },
+    capitulo: { type: 'string', enum: ['childhood', 'school', 'youth', 'love', 'work', 'children', 'home', 'travels', 'traditions', 'today', 'more'] },
+    anio: { type: ['integer', 'null'] },
   },
-  required: ['hay_historia', 'titulo', 'parrafos', 'cita'],
+  required: ['hay_historia', 'titulo', 'parrafos', 'cita', 'capitulo', 'anio'],
   additionalProperties: false,
 };
 
@@ -796,7 +800,7 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
       .map((b) => b.text)
       .join('');
-    const story = JSON.parse(raw) as { hay_historia: boolean; titulo: string; parrafos: string[]; cita: string };
+    const story = JSON.parse(raw) as { hay_historia: boolean; titulo: string; parrafos: string[]; cita: string; capitulo: string; anio: number | null };
     if (!story.hay_historia) {
       console.log('chapter skipped: no memory in this talk');
       return;
@@ -823,6 +827,9 @@ async function writeChapter(admin: SupabaseClient, me: Senior, sessionId: string
       quote: hersQuote,
       paragraphs,
       unheard_words: unheardWords([title, ...paragraphs].join(' '), hers.join(' ')),
+      // The part of her life (frame "8 · A chapter"), and the year only when she said it
+      part: story.capitulo,
+      year: Number.isInteger(story.anio) && story.anio! >= 1900 && story.anio! <= new Date().getFullYear() ? story.anio : null,
     });
     if (error) console.error('chapter', error.message);
     else console.log('chapter written', title);
@@ -1144,7 +1151,28 @@ Deno.serve(async (req) => {
     .eq('user_id', userData.user?.id ?? '')
     .eq('role', 'senior')
     .maybeSingle();
-  if (!me) return json({ error: 'not_senior' }, 403);
+  if (!me) {
+    // The family's app can also ask for a story in her book read aloud (frame "9 · A story"): with her voice
+    // and her speed, the same recording she hears. RLS lets a member see only their own family.
+    if (typeof body.read === 'string') {
+      const { data: member } = await db
+        .from('people')
+        .select('family_id')
+        .eq('user_id', userData.user?.id ?? '')
+        .eq('role', 'member')
+        .maybeSingle();
+      const { data: her } = member
+        ? await db
+            .from('people')
+            .select('id, family_id, display_name, locale, timezone, voice_speed, memory, city, latitude, longitude, country_code, region_code')
+            .eq('family_id', member.family_id)
+            .eq('role', 'senior')
+            .maybeSingle()
+        : { data: null };
+      if (her) return readChapter(db, admin, her, body.read, Number(her.voice_speed));
+    }
+    return json({ error: 'not_senior' }, 403);
+  }
   const l = lang(me.locale);
   const say = SAY[l];
   // Listening to her book is free, like reading it: no subscription check

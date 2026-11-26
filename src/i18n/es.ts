@@ -83,6 +83,8 @@ export const es = {
   },
 
   talkStep: {
+    callsTitle: (time: string) => `Hilo le llama a las ${time}`,
+    callsHint: 'Su móvil suena como una llamada. Si no contesta, Hilo vuelve a llamar a los 10 minutos y te avisa.',
     question: (name: string) => `¿A qué hora charla ${name || 'con Hilo'}?`,
     hint: 'Cada día a esa hora, Hilo le avisará para charlar un rato.',
     timeLabel: 'HORA',

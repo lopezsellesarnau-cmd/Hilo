@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { BigButton } from '@/components/big-button';
 import { OnboardingStep } from '@/components/onboarding-step';
@@ -46,6 +46,8 @@ export default function TalkStep() {
   const editing = from === 'settings';
   const [time, setTime] = useState<Time>('10:00');
   const [language, setLanguage] = useState<Language>('es');
+  // Hilo rings her at this time, like a call (on unless the family turned it off)
+  const [calls, setCalls] = useState(true);
   // Her town: typed by the family, looked up once, saved with its coordinates for the weather
   const [town, setTown] = useState('');
   const [place, setPlace] = useState<Place | null>(null);
@@ -57,7 +59,7 @@ export default function TalkStep() {
     if (!editing) return;
     supabase
       .from('people')
-      .select('talk_time, locale, city, latitude, longitude, country_code, region_code')
+      .select('talk_time, locale, city, latitude, longitude, country_code, region_code, hilo_calls')
       .eq('id', seniorId)
       .single()
       .then(({ data }) => {
@@ -65,6 +67,7 @@ export default function TalkStep() {
         if (saved) setTime(saved.value);
         const savedLang = LANGUAGES.find((l) => l.value === data?.locale);
         if (savedLang) setLanguage(savedLang.value);
+        if (data && data.hilo_calls === false) setCalls(false);
         if (data?.city && data.latitude != null && data.longitude != null && data.country_code) {
           setTown(data.city);
           setPlace({
@@ -119,8 +122,8 @@ export default function TalkStep() {
       .from('people')
       .update(
         editing
-          ? { talk_time: time, locale: language, ...where }
-          : { talk_time: time, locale: language, timezone: deviceTimezone, ...where },
+          ? { talk_time: time, locale: language, hilo_calls: calls, ...where }
+          : { talk_time: time, locale: language, hilo_calls: calls, timezone: deviceTimezone, ...where },
       )
       .eq('id', seniorId);
     setSaving(false);
@@ -152,6 +155,14 @@ export default function TalkStep() {
       <Text style={styles.label}>{t.talkStep.timeLabel}</Text>
       <WheelPicker label={t.talkStep.timeA11y} options={TIMES} value={time} onChange={setTime} />
       {editing ? null : <Text style={styles.note}>{t.talkStep.timezone(deviceTimezone)}</Text>}
+      {/* At that time Hilo rings her like a phone call; no answer: once more 10 min later, then the family hears */}
+      <View style={styles.callRow}>
+        <View style={styles.callText}>
+          <Text style={styles.callTitle}>{t.talkStep.callsTitle(time.replace(/^0/, ''))}</Text>
+          <Text style={styles.note}>{t.talkStep.callsHint}</Text>
+        </View>
+        <Switch value={calls} onValueChange={setCalls} trackColor={{ true: colors.ink }} accessibilityLabel={t.talkStep.callsTitle(time.replace(/^0/, ''))} />
+      </View>
 
       <Text style={[styles.label, styles.spaced]}>{t.talkStep.langLabel}</Text>
       <WheelPicker label={t.talkStep.langA11y} options={LANGUAGES} value={language} onChange={setLanguage} />
@@ -193,6 +204,9 @@ const styles = StyleSheet.create({
     color: colors.muted,
     letterSpacing: 0.5,
   },
+  callRow: { marginTop: 14, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 24, backgroundColor: colors.surface },
+  callText: { flex: 1, gap: 4 },
+  callTitle: { fontSize: 17, fontWeight: fontWeight.bold, color: colors.ink },
   spaced: {
     marginTop: 18,
   },

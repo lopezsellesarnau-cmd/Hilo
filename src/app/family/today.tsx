@@ -184,13 +184,14 @@ export default function TodayScreen() {
                   <Text style={v2.nameText} numberOfLines={1}>{senior.display_name}</Text>
                 </View>
               ) : null}
-              {canCall && senior ? (
+              {/* Always there: without her phone connected yet, it says so instead of hiding */}
+              {senior ? (
                 <PressScale
-                  onPress={ringing ? undefined : callNow}
+                  onPress={ringing ? undefined : canCall ? callNow : () => setRing('noPhone')}
                   accessibilityRole="button"
                   accessibilityLabel={text.ring(senior.display_name)}
                   accessibilityHint={text.ringHint}
-                  style={[v2.call, ringing && v2.callOff]}>
+                  style={[v2.call, (ringing || !canCall) && v2.callOff]}>
                   <PhoneIcon size={16} color={colors.onAccent} />
                   <Text style={v2.callText}>{text.call}</Text>
                 </PressScale>
