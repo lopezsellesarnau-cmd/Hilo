@@ -16,6 +16,7 @@ import Animated, {
 import Svg, { ClipPath, Defs, G, Path, Rect } from 'react-native-svg';
 
 import { t } from '@/i18n';
+import { useHiloShape } from '@/lib/hilo-shape';
 import { colors } from '@/theme';
 
 /**
@@ -86,7 +87,7 @@ type Props = {
   voice?: SharedValue<number>;
   /** 'stackd': tall capsule eyes like the StackD Bot, a bit bigger (default). 'thread': Hilo's round eyes joined by a thread. */
   face?: Face;
-  /** The body, from the StackD Bot: hexagon by default, like the app icon (the book gives each chapter its own). The thread face is circle only. */
+  /** The body, from the StackD Bot. Default: the shape she chose for her Hilo (hexagon until then, like the app icon); the book gives each chapter its own. The thread face is circle only. */
   shape?: BotShape;
   /** Body and eye colours (default: black body, white eyes). */
   color?: string;
@@ -209,10 +210,13 @@ export function LiveBot({
   face = 'stackd',
   voice,
   cursor = false,
-  shape = 'hexagon',
+  shape: shapeProp,
   color = colors.ink,
   eyeColor = colors.background,
 }: Props) {
+  // her Hilo's shape (chosen on her phone) unless a shape is given, e.g. a chapter's
+  const hers = useHiloShape();
+  const shape = shapeProp ?? hers;
   const body = SHAPES[face === 'thread' ? 'circle' : shape];
   // One clip per bot: several shapes can share a screen (the chapters of the book)
   const clip = `bot-${useId().replace(/:/g, '')}`;

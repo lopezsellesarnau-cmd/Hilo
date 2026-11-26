@@ -430,6 +430,14 @@ export const es = {
     deleteSure: '¿Borrar?',
     deleted: 'Cita borrada',
   },
+  chooseHilo: {
+    title: 'Elige\ntu Hilo.',
+    titleFamily: 'Su Hilo.',
+    hint: 'Gíralo. Puedes cambiarlo cuando quieras.',
+    ok: 'Este',
+    a11y: 'Forma de Hilo',
+    names: { hexagon: 'Hexágono', circle: 'Círculo', squircle: 'Cuadrado', pill: 'Píldora', arch: 'Arco', drop: 'Gota', triangle: 'Triángulo', cloud: 'Nube', clover: 'Trébol' },
+  },
   familyBook: {
     tab: 'Libro',
     title: 'Libro',
@@ -516,6 +524,7 @@ export const es = {
   },
 
   settings: {
+    hiloShape: 'Forma de Hilo',
     title: 'Ajustes',
     talk: 'La charla',
     noTime: 'Sin hora',

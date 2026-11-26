@@ -1,6 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
+
+import { loadHiloShape } from '@/lib/hilo-shape';
 import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,6 +33,8 @@ export default function WelcomeScreen() {
     startRoute()
       .then((route) => {
         if (!route) return setChecking(false);
+        // her Hilo's shape, for every Bot from here on
+        loadHiloShape().catch(() => {});
         router.replace(route);
         // Hilo was opened by tapping a reminder: go on to the talk or the pills
         const last = Notifications.getLastNotificationResponse();

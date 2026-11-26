@@ -9,6 +9,7 @@ import { ListRow } from '@/components/list-row';
 import { WideFrame } from '@/components/wide-split';
 import { t } from '@/i18n';
 import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
+import { useHiloShape } from '@/lib/hilo-shape';
 import { forgetFamilyPush } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import { colors, family, fontWeight, spacing } from '@/theme';
@@ -51,6 +52,7 @@ function Row({ label, onPress, last = false }: { label: string; onPress: () => v
 
 /** Family settings: the senior's talk, pills and phone, then account, subscription and legal. */
 export default function SettingsScreen() {
+  const shape = useHiloShape();
   const [email, setEmail] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -155,6 +157,11 @@ export default function SettingsScreen() {
                 title={text.pills}
                 detail={text.pillsValue(senior.medications[0]?.count ?? 0)}
                 onPress={() => edit('/onboarding/pills')}
+              />
+              <ListRow
+                title={text.hiloShape}
+                detail={t.chooseHilo.names[shape]}
+                onPress={() => router.push({ pathname: '/choose-hilo', params: { from: 'settings', seniorId: senior.id } })}
               />
               <ListRow
                 title={text.memory}

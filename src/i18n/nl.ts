@@ -427,6 +427,14 @@ export const nl: Strings = {
     deleteSure: 'Verwijderen?',
     deleted: 'Afspraak verwijderd',
   },
+  chooseHilo: {
+    title: 'Kies\njouw Hilo.',
+    titleFamily: 'Hun Hilo.',
+    hint: 'Draai eraan. Je kunt het altijd veranderen.',
+    ok: 'Deze',
+    a11y: 'Vorm van Hilo',
+    names: { hexagon: 'Zeshoek', circle: 'Cirkel', squircle: 'Vierkant', pill: 'Pil', arch: 'Boog', drop: 'Druppel', triangle: 'Driehoek', cloud: 'Wolk', clover: 'Klaver' },
+  },
   familyBook: {
     tab: 'Boek',
     title: 'Boek',
@@ -511,6 +519,7 @@ export const nl: Strings = {
   },
 
   settings: {
+    hiloShape: 'Vorm van Hilo',
     title: 'Instellingen',
     talk: 'Het praatje',
     noTime: 'Geen tijd',

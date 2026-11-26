@@ -84,7 +84,8 @@ export default function ConsentScreen() {
               onPress={async () => {
                 // The screen just promised "Hilo te avisará": ask for notifications now, when it makes sense
                 await askForReminders();
-                router.replace('/home');
+                // v2: first she picks the shape of her Hilo
+                router.replace('/choose-hilo');
               }}
             />
           </View>

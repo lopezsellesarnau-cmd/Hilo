@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type AccessibilityActionEvent } from 'react-native';
 import Animated, {
   interpolate,
@@ -23,7 +23,7 @@ import { colors, fontWeight } from '@/theme';
  * Same props as ChoiceChips, so it drops in where the chips were.
  */
 
-type Option<T extends string> = { value: T; label: string };
+type Option<T extends string> = { value: T; label: string; icon?: ReactNode };
 
 type Props<T extends string> = {
   options: readonly Option<T>[];
@@ -37,17 +37,21 @@ type Props<T extends string> = {
   background?: string;
   /** Size of the labels. Default 34. */
   fontSize?: number;
+  /** The wheel's height, in rows. Default 3.4. */
+  rows?: number;
 };
 
 const ROWS = 3.4; // the wheel's height, in rows
 const STEP = 24; // degrees between two rows on the wheel
 
-export function WheelPicker<T extends string>({ options, value, onChange, label, itemHeight = 60, background = colors.background, fontSize = 34 }: Props<T>) {
+export function WheelPicker<T extends string>({ options, value, onChange, label, itemHeight = 60, background = colors.background, fontSize = 34, rows = ROWS }: Props<T>) {
   const h = itemHeight;
-  const height = Math.round(h * ROWS);
+  const height = Math.round(h * rows);
   const pad = (height - h) / 2;
   const index = Math.max(0, options.findIndex((o) => o.value === value));
   const reduceMotion = useReducedMotion();
+  // only the number goes into the scroll worklet (the options can hold React elements, which can't)
+  const count = options.length;
 
   const ref = useAnimatedRef<Animated.ScrollView>();
   const y = useSharedValue(index * h);
@@ -77,7 +81,7 @@ export function WheelPicker<T extends string>({ options, value, onChange, label,
       y.value = e.contentOffset.y;
       // a light tick as each option passes the middle, like the iOS picker
       const mid = Math.round(e.contentOffset.y / h);
-      if (mid !== passing.value && mid >= 0 && mid < options.length) {
+      if (mid !== passing.value && mid >= 0 && mid < count) {
         passing.value = mid;
         runOnJS(tick)();
       }
@@ -126,7 +130,7 @@ export function WheelPicker<T extends string>({ options, value, onChange, label,
         contentOffset={{ x: 0, y: index * h }}
         contentContainerStyle={{ paddingVertical: pad }}>
         {options.map((o, i) => (
-          <Row key={o.value} label={o.label} i={i} h={h} y={y} spinning={spinning} fontSize={fontSize} />
+          <Row key={o.value} label={o.label} icon={o.icon} i={i} h={h} y={y} spinning={spinning} fontSize={fontSize} />
         ))}
       </Animated.ScrollView>
       {/* the top and bottom fade away */}
@@ -136,7 +140,7 @@ export function WheelPicker<T extends string>({ options, value, onChange, label,
   );
 }
 
-function Row({ label, i, h, y, spinning, fontSize }: { label: string; i: number; h: number; y: SharedValue<number>; spinning: SharedValue<number>; fontSize: number }) {
+function Row({ label, icon, i, h, y, spinning, fontSize }: { label: string; icon?: ReactNode; i: number; h: number; y: SharedValue<number>; spinning: SharedValue<number>; fontSize: number }) {
   const style = useAnimatedStyle(() => {
     const d = i - y.value / h; // rows from the middle
     const near = Math.max(0, 1 - Math.abs(d));
@@ -149,9 +153,16 @@ function Row({ label, i, h, y, spinning, fontSize }: { label: string; i: number;
   });
   return (
     <Animated.View style={[styles.row, { height: h }, style]}>
-      <Text style={[styles.label, { fontSize }]} numberOfLines={1}>
-        {label}
-      </Text>
+      {icon ? (
+        <>
+          {icon}
+          <Text style={styles.iconLabel}>{label}</Text>
+        </>
+      ) : (
+        <Text style={[styles.label, { fontSize }]} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
     </Animated.View>
   );
 }
@@ -160,4 +171,5 @@ const styles = StyleSheet.create({
   row: { alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 34, fontWeight: fontWeight.bold, letterSpacing: -1, color: colors.ink, fontVariant: ['tabular-nums'] },
   fade: { position: 'absolute', left: 0, right: 0 },
+  iconLabel: { marginTop: 8, fontSize: 16, fontWeight: fontWeight.semibold, color: colors.muted },
 });

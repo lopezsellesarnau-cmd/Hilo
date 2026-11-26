@@ -423,6 +423,14 @@ export const en: Strings = {
     deleteSure: 'Delete?',
     deleted: 'Visit deleted',
   },
+  chooseHilo: {
+    title: 'Pick\nyour Hilo.',
+    titleFamily: 'Their Hilo.',
+    hint: 'Spin it. You can change it any time.',
+    ok: 'This one',
+    a11y: "Hilo's shape",
+    names: { hexagon: 'Hexagon', circle: 'Circle', squircle: 'Square', pill: 'Pill', arch: 'Arch', drop: 'Drop', triangle: 'Triangle', cloud: 'Cloud', clover: 'Clover' },
+  },
   familyBook: {
     tab: 'Book',
     title: 'Book',
@@ -507,6 +515,7 @@ export const en: Strings = {
   },
 
   settings: {
+    hiloShape: "Hilo's shape",
     title: 'Settings',
     talk: 'The chat',
     noTime: 'No time',
