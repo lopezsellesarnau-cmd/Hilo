@@ -106,9 +106,16 @@ async function openBytes(doc: Doc) {
   return unlock(new Uint8Array(await res.arrayBuffer()), doc.key);
 }
 
+// Photos already unlocked this session (in memory only)
+const images = new Map<string, string>();
+
 /** A photo, ready for <Image> (stays in memory, never on disk) */
 export async function imageUri(doc: Doc) {
-  return `data:${doc.meta.mime};base64,${to_base64(await openBytes(doc), base64_variants.ORIGINAL)}`;
+  const known = images.get(doc.id);
+  if (known) return known;
+  const uri = `data:${doc.meta.mime};base64,${to_base64(await openBytes(doc), base64_variants.ORIGINAL)}`;
+  images.set(doc.id, uri);
+  return uri;
 }
 
 /** A PDF: opened into a temporary file and shown with the system's viewer; the file is removed after */
@@ -144,5 +151,6 @@ export async function deleteDocument(doc: Doc) {
   if (error) return false;
   await supabase.storage.from(BUCKET).remove([doc.path]);
   cache = cache.filter((d) => d.id !== doc.id);
+  images.delete(doc.id);
   return true;
 }

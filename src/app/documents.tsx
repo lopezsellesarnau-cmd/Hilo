@@ -4,13 +4,14 @@ import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, Text
 import Animated, { FadeIn, FadeInDown, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CardSwap } from '@/components/card-swap';
 import { DocDrop } from '@/components/doc-drop';
 import { LiveBot } from '@/components/live-bot';
 import { PressScale } from '@/components/press-scale';
 import { toast } from '@/components/toast';
 import { WideFrame } from '@/components/wide-split';
 import { dateLocale, t } from '@/i18n';
-import { docKind, listDocuments, type Doc } from '@/lib/documents';
+import { docKind, imageUri, listDocuments, type Doc } from '@/lib/documents';
 import { approveDevice, askForAccess, createVault, recoverWithCode, removeDevice, vaultState, type Device, type VaultState } from '@/lib/vault';
 import { colors, fontWeight } from '@/theme';
 
@@ -83,6 +84,8 @@ export default function DocumentsScreen() {
       load();
     });
   };
+
+  const openDoc = (id: string) => router.push({ pathname: '/document/[id]', params: { id } });
 
   const layout = reduce ? undefined : LinearTransition.springify().damping(18);
   const enter = reduce ? undefined : FadeInDown.springify().damping(16);
@@ -190,6 +193,24 @@ export default function DocumentsScreen() {
               <Text style={styles.big} accessibilityRole="header">
                 {text.title}
               </Text>
+              {docs?.length ? (
+                <View style={styles.stack}>
+                  <CardSwap
+                    items={docs.map((d) => ({
+                      id: d.id,
+                      title: d.meta.title,
+                      sub: when(d.createdAt),
+                      tag: docKind(d) === 'PDF' ? 'PDF' : text.photoTag,
+                      loadImage: docKind(d) === 'PDF' ? undefined : () => imageUri(d),
+                    }))}
+                    onOpen={openDoc}
+                    hint={text.swapHint}
+                    nextLabel={text.nextDoc}
+                  />
+                  {docs.length > 1 ? <Text style={styles.swipe}>{text.swipe}</Text> : null}
+                </View>
+              ) : null}
+
               <View style={styles.drop}>
                 <DocDrop onAdded={loadDocs} />
               </View>
@@ -198,11 +219,7 @@ export default function DocumentsScreen() {
               {docs && !docs.length ? <Text style={styles.empty}>{text.empty}</Text> : null}
               {docs?.map((d) => (
                 <Animated.View key={d.id} entering={enter} layout={layout}>
-                  <Pressable
-                    onPress={() => router.push({ pathname: '/document/[id]', params: { id: d.id } })}
-                    accessibilityRole="button"
-                    accessibilityLabel={d.meta.title}
-                    style={({ pressed }) => [styles.doc, pressed && styles.docPressed]}>
+                  <Pressable onPress={() => openDoc(d.id)} accessibilityRole="button" accessibilityLabel={d.meta.title} style={({ pressed }) => [styles.doc, pressed && styles.docPressed]}>
                     <View style={[styles.docTag, docKind(d) === 'PDF' && styles.docTagDark]}>
                       <Text style={[styles.docTagText, docKind(d) === 'PDF' && styles.docTagTextDark]}>{docKind(d) === 'PDF' ? 'PDF' : text.photoTag}</Text>
                     </View>
@@ -211,7 +228,7 @@ export default function DocumentsScreen() {
                         {d.meta.title}
                       </Text>
                       <Text style={styles.deviceSub}>
-                        {new Date(d.createdAt).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' })} · {size(d.size)}
+                        {when(d.createdAt)} · {size(d.size)}
                       </Text>
                     </View>
                     <Text style={styles.chev}>›</Text>
@@ -248,6 +265,7 @@ export default function DocumentsScreen() {
   );
 }
 
+const when = (iso: string) => new Date(iso).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short', year: 'numeric' });
 const size = (b: number) => (b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB`);
 
 const styles = StyleSheet.create({
@@ -271,6 +289,8 @@ const styles = StyleSheet.create({
   codeInput: { height: 58, borderRadius: 29, paddingHorizontal: 20, fontSize: 17, fontWeight: fontWeight.bold, letterSpacing: 1, color: colors.ink, backgroundColor: colors.surface, fontFamily: 'Menlo' },
   label: { marginTop: 8, marginBottom: 4, fontSize: 13, fontWeight: fontWeight.semibold, letterSpacing: 1, color: colors.muted },
   drop: { marginBottom: 28 },
+  stack: { marginTop: 4, marginBottom: 32, alignItems: 'center' },
+  swipe: { marginTop: 18, fontSize: 14, fontWeight: fontWeight.semibold, color: colors.muted },
   labelGap: { marginTop: 36 },
   empty: { paddingVertical: 14, fontSize: 16, fontWeight: fontWeight.semibold, color: colors.muted },
   doc: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(0,0,0,0.12)' },
