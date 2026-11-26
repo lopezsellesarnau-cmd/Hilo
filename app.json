@@ -20,7 +20,7 @@
           "UIInterfaceOrientationLandscapeLeft",
           "UIInterfaceOrientationLandscapeRight"
         ],
-        "NSPhotoLibraryUsageDescription": "Hilo no usa tus fotos. Si algún día lo necesita, te lo preguntará antes."
+        "NSPhotoLibraryUsageDescription": "Para añadir fotos a las historias de su libro. Solo las ve tu familia."
       },
       "requireFullScreen": true,
       "buildNumber": "25"
@@ -41,6 +41,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Para añadir fotos a las historias de su libro. Solo las ve tu familia.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-camera",
         {

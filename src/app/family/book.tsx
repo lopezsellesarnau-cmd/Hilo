@@ -102,7 +102,7 @@ export default function FamilyBookScreen() {
             key={items.length}
             items={items}
             start={firstNew >= 0 ? firstNew : items.length - 1}
-            onOpen={(i) => (chapters[i] ? router.push({ pathname: '/review/[id]', params: { id: chapters[i].id } }) : undefined)}
+            onOpen={(i) => router.push({ pathname: '/review/[id]', params: { id: chapters[i]?.id ?? items[i].id } })}
             label={text.herBook}
           />
         </View>

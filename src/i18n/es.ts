@@ -448,6 +448,17 @@ export const es = {
     toastApproved: (name: string) => `En el libro de ${name}`,
     toastDraft: (name: string) => `Quitado del libro de ${name}`,
     toastDeleted: 'Capítulo borrado',
+    inWords: (date: string) => `En sus palabras · contado el ${date}`,
+    checkTitle: 'Revisa\nesta.',
+    unsure: 'Hilo no está seguro de estas palabras',
+    fixHint: 'Toca una para corregirla',
+    fixLabel: (word: string) => `Corregir «${word}»`,
+    fixDone: 'Listo',
+    addToBook: 'Añadir a su libro',
+    addPhoto: 'Añadir una foto',
+    photoHint: (name: string) => `De ese día, de ese lugar o de quien sale en la historia. Solo la ve la familia de ${name}.`,
+    uploading: 'Subiendo',
+    removePhoto: 'Quitar la foto',
   },
 
   // A new family member, invited by someone already in Hilo

@@ -444,6 +444,17 @@ export const nl: Strings = {
     toastApproved: (name: string) => `In het boek van ${name}`,
     toastDraft: (name: string) => `Uit het boek van ${name} gehaald`,
     toastDeleted: 'Hoofdstuk verwijderd',
+    inWords: (date: string) => `In hun woorden · verteld op ${date}`,
+    checkTitle: 'Lees\ndeze na.',
+    unsure: 'Hilo wist deze woorden niet zeker',
+    fixHint: 'Tik erop om te verbeteren',
+    fixLabel: (word: string) => `"${word}" verbeteren`,
+    fixDone: 'Klaar',
+    addToBook: 'Aan hun boek toevoegen',
+    addPhoto: 'Een foto toevoegen',
+    photoHint: (name: string) => `Van die dag, die plek of iemand uit het verhaal. Alleen de familie van ${name} ziet hem.`,
+    uploading: 'Uploaden',
+    removePhoto: 'Foto verwijderen',
   },
 
   join: {

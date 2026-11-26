@@ -52,6 +52,9 @@ export type Draft = Omit<Chapter, 'number'> & {
   /** Words of the story that don't appear in what she said: the family checks them */
   unheardWords: string[];
   createdAt: string;
+  familyId: string;
+  /** Storage paths in 'chapter-photos' */
+  photos: string[];
 };
 
 /** The family's view of the book: every chapter of their senior, drafts included (RLS), newest first */
@@ -61,14 +64,20 @@ export async function loadFamilyBook(): Promise<{ name: string; chapters: Draft[
 
   const { data, error } = await supabase
     .from('chapters')
-    .select('id, title, quote, paragraphs, status, unheard_words, created_at')
+    .select('id, title, quote, paragraphs, status, unheard_words, created_at, family_id, photos')
     .eq('person_id', senior.id)
     .order('created_at', { ascending: false });
   if (error) return { error: t.common.loadFailed };
 
   return {
     name: senior.display_name,
-    chapters: data.map(({ unheard_words, created_at, ...c }) => ({ ...c, unheardWords: unheard_words, createdAt: created_at })),
+    chapters: data.map(({ unheard_words, created_at, family_id, photos, ...c }) => ({
+      ...c,
+      unheardWords: unheard_words,
+      createdAt: created_at,
+      familyId: family_id,
+      photos: photos ?? [],
+    })),
   };
 }
 
@@ -85,4 +94,39 @@ export async function setChapterStatus(id: string, status: 'draft' | 'approved')
 export async function deleteChapter(id: string) {
   const { error } = await supabase.from('chapters').delete().eq('id', id);
   return !error;
+}
+
+/** The family fixed words Hilo wasn't sure of: the new text, and the words still to check */
+export async function saveChapterText(id: string, paragraphs: string[], unheardWords: string[]) {
+  const { error } = await supabase.from('chapters').update({ paragraphs, unheard_words: unheardWords }).eq('id', id);
+  return !error;
+}
+
+const PHOTOS = 'chapter-photos';
+
+/** Uploads one photo from the phone to the story's folder; returns its path */
+export async function uploadChapterPhoto(familyId: string, chapterId: string, uri: string, mime = 'image/jpeg') {
+  const body = await (await fetch(uri)).arrayBuffer();
+  const ext = mime === 'image/png' ? 'png' : mime === 'image/heic' ? 'heic' : 'jpg';
+  const path = `${familyId}/${chapterId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from(PHOTOS).upload(path, body, { contentType: mime });
+  return error ? null : path;
+}
+
+/** Saves the story's list of photos */
+export async function setChapterPhotos(id: string, photos: string[]) {
+  const { error } = await supabase.from('chapters').update({ photos }).eq('id', id);
+  return !error;
+}
+
+/** Removes a photo file (after taking it off the list) */
+export async function removeChapterPhoto(path: string) {
+  await supabase.storage.from(PHOTOS).remove([path]);
+}
+
+/** Short-lived links to show the photos (private bucket) */
+export async function photoLinks(paths: string[]): Promise<Record<string, string>> {
+  if (!paths.length) return {};
+  const { data } = await supabase.storage.from(PHOTOS).createSignedUrls(paths, 3600);
+  return Object.fromEntries((data ?? []).flatMap((d) => (d.signedUrl && d.path ? [[d.path, d.signedUrl] as const] : [])));
 }

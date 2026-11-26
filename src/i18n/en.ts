@@ -440,6 +440,17 @@ export const en: Strings = {
     toastApproved: (name: string) => `In ${name}'s book`,
     toastDraft: (name: string) => `Taken out of ${name}'s book`,
     toastDeleted: 'Chapter deleted',
+    inWords: (date: string) => `In their words · told on ${date}`,
+    checkTitle: 'Check\nthis one.',
+    unsure: "Hilo wasn't sure of these words",
+    fixHint: 'Tap one to fix it',
+    fixLabel: (word: string) => `Fix "${word}"`,
+    fixDone: 'Done',
+    addToBook: 'Add to their book',
+    addPhoto: 'Add a photo',
+    photoHint: (name: string) => `Of that day, that place or someone in the story. Only ${name}'s family sees it.`,
+    uploading: 'Uploading',
+    removePhoto: 'Remove the photo',
   },
 
   join: {
